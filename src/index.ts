@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 import http from "node:http";
 import readline from "node:readline";
 import dotenv from "dotenv";

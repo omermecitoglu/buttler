@@ -31,7 +31,7 @@
   "license": "MIT",
   "main": "bin/index.js",
   "bin": {
-    "buttler": "./bin/index.js"
+    "buttler": "./bin/cli.js"
   },
   "files": [
     "bin/"
@@ -48,6 +48,7 @@
   },
   "dependencies": {
     "@figma/nodegit": "^0.28.0-figma.6",
+    "commander": "^12.1.0",
     "dockerode": "^4.0.2",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
