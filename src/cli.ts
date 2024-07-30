@@ -5,8 +5,6 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { Command } from "commander";
 
-const program = new Command();
-
 async function checkFile(filePath: string) {
   try {
     await fs.access(filePath);
@@ -24,14 +22,16 @@ function spawnChildProcess(detached: boolean) {
     detached,
     stdio: detached ? "ignore" : "inherit",
     env: {
+      ...process.env,
       PORT: "2083",
+      WEBHOOK_SECRET: "buttler",
     },
   });
   if (detached) child.unref();
   return child.pid;
 }
 
-program.command("start").description("starts the application").action(async () => {
+async function start() {
   const pidFilePath = resolve(process.cwd(), "PID");
   const exists = await checkFile(pidFilePath);
   if (exists) {
@@ -40,9 +40,9 @@ program.command("start").description("starts the application").action(async () =
   const pid = spawnChildProcess(true);
   await fs.writeFile(pidFilePath, `${pid}`, "utf8");
   console.log("the application has started");
-});
+}
 
-program.command("stop").description("stops the application").action(async () => {
+async function stop() {
   const pidFilePath = resolve(process.cwd(), "PID");
   const exists = await checkFile(pidFilePath);
   if (!exists) {
@@ -50,10 +50,8 @@ program.command("stop").description("stops the application").action(async () => 
   }
   const content = await fs.readFile(pidFilePath, "utf-8");
   const pid = parseInt(content);
-  if (isNaN(pid)) {
-    return console.error("Invalid PID");
-  }
   try {
+    if (isNaN(pid)) throw new Error("Invalid PID");
     process.kill(pid);
     console.log("the application is stopped");
   } catch {
@@ -61,6 +59,15 @@ program.command("stop").description("stops the application").action(async () => 
   } finally {
     await fs.unlink(pidFilePath);
   }
-});
+}
 
+async function restart() {
+  await stop();
+  await start();
+}
+
+const program = new Command();
+program.command("start").description("starts the application").action(start);
+program.command("stop").description("stops the application").action(stop);
+program.command("restart").description("restarts the application").action(restart);
 program.parse(process.argv);
