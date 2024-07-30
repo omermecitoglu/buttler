@@ -1,4 +1,4 @@
-import nodegit from "@figma/nodegit";
+import nodegit from "nodegit";
 
 export function cloneRepo(repoUrl: string, targetPath: string) {
   return nodegit.Clone(repoUrl, targetPath, {

@@ -38,7 +38,7 @@
   ],
   "type": "module",
   "engines": {
-    "node": "^20.0.0"
+    "node": "^18.0.0"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
@@ -47,11 +47,11 @@
     "build": "tsc"
   },
   "dependencies": {
-    "@figma/nodegit": "^0.28.0-figma.6",
     "commander": "^12.1.0",
     "dockerode": "^4.0.2",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
+    "nodegit": "^0.28.0-alpha.28",
     "tar-fs": "^3.0.6"
   },
   "devDependencies": {
