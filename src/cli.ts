@@ -31,13 +31,16 @@ function spawnChildProcess(detached: boolean) {
   return child.pid;
 }
 
-async function start() {
+async function start(development: boolean) {
+  if (development) {
+    await stop();
+  }
   const pidFilePath = resolve(process.cwd(), "PID");
   const exists = await checkFile(pidFilePath);
   if (exists) {
     return console.warn("the application is already running");
   }
-  const pid = spawnChildProcess(true);
+  const pid = spawnChildProcess(!development);
   await fs.writeFile(pidFilePath, `${pid}`, "utf8");
   console.log("the application has started");
 }
@@ -63,11 +66,12 @@ async function stop() {
 
 async function restart() {
   await stop();
-  await start();
+  await start(false);
 }
 
 const program = new Command();
-program.command("start").description("starts the application").action(start);
+program.command("dev").description("starts the application").action(() => start(true));
+program.command("start").description("starts the application").action(() => start(false));
 program.command("stop").description("stops the application").action(stop);
 program.command("restart").description("restarts the application").action(restart);
 program.parse(process.argv);
