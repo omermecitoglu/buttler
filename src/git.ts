@@ -1,14 +1,14 @@
-import nodegit from "nodegit";
+import simpleGit from "simple-git";
 
-export function cloneRepo(repoUrl: string, targetPath: string) {
-  return nodegit.Clone(repoUrl, targetPath, {
-    fetchOpts: {
-      callbacks: {
-        certificateCheck: () => 0,
-        credentials: (_url: string, userName: string) => {
-          return nodegit.Credential.sshKeyFromAgent(userName);
-        },
-      },
-    },
+export async function cloneRepo(repoUrl: string, targetPath: string) {
+  const git = simpleGit({
+    baseDir: targetPath,
+    binary: "git",
+    maxConcurrentProcesses: 6,
+  });
+  await git.clone(repoUrl, targetPath, {
+    "--depth": "1",
+    "--single-branch": null,
+    "--branch": "main",
   });
 }
