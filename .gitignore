@@ -1,6 +1,6 @@
 node_modules
 /bin
-/storage
-/services.json
+/ui
+.next
+next-env.d.ts
 .env*.local
-/PID

@@ -4,6 +4,7 @@
     "project": ["./tsconfig.json"]
   },
   "extends": [
+    "plugin:@next/next/recommended",
     "@omer-x/eslint-config",
     "@omer-x/eslint-config/typescript"
   ],
