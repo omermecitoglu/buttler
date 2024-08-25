@@ -29,12 +29,12 @@
     "url": "https://omermecitoglu.github.io"
   },
   "license": "MIT",
-  "main": "bin/index.js",
   "bin": {
-    "buttler": "./bin/cli.js"
+    "buttler": "bin/cli.js"
   },
   "files": [
-    "bin/"
+    "bin/",
+    "ui/"
   ],
   "type": "module",
   "engines": {
@@ -43,11 +43,13 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "prebuild": "ts-unused-exports tsconfig.json --excludePathsFromReport='app;.config'",
+    "build:cli": "tsup",
     "lint": "next lint",
     "lint:fix": "next lint --fix",
     "dev": "next dev",
     "build:ui": "next build",
-    "postbuild:ui": "rimraf ui && copyfiles -u 2 -a '.next/standalone/**/*' ui && copyfiles -a '.next/static/**/*' ui && copyfiles -a 'public/**/*' ui"
+    "postbuild:ui": "rimraf ui && copyfiles -u 2 -a '.next/standalone/**/*' ui && copyfiles -a '.next/static/**/*' ui && copyfiles -a 'public/**/*' ui && rimraf ui/node_modules",
+    "build": "npm run build:cli && npm run build:ui"
   },
   "dependencies": {
     "@fortawesome/fontawesome-svg-core": "^6.6.0",
@@ -78,6 +80,7 @@
     "eslint": "^8.57.0",
     "sass": "^1.77.8",
     "ts-unused-exports": "^10.1.0",
+    "tsup": "^8.2.4",
     "tsx": "^4.16.2",
     "typescript": "^5.5.4"
   }

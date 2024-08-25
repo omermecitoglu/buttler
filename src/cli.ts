@@ -17,7 +17,7 @@ async function checkFile(filePath: string) {
 function spawnChildProcess(detached: boolean) {
   const __filename = fileURLToPath(import.meta.url);
   const __dirname = dirname(__filename);
-  const appPath = resolve(__dirname, "index.js");
+  const appPath = resolve(__dirname, "../ui/server.js");
   const child = spawn("node", [appPath], {
     detached,
     stdio: detached ? "ignore" : "inherit",
