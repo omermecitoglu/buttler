@@ -66,13 +66,15 @@
     "dockerode": "^4.0.2",
     "dotenv": "^16.4.5",
     "drizzle-orm": "^0.33.0",
+    "drizzle-zod": "^0.5.1",
     "express": "^4.19.2",
     "next": "^14.2.6",
     "react": "^18.3.1",
     "react-bootstrap": "^2.10.4",
     "react-dom": "^18.3.1",
     "simple-git": "^3.25.0",
-    "tar-fs": "^3.0.6"
+    "tar-fs": "^3.0.6",
+    "zod": "^3.23.8"
   },
   "devDependencies": {
     "@next/eslint-plugin-next": "^14.2.6",

@@ -1,5 +1,13 @@
 {
   "version": "7",
   "dialect": "sqlite",
-  "entries": []
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1724577163622,
+      "tag": "0000_mysterious_reptil",
+      "breakpoints": true
+    }
+  ]
 }
