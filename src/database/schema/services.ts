@@ -3,6 +3,7 @@ import { text } from "drizzle-orm/sqlite-core/columns";
 import { index } from "drizzle-orm/sqlite-core/indexes";
 import { sqliteTable } from "drizzle-orm/sqlite-core/table";
 import { environmentVariables } from "./environment-variables";
+import { ports } from "./ports";
 
 export const services = sqliteTable("services", {
   id: text("id").primaryKey(),
@@ -21,4 +22,5 @@ export const services = sqliteTable("services", {
 
 export const relationsOfServices = relations(services, ({ many }) => ({
   environmentVariables: many(environmentVariables),
+  ports: many(ports),
 }));
