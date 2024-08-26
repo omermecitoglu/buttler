@@ -16,6 +16,7 @@ type VariableEditorProps = {
   type?: "number" | "text",
   icon: IconProp,
   keyPlaceholder?: string,
+  valuePlaceholder?: string,
   name: string,
   defaultValue?: Record<string, string>,
 };
@@ -25,6 +26,7 @@ const VariableEditor = ({
   type = "text",
   icon,
   keyPlaceholder,
+  valuePlaceholder,
   name,
   defaultValue = {},
 }: VariableEditorProps) => {
@@ -77,6 +79,7 @@ const VariableEditor = ({
               type={type}
               value={item.value}
               onChange={e => updateItemValue(item.id, e.target.value)}
+              placeholder={valuePlaceholder}
               required
             />
             <Button variant="danger" onClick={() => removeItem(item.id)}>

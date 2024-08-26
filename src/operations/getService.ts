@@ -9,6 +9,12 @@ export default function getService(db: typeof database, serviceId: string) {
           value: true,
         },
       },
+      ports: {
+        columns: {
+          external: true,
+          internal: true,
+        },
+      },
     },
     where: (table, { eq }) => eq(table.id, serviceId),
   });

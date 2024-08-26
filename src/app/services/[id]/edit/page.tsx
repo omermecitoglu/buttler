@@ -25,6 +25,7 @@ const EditServicePage = async ({
   const service = await getService(db, params.id);
   if (!service) notFound();
   const environmentVariables = Object.fromEntries(service.environmentVariables.map(({ key, value }) => [key, value]));
+  const ports = Object.fromEntries(service.ports.map(({ external, internal }) => [external, internal.toString()]));
 
   return (
     <>
@@ -44,7 +45,10 @@ const EditServicePage = async ({
               title="Ports"
               type="number"
               icon={faPlug}
+              keyPlaceholder="external"
+              valuePlaceholder="internal"
               name="ports"
+              defaultValue={ports}
             />
           </Col>
           <Col md="4">
