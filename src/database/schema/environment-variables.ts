@@ -1,18 +1,15 @@
-import { relations, sql } from "drizzle-orm";
+import { relations } from "drizzle-orm";
 import { text } from "drizzle-orm/sqlite-core/columns";
-import { index } from "drizzle-orm/sqlite-core/indexes";
+import { primaryKey } from "drizzle-orm/sqlite-core/primary-keys";
 import { sqliteTable } from "drizzle-orm/sqlite-core/table";
 import { services } from "./services";
 
 export const environmentVariables = sqliteTable("environment_variables", {
-  id: text("id").primaryKey(),
-  name: text("name").notNull(),
-  value: text("value").notNull(),
   serviceId: text("service_id").notNull().references(() => services.id, { onDelete: "cascade", onUpdate: "restrict" }),
-  createdAt: text("created_at").notNull().default(sql`(CURRENT_TIMESTAMP)`),
-  updatedAt: text("updated_at").notNull().default(sql`(CURRENT_TIMESTAMP)`),
+  key: text("key").notNull(),
+  value: text("value").notNull(),
 }, table => ({
-  createdAtIdx: index("env_created_at_index").on(table.createdAt),
+  pk: primaryKey({ columns: [table.serviceId, table.key] }),
 }));
 
 export const relationsOfEnvironmentVariables = relations(environmentVariables, ({ one }) => ({
