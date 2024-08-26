@@ -25,7 +25,7 @@ export async function create(formData: FormData) {
 export async function update(id: string, _: unknown, formData: FormData): Promise<Record<string, string>> {
   const env = JSON.parse(formData.get("env") as string) as Record<string, string>;
   const ports = JSON.parse(formData.get("ports") as string) as Record<string, string>;
-  const patch = ServicePatchDTO.parse(getData(formData));
+  const patch = ServicePatchDTO.omit({ repo: true }).parse(getData(formData));
   await db.transaction(async tx => {
     await updateService(db, id, patch);
     await syncEnvironmentVariables(tx, id, env);

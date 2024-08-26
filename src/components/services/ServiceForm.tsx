@@ -23,6 +23,7 @@ const ServiceForm = ({
       name="repo"
       required
       defaultValue={data?.repo}
+      readOnly={(data?.repo ?? "").length > 0}
     />
   </>
 );
