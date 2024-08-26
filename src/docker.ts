@@ -63,7 +63,7 @@ export async function createContainer(
     Image: imageId,
     Env: Object.entries(env).map(([key, value]) => `${key}=${value}`),
     HostConfig: {
-      PortBindings: Object.fromEntries(Object.entries(ports).map(([internal, external]) => {
+      PortBindings: Object.fromEntries(Object.entries(ports).map(([external, internal]) => {
         return [`${internal}/tcp`, [{ HostPort: external }]];
       })),
     },
