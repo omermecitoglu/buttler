@@ -6,6 +6,12 @@ import { sqliteTable } from "drizzle-orm/sqlite-core/table";
 export const services = sqliteTable("services", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
+  repo: text("repo").notNull(),
+  status: text("status", {
+    enum: ["idle", "cloning", "cloned", "building", "built", "ready"],
+  }).notNull().default("idle"),
+  imageId: text("image_id"),
+  containerId: text("container_id"),
   createdAt: text("created_at").notNull().default(sql`(CURRENT_TIMESTAMP)`),
   updatedAt: text("updated_at").notNull().default(sql`(CURRENT_TIMESTAMP)`),
 }, table => ({

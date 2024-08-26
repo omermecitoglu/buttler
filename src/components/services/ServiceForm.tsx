@@ -18,6 +18,12 @@ const ServiceForm = ({
       autoFocus
       defaultValue={data?.name}
     />
+    <Input
+      label="Git Repository"
+      name="repo"
+      required
+      defaultValue={data?.repo}
+    />
   </>
 );
 
