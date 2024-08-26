@@ -10,6 +10,13 @@ import { getData } from "~/utils/form";
 export async function create(formData: FormData) {
   const data = NewServiceDTO.parse(getData(formData));
   await createService(db, data);
+  fetch(new URL("/work", `http://localhost:${process.env.PORT}`), {
+    method: "POST",
+    body: JSON.stringify({
+      secret: process.env.WEBHOOK_SECRET,
+      recover: true,
+    }),
+  });
   redirect("/services");
 }
 

@@ -12,5 +12,13 @@ export async function register() {
       migrationsFolder: path.resolve(process.cwd(), "drizzle"),
     });
     sqlite.close();
+
+    fetch(new URL("/work", `http://localhost:${process.env.PORT}`), {
+      method: "POST",
+      body: JSON.stringify({
+        secret: process.env.WEBHOOK_SECRET,
+        recover: true,
+      }),
+    });
   }
 }

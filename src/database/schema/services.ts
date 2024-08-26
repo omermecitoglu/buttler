@@ -8,7 +8,7 @@ export const services = sqliteTable("services", {
   name: text("name").notNull(),
   repo: text("repo").notNull(),
   status: text("status", {
-    enum: ["idle", "cloning", "cloned", "building", "built", "ready"],
+    enum: ["idle", "cloned", "building", "built", "ready"],
   }).notNull().default("idle"),
   imageId: text("image_id"),
   containerId: text("container_id"),

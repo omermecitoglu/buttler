@@ -1,10 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { findNodes, readNode, saveNode } from "./database.js";
-import { buildImage, createContainer } from "./docker.js";
-import { cloneRepo } from "./git.js";
 
-export type Service = {
+type Service = {
   name: string,
   repo: string,
   env: Record<string, string>,
@@ -13,18 +10,6 @@ export type Service = {
   imageId?: string,
   containerId?: string,
 };
-
-export function getAllServices() {
-  return findNodes<Service>("services");
-}
-
-function getService(id: string) {
-  return readNode<Service>("services", id);
-}
-
-export function saveService(id: string, data: Service) {
-  return saveNode("services", id, data);
-}
 
 async function getRepoPath(serviceId: string) {
   const repoPath = path.resolve(process.cwd(), "storage/repos", serviceId);
@@ -37,7 +22,7 @@ export async function deleteRepo(serviceId: string) {
   await fs.rm(repoPath, { recursive: true, force: true });
 }
 
-export async function prepareService(id: string, data: Service) {
+/* export async function prepareService(id: string, data: Service) {
   console.log("service", `"${id}"`, "is", data.state);
   await saveService(id, data);
   switch (data.state) {
@@ -74,7 +59,7 @@ export async function prepareService(id: string, data: Service) {
       break;
     }
   }
-}
+} */
 
 export async function getPredefinedServices() {
   const filePath = path.resolve(process.cwd(), "services.json");

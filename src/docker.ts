@@ -1,7 +1,7 @@
 import path from "node:path";
 import Docker from "dockerode";
 import tar from "tar-fs";
-import { type Service, deleteRepo } from "./services.js";
+import { deleteRepo } from "./services";
 
 const docker = new Docker();
 
@@ -11,7 +11,6 @@ const streams = {} as Record<string, FixedReadableStream>;
 
 export function buildImage(imageId: string, repoPath: string) {
   const dockerfilePath = path.join(repoPath, "Dockerfile");
-  // Create a tar stream of the directory containing the Dockerfile
   const tarStream = tar.pack(path.dirname(dockerfilePath));
 
   return new Promise<boolean>((resolve, reject) => {
@@ -19,7 +18,13 @@ export function buildImage(imageId: string, repoPath: string) {
       if (err) return reject(err);
       if (!stream) return reject(new Error("no stream"));
       // stream.pipe(process.stdout, { end: true });
-      stream.on("data", () => null);
+      stream.on("data", _buffer => {
+        /* const logData = buffer.toString("utf-8").trim();
+        const parsedData = JSON.parse(logData);
+        if ("stream" in parsedData) {
+          console.log(parsedData.stream.slice(0, -1));
+        } */
+      });
       stream.on("end", () => {
         resolve(true);
       });
@@ -47,13 +52,18 @@ export async function removeImage(imageId: string) {
   await image.remove();
 }
 
-export async function createContainer(service: Service) {
+export async function createContainer(
+  serviceName: string,
+  imageId: string,
+  env: Record<string, string>,
+  ports: Record<string, string>
+) {
   const container = await docker.createContainer({
-    name: service.name,
-    Image: service.imageId,
-    Env: Object.entries(service.env).map(([key, value]) => `${key}=${value}`),
+    name: serviceName,
+    Image: imageId,
+    Env: Object.entries(env).map(([key, value]) => `${key}=${value}`),
     HostConfig: {
-      PortBindings: Object.fromEntries(Object.entries(service.ports).map(([internal, external]) => {
+      PortBindings: Object.fromEntries(Object.entries(ports).map(([internal, external]) => {
         return [`${internal}/tcp`, [{ HostPort: external }]];
       })),
     },

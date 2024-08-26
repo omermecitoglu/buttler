@@ -5,6 +5,10 @@ const nextConfig = {
   experimental: {
     instrumentationHook: true,
   },
+  webpack: config => {
+    config.externals.push("dockerode");
+    return config;
+  },
 };
 
 export default nextConfig;
