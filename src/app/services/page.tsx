@@ -5,6 +5,7 @@ import ModalForm from "@omer-x/bs-ui-kit/form/ModalForm";
 import Link from "next/link";
 import React from "react";
 import { create, destroy } from "~/actions/service";
+import ServiceBadge from "~/components/services/ServiceBadge";
 import ServiceForm from "~/components/services/ServiceForm";
 import db from "~/database";
 import getServices from "~/operations/getServices";
@@ -18,7 +19,7 @@ type ServicesPageProps = {
 const ServicesPage = async ({
   params: _params,
 }: ServicesPageProps) => {
-  const services = await getServices(db, ["id", "name"]);
+  const services = await getServices(db, ["id", "name", "status"]);
 
   return (
     <>
@@ -46,6 +47,10 @@ const ServicesPage = async ({
               header: "Name",
               wrapper: (value, pk) => <Link href={`/services/${pk}`}>{value}</Link>,
               long: true,
+            },
+            status: {
+              header: "Status",
+              wrapper: value => <ServiceBadge status={value} />,
             },
           }}
           editLink={pk => `/services/${pk}/edit?r=list`}
