@@ -1,4 +1,4 @@
-import { and, eq, notInArray } from "drizzle-orm";
+import { and, eq, notInArray, sql } from "drizzle-orm";
 import type database from "~/database";
 import { environmentVariables } from "~/database/schema/environment-variables";
 
@@ -15,8 +15,9 @@ export async function syncEnvironmentVariables(db: typeof database, serviceId: s
       serviceId,
       key,
       value: record[key],
-    }))).onConflictDoNothing({
+    }))).onConflictDoUpdate({
       target: [environmentVariables.serviceId, environmentVariables.key],
+      set: { value: sql`excluded.value` },
     });
   }
 }

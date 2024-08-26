@@ -1,4 +1,4 @@
-import { and, eq, notInArray } from "drizzle-orm";
+import { and, eq, notInArray, sql } from "drizzle-orm";
 import type database from "~/database";
 import { ports } from "~/database/schema/ports";
 
@@ -15,8 +15,9 @@ export async function syncPorts(db: typeof database, serviceId: string, record: 
       serviceId,
       external: parseInt(key),
       internal: parseInt(record[key]),
-    }))).onConflictDoNothing({
+    }))).onConflictDoUpdate({
       target: [ports.serviceId, ports.external],
+      set: { internal: sql`excluded.value` },
     });
   }
 }
