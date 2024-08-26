@@ -24,6 +24,7 @@ const EditServicePage = async ({
 }: EditServicePageProps) => {
   const service = await getService(db, params.id);
   if (!service) notFound();
+  const environmentVariables = Object.fromEntries(service.environmentVariables.map(({ key, value }) => [key, value]));
 
   return (
     <>
@@ -52,6 +53,7 @@ const EditServicePage = async ({
               icon={faTerminal}
               keyPlaceholder="e.g. CLIENT_KEY"
               name="env"
+              defaultValue={environmentVariables}
             />
           </Col>
         </Row>
