@@ -1,12 +1,15 @@
 import { createInsertSchema } from "drizzle-zod";
+import z from "zod";
 import { services } from "~/database/schema/services";
-import type z from "zod";
 
 const baseSchema = createInsertSchema(services, {
   id: schema => schema.id.readonly().describe("Unique identifier of the service"),
   name: schema => schema.name.describe("Name of the service"),
   createdAt: schema => schema.createdAt.readonly().describe("Creation date of the service as an ISO 8601 date string"),
   updatedAt: schema => schema.updatedAt.readonly().describe("Modification date of the service as an ISO 8601 date string"),
+}).extend({
+  environmentVariables: z.record(z.string(), z.string()),
+  ports: z.record(z.string(), z.string()),
 });
 
 export const ServiceDTO = baseSchema.required()
@@ -14,6 +17,8 @@ export const ServiceDTO = baseSchema.required()
 
 export const NewServiceDTO = baseSchema.omit({
   id: true,
+  environmentVariables: true,
+  ports: true,
   createdAt: true,
   updatedAt: true,
 }).describe("Data Transfer Object for creating a new service");
@@ -24,5 +29,6 @@ export const ServicePatchDTO = NewServiceDTO.partial().omit({
 export function testServiceData() {
   return {
     name: "unknown",
+    repo: "unknown-git-repo",
   } satisfies z.infer<typeof NewServiceDTO>;
 }

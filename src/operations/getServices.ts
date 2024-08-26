@@ -7,6 +7,20 @@ const selectSchema = ServiceDTO.keyof();
 
 export default async function getServices<K extends z.infer<typeof selectSchema>>(db: typeof database, select: K[]) {
   const result = await db.query.services.findMany({
+    with: {
+      environmentVariables: {
+        columns: {
+          key: true,
+          value: true,
+        },
+      },
+      ports: {
+        columns: {
+          external: true,
+          internal: true,
+        },
+      },
+    },
     columns: selectColumns(select),
     orderBy: (u, { asc }) => [asc(u.createdAt)],
   });

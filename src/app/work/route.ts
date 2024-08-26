@@ -29,11 +29,13 @@ export async function POST(request: Request) {
     return new Response("Unauthorized", { status: 401 });
   }
 
-  const allServices = await getServices(db, ["id", "name", "repo", "status", "imageId"]);
+  const allServices = await getServices(db, ["id", "name", "repo", "status", "imageId", "environmentVariables", "ports"]);
   const service = allServices.find(s => s.status !== "ready");
 
   if (service) {
     const repoPath = path.resolve(process.cwd(), "storage/repos", service.id);
+    const env = Object.fromEntries(service.environmentVariables.map(({ key, value }) => [key, value]));
+    const ports = Object.fromEntries(service.ports.map(({ external, internal }) => [external, internal.toString()]));
     switch (service.status) {
       case "idle": {
         await fs.mkdir(repoPath, { recursive: true });
@@ -62,7 +64,7 @@ export async function POST(request: Request) {
       }
       case "built": {
         if (!service.imageId) throw new Error("image ID of the service is not defined");
-        const containerId = await createContainer(kebabCase(service.name), service.imageId, {}, {});
+        const containerId = await createContainer(kebabCase(service.name), service.imageId, env, ports);
         await updateService(db, service.id, { status: "ready", containerId });
         break;
       }
