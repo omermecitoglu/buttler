@@ -1,5 +1,6 @@
 "use server";
 import { redirect } from "next/navigation";
+import { startWorking } from "~/core/work";
 import db from "~/database";
 import { removeContainer } from "~/docker";
 import { NewServiceDTO, ServicePatchDTO } from "~/models/service";
@@ -11,20 +12,10 @@ import { syncPorts } from "~/operations/syncPorts";
 import updateService from "~/operations/updateService";
 import { getData } from "~/utils/form";
 
-function startWorking() {
-  return fetch(new URL("/work", `http://localhost:${process.env.PORT}`), {
-    method: "POST",
-    body: JSON.stringify({
-      secret: process.env.WEBHOOK_SECRET,
-      recover: true,
-    }),
-  });
-}
-
 export async function create(formData: FormData) {
   const data = NewServiceDTO.parse(getData(formData));
   await createService(db, data);
-  startWorking();
+  startWorking(false);
   redirect("/services");
 }
 
@@ -46,7 +37,7 @@ export async function update(id: string, _: unknown, formData: FormData): Promis
     await syncEnvironmentVariables(tx, id, env);
     await syncPorts(tx, id, ports);
   });
-  startWorking();
+  startWorking(false);
   redirect("/services");
 }
 
