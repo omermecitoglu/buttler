@@ -32,13 +32,8 @@ const EditServicePage = async ({
       </PageTitle>
       <FormWithState action={update.bind(null, service.id)}>
         <Row className="row-gap-3">
-          <Col md="4" className="d-flex flex-column gap-3">
+          <Col md="6" className="d-flex flex-column gap-3">
             <ServiceForm data={service} />
-            <div>
-              <SubmitButton text="Update" />
-            </div>
-          </Col>
-          <Col md="4">
             <VariableEditor
               title="Ports"
               type="number"
@@ -48,8 +43,11 @@ const EditServicePage = async ({
               name="ports"
               defaultValue={service.ports}
             />
+            <div>
+              <SubmitButton text="Update" />
+            </div>
           </Col>
-          <Col md="4">
+          <Col md="6">
             <VariableEditor
               title="Environment Variables"
               icon={faTerminal}
