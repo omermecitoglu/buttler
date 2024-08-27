@@ -1,7 +1,7 @@
+import { cancelBuild, removeContainer, removeImage } from "~/core/docker";
 import { verifySignature } from "~/core/github";
 import { startWorking } from "~/core/work";
 import db from "~/database";
-import { cancelBuild, removeContainer, removeImage } from "~/docker";
 import getServices from "~/operations/getServices";
 import updateService from "~/operations/updateService";
 

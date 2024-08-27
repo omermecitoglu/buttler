@@ -1,7 +1,7 @@
+import fs from "node:fs/promises";
 import path from "node:path";
 import Docker from "dockerode";
 import tar from "tar-fs";
-import { deleteRepo } from "./services";
 
 const docker = new Docker();
 
@@ -44,7 +44,8 @@ export async function cancelBuild(serviceId: string, imageId: string) {
   const stream = streams[imageId];
   await stream.destroy("UPDATE");
   delete streams[imageId];
-  await deleteRepo(serviceId);
+  const repoPath = path.resolve(process.cwd(), "storage/repos", serviceId);
+  await fs.rm(repoPath, { recursive: true, force: true });
 }
 
 export async function removeImage(imageId: string) {

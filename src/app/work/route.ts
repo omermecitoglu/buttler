@@ -2,7 +2,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { kebabCase } from "change-case";
 import db from "~/database";
-import { buildImage, createContainer } from "~/docker";
+import { buildImage, createContainer } from "~/core/docker";
 import { cloneRepo } from "~/git";
 import getServices from "~/operations/getServices";
 import updateService from "~/operations/updateService";

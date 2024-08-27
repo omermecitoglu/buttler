@@ -1,8 +1,8 @@
 "use server";
 import { redirect } from "next/navigation";
+import { removeContainer } from "~/core/docker";
 import { startWorking } from "~/core/work";
 import db from "~/database";
-import { removeContainer } from "~/docker";
 import { NewServiceDTO, ServicePatchDTO } from "~/models/service";
 import createService from "~/operations/createService";
 import deleteService from "~/operations/deleteService";
