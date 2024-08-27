@@ -21,7 +21,7 @@ type ServicesPageProps = {
 const ServicesPage = async ({
   params: _params,
 }: ServicesPageProps) => {
-  const services = await getServices(db, ["id", "name", "status"]);
+  const services = await getServices(db, ["id", "name", "status", "ports", "environmentVariables"]);
 
   return (
     <>
@@ -53,6 +53,16 @@ const ServicesPage = async ({
             status: {
               header: "Status",
               wrapper: value => <ServiceBadge status={value} />,
+            },
+            ports: {
+              header: "Ports",
+              wrapper: value => value.length,
+              size: "sm",
+            },
+            environmentVariables: {
+              header: "Env. Variables",
+              wrapper: value => value.length,
+              size: "md",
             },
           }}
           editLink={pk => `/services/${pk}/edit?r=list`}
