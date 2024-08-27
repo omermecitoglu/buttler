@@ -42,7 +42,7 @@ export function buildImage(imageId: string, repoPath: string, log: boolean) {
   });
 }
 
-export async function cancelBuild(serviceId: string, imageId: string) {
+async function cancelBuild(serviceId: string, imageId: string) {
   const stream = streams[imageId];
   await stream.destroy("UPDATE");
   delete streams[imageId];
