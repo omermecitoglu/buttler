@@ -1,6 +1,6 @@
-import selectColumns from "~/core/column";
 import type database from "~/database";
 import { BuildImageDTO } from "~/models/build-image";
+import { selectColumns } from "~/utils/column";
 import type { z } from "zod";
 
 const selectSchema = BuildImageDTO.keyof().array().default([]);
