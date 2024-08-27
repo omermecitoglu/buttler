@@ -47,7 +47,7 @@ export async function POST(request: Request) {
         const imageId = crypto.randomUUID();
         await updateService(db, service.id, { status: "building", imageId });
         (async () => {
-          const success = await buildImage(imageId, repoPath);
+          const success = await buildImage(imageId, repoPath, false);
           if (success) {
             await deleteRepo(service.id);
             await updateService(db, service.id, { status: "built", imageId });

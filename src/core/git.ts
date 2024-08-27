@@ -3,20 +3,27 @@ import path from "node:path";
 import simpleGit from "simple-git";
 import env from "./env";
 
-export async function cloneRepo(repoUrl: string, targetPath: string) {
+function getRepoPath(serviceId: string) {
+  return path.resolve(env.CURRENT_WORKING_DIRECTORY, "storage/repos", serviceId);
+}
+
+export async function cloneRepo(repoUrl: string, serviceId: string) {
+  await deleteRepo(serviceId);
+  const repoPath = getRepoPath(serviceId);
+  await fs.mkdir(repoPath, { recursive: true });
   const git = simpleGit({
-    baseDir: targetPath,
+    baseDir: repoPath,
     binary: "git",
     maxConcurrentProcesses: 6,
   });
-  await git.clone(repoUrl, targetPath, {
+  await git.clone(repoUrl, repoPath, {
     "--depth": "1",
     "--single-branch": null,
     "--branch": "main",
   });
+  return repoPath;
 }
 
 export async function deleteRepo(serviceId: string) {
-  const repoPath = path.resolve(env.CURRENT_WORKING_DIRECTORY, "storage/repos", serviceId);
-  await fs.rm(repoPath, { recursive: true, force: true });
+  await fs.rm(getRepoPath(serviceId), { recursive: true, force: true });
 }

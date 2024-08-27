@@ -9,7 +9,7 @@ type FixedReadableStream = NodeJS.ReadableStream & { destroy: (reason: unknown) 
 
 const streams = {} as Record<string, FixedReadableStream>;
 
-export function buildImage(imageId: string, repoPath: string) {
+export function buildImage(imageId: string, repoPath: string, log: boolean) {
   const dockerfilePath = path.join(repoPath, "Dockerfile");
   const tarStream = tar.pack(path.dirname(dockerfilePath));
 
@@ -18,12 +18,14 @@ export function buildImage(imageId: string, repoPath: string) {
       if (err) return reject(err);
       if (!stream) return reject(new Error("no stream"));
       // stream.pipe(process.stdout, { end: true });
-      stream.on("data", _buffer => {
-        /* const logData = buffer.toString("utf-8").trim();
+      stream.on("data", buffer => {
+        if (!log) return;
+        const logData = buffer.toString("utf-8").trim();
         const parsedData = JSON.parse(logData);
         if ("stream" in parsedData) {
+          // eslint-disable-next-line no-console
           console.log(parsedData.stream.slice(0, -1));
-        } */
+        }
       });
       stream.on("end", () => {
         resolve(true);

@@ -1,9 +1,10 @@
-import { cancelBuild, removeContainer, removeImage } from "~/core/docker";
+import crypto from "node:crypto";
+import { buildImage } from "~/core/docker";
+import { cloneRepo, deleteRepo } from "~/core/git";
 import { verifySignature } from "~/core/github";
-import { startWorking } from "~/core/work";
 import db from "~/database";
-import getServices from "~/operations/getServices";
-import updateService from "~/operations/updateService";
+import createBuildImage from "~/operations/createBuildImage";
+import getServiceByRepo from "~/operations/getServiceByRepo";
 
 type WekHookEvent = {
   repository: {
@@ -19,26 +20,17 @@ export async function POST(request: Request) {
   }
   const event = JSON.parse(Buffer.from(buffer).toString()) as WekHookEvent;
 
-  const services = await getServices(db, ["id", "repo", "status", "imageId", "containerId"]);
-  for (const service of services) {
-    if (service.repo !== event.repository.ssh_url) continue;
-    if (service.containerId) {
-      await removeContainer(service.containerId);
-    }
-    if (service.imageId) {
-      if (service.status === "building") {
-        await cancelBuild(service.id, service.imageId);
-      } else {
-        await removeImage(service.imageId);
+  const service = await getServiceByRepo(db, event.repository.ssh_url);
+  if (service) {
+    (async () => {
+      const repoPath = await cloneRepo(service.repo, service.id);
+      const imageId = crypto.randomUUID();
+      const success = await buildImage(imageId, repoPath, false);
+      if (success) {
+        await createBuildImage(db, { id: imageId, serviceId: service.id });
       }
-    }
-
-    await updateService(db, service.id, {
-      status: "cloned",
-      imageId: null,
-      containerId: null,
-    });
+      await deleteRepo(service.id);
+    })();
   }
-  startWorking(false);
   return new Response("Webhook received", { status: 200 });
 }
