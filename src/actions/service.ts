@@ -1,7 +1,6 @@
 "use server";
 import { redirect } from "next/navigation";
 import { removeContainer } from "~/core/docker";
-import { startWorking } from "~/core/work";
 import db from "~/database";
 import { NewServiceDTO, ServicePatchDTO } from "~/models/service";
 import createService from "~/operations/createService";
@@ -15,7 +14,6 @@ import { getData } from "~/utils/form";
 export async function create(formData: FormData) {
   const data = NewServiceDTO.parse(getData(formData));
   await createService(db, data);
-  startWorking(false);
   redirect("/services");
 }
 
@@ -37,7 +35,6 @@ export async function update(id: string, _: unknown, formData: FormData): Promis
     await syncEnvironmentVariables(tx, id, env);
     await syncPorts(tx, id, ports);
   });
-  startWorking(false);
   redirect("/services");
 }
 
