@@ -10,6 +10,8 @@ import ServiceForm from "~/components/services/ServiceForm";
 import db from "~/database";
 import getServices from "~/operations/getServices";
 
+export const dynamic = "force-dynamic";
+
 type ServicesPageProps = {
   params: {
     locale: string,
