@@ -5,12 +5,12 @@ export async function register() {
     const { drizzle } = await import("drizzle-orm/better-sqlite3");
     const { migrate } = await import("drizzle-orm/better-sqlite3/migrator");
 
-    const sqlite = new Database(path.resolve(process.cwd(), "buttler.db"));
+    const cwd = process.env.CURRENT_WORKING_DIRECTORY || process.cwd();
+    const migrationsFolder = process.env.DRIZZLE_DIR || path.resolve(cwd, "drizzle");
+    const sqlite = new Database(path.resolve(cwd, "buttler.db"));
     const db = drizzle(sqlite);
 
-    migrate(db, {
-      migrationsFolder: path.resolve(process.cwd(), "drizzle"),
-    });
+    migrate(db, { migrationsFolder });
     sqlite.close();
 
     fetch(new URL("/work", `http://localhost:${process.env.PORT}`), {

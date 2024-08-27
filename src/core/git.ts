@@ -1,6 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import simpleGit from "simple-git";
+import env from "./env";
 
 export async function cloneRepo(repoUrl: string, targetPath: string) {
   const git = simpleGit({
@@ -16,6 +17,6 @@ export async function cloneRepo(repoUrl: string, targetPath: string) {
 }
 
 export async function deleteRepo(serviceId: string) {
-  const repoPath = path.resolve(process.cwd(), "storage/repos", serviceId);
+  const repoPath = path.resolve(env.CURRENT_WORKING_DIRECTORY, "storage/repos", serviceId);
   await fs.rm(repoPath, { recursive: true, force: true });
 }

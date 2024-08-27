@@ -25,6 +25,8 @@ function spawnChildProcess(detached: boolean) {
       ...process.env,
       PORT: "2083",
       WEBHOOK_SECRET: "buttler",
+      CURRENT_WORKING_DIRECTORY: process.cwd(),
+      DRIZZLE_DIR: resolve(__dirname, "../drizzle"),
     },
   });
   if (detached) child.unref();

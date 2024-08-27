@@ -2,6 +2,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { kebabCase } from "change-case";
 import { buildImage, createContainer } from "~/core/docker";
+import appEnv from "~/core/env";
 import { cloneRepo, deleteRepo } from "~/core/git";
 import db from "~/database";
 import getServices from "~/operations/getServices";
@@ -32,7 +33,7 @@ export async function POST(request: Request) {
   const service = allServices.find(s => s.status !== "ready");
 
   if (service) {
-    const repoPath = path.resolve(process.cwd(), "storage/repos", service.id);
+    const repoPath = path.resolve(appEnv.CURRENT_WORKING_DIRECTORY, "storage/repos", service.id);
     const env = Object.fromEntries(service.environmentVariables.map(({ key, value }) => [key, value]));
     const ports = Object.fromEntries(service.ports.map(({ external, internal }) => [external, internal.toString()]));
     switch (service.status) {
