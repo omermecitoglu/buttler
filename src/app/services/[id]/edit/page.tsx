@@ -24,8 +24,6 @@ const EditServicePage = async ({
 }: EditServicePageProps) => {
   const service = await getService(db, params.id);
   if (!service) notFound();
-  const environmentVariables = Object.fromEntries(service.environmentVariables.map(({ key, value }) => [key, value]));
-  const ports = Object.fromEntries(service.ports.map(({ external, internal }) => [external, internal.toString()]));
 
   return (
     <>
@@ -48,7 +46,7 @@ const EditServicePage = async ({
               keyPlaceholder="external"
               valuePlaceholder="internal"
               name="ports"
-              defaultValue={ports}
+              defaultValue={service.ports}
             />
           </Col>
           <Col md="4">
@@ -57,7 +55,7 @@ const EditServicePage = async ({
               icon={faTerminal}
               keyPlaceholder="e.g. CLIENT_KEY"
               name="env"
-              defaultValue={environmentVariables}
+              defaultValue={service.environmentVariables}
             />
           </Col>
         </Row>
