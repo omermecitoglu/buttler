@@ -1,10 +1,12 @@
 "use server";
+import { kebabCase } from "change-case";
 import { redirect } from "next/navigation";
-import { removeContainer } from "~/core/docker";
+import { createContainer, removeContainer } from "~/core/docker";
 import db from "~/database";
 import { NewServiceDTO, ServicePatchDTO } from "~/models/service";
 import createService from "~/operations/createService";
 import deleteService from "~/operations/deleteService";
+import getBuildImages from "~/operations/getBuildImages";
 import getService from "~/operations/getService";
 import { syncEnvironmentVariables } from "~/operations/syncEnvironmentVariables";
 import { syncPorts } from "~/operations/syncPorts";
@@ -41,4 +43,31 @@ export async function update(id: string, _: unknown, formData: FormData): Promis
 export async function destroy(id: string, _: FormData) {
   await deleteService(db, id);
   redirect("/services");
+}
+
+export async function start(serviceId: string, _: FormData) {
+  const service = await getService(db, serviceId);
+  if (!service) throw new Error("Invalid Service");
+  const images = await getBuildImages(db, serviceId, ["id", "createdAt"]);
+  const latest = images.reduce((bestVersion, nextVersion) => {
+    const best = new Date(bestVersion.createdAt).getTime();
+    const next = new Date(nextVersion.createdAt).getTime();
+    return (next > best) ? nextVersion : bestVersion;
+  }, images[0]);
+  const containerId = await createContainer(
+    kebabCase(service.name),
+    latest.id,
+    service.environmentVariables,
+    service.ports
+  );
+  await updateService(db, service.id, { status: "ready", containerId });
+  redirect(`/services/${serviceId}`);
+}
+
+export async function stop(id: string, containerId: string, _: FormData) {
+  if (containerId) {
+    await removeContainer(containerId);
+    await updateService(db, id, { containerId: null });
+  }
+  redirect(`/services/${id}`);
 }

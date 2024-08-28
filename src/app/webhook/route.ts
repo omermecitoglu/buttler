@@ -33,14 +33,14 @@ export async function POST(request: Request) {
         await createBuildImage(db, { id: imageId, serviceId: service.id });
         if (service.containerId) {
           await removeContainer(service.containerId);
+          const containerId = await createContainer(
+            kebabCase(service.name),
+            imageId,
+            service.environmentVariables,
+            service.ports
+          );
+          await updateService(db, service.id, { status: "ready", containerId });
         }
-        const containerId = await createContainer(
-          kebabCase(service.name),
-          imageId,
-          service.environmentVariables,
-          service.ports
-        );
-        await updateService(db, service.id, { status: "ready", containerId });
       }
     })();
   }
