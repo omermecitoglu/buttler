@@ -60,7 +60,7 @@
     "@fortawesome/free-brands-svg-icons": "^6.6.0",
     "@fortawesome/free-solid-svg-icons": "^6.6.0",
     "@fortawesome/react-fontawesome": "^0.2.2",
-    "@omer-x/bs-ui-kit": "^0.13.1",
+    "@omer-x/bs-ui-kit": "^0.14.0",
     "better-sqlite3": "^11.2.1",
     "bootstrap": "^5.3.3",
     "change-case": "^5.4.4",
