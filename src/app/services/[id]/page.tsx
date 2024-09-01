@@ -22,7 +22,7 @@ const ShowServicePage = async ({
 }: ShowServicePageProps) => {
   const service = await getService(db, params.id);
   if (!service) notFound();
-  const buildImages = await getBuildImages(db, service.id, ["id"]);
+  const buildImages = await getBuildImages(db, service.id, ["id", "status"]);
 
   return (
     <>

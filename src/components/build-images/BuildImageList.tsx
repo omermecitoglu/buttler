@@ -3,6 +3,7 @@ import Link from "next/link";
 import React from "react";
 import { destroy } from "~/actions/build-image";
 import type { BuildImageDTO } from "~/models/build-image";
+import StatusBadge from "./StatusBadge";
 import type z from "zod";
 
 type BuildImageListProps = {
@@ -20,7 +21,10 @@ const BuildImageList = ({
       id: {
         header: "ID",
         wrapper: value => value,
-        long: true,
+      },
+      status: {
+        header: "Status",
+        wrapper: status => <StatusBadge status={status} />,
       },
     }}
     // editLink={pk => ""}
