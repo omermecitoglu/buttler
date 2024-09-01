@@ -14,7 +14,7 @@ export const BuildImageDTO = baseSchema.required()
   .describe("Represents a build image definition");
 
 export const NewBuildImageDTO = baseSchema.omit({
-  // id: true,
+  id: true,
   createdAt: true,
   updatedAt: true,
 }).describe("Data Transfer Object for creating a new build image");
@@ -24,7 +24,6 @@ export const BuildImagePatchDTO = NewBuildImageDTO.partial().omit({
 
 export function testBuildImageData() {
   return {
-    id: "unknown-build",
     serviceId: "unknown-service",
   } satisfies z.infer<typeof NewBuildImageDTO>;
 }

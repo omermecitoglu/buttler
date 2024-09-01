@@ -1,4 +1,3 @@
-import crypto from "node:crypto";
 import { kebabCase } from "change-case";
 import { buildImage, createContainer, removeContainer } from "~/core/docker";
 import { cloneRepo, deleteRepo } from "~/core/git";
@@ -6,6 +5,7 @@ import { verifySignature } from "~/core/github";
 import db from "~/database";
 import createBuildImage from "~/operations/createBuildImage";
 import getServiceByRepo from "~/operations/getServiceByRepo";
+import updateBuildImage from "~/operations/updateBuildImage";
 import updateService from "~/operations/updateService";
 
 type WekHookEvent = {
@@ -26,21 +26,21 @@ export async function POST(request: Request) {
   if (service) {
     (async () => {
       const repoPath = await cloneRepo(service.repo, service.id);
-      const imageId = crypto.randomUUID();
-      const success = await buildImage(imageId, repoPath, false);
+      const image = await createBuildImage(db, { serviceId: service.id });
+      const success = await buildImage(image.id, repoPath, false);
       await deleteRepo(service.id);
-      if (success) {
-        await createBuildImage(db, { id: imageId, serviceId: service.id });
-        if (service.containerId) {
-          await removeContainer(service.containerId);
-          const containerId = await createContainer(
-            kebabCase(service.name),
-            imageId,
-            service.environmentVariables,
-            service.ports
-          );
-          await updateService(db, service.id, { status: "ready", containerId });
-        }
+      await updateBuildImage(db, image.id, { status: success ? "ready" : "failed" });
+
+      // update container
+      if (service.containerId) {
+        await removeContainer(service.containerId);
+        const containerId = await createContainer(
+          kebabCase(service.name),
+          image.id,
+          service.environmentVariables,
+          service.ports
+        );
+        await updateService(db, service.id, { status: "ready", containerId });
       }
     })();
   }
