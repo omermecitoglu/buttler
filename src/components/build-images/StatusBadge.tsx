@@ -3,7 +3,7 @@ import type { BuildImageDTO } from "~/models/build-image";
 import type z from "zod";
 
 type StatusBadgeProps = {
-  status: z.infer<typeof BuildImageDTO>["status"],
+  status: z.infer<typeof BuildImageDTO>["status"] | "active",
 };
 
 const StatusBadge = ({
@@ -15,6 +15,7 @@ const StatusBadge = ({
       case "canceled": return "secondary";
       case "failed": return "danger";
       case "ready": return "success";
+      case "active": return "primary";
     }
   };
   return (

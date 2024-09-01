@@ -8,10 +8,12 @@ import type z from "zod";
 
 type BuildImageListProps = {
   collection: z.infer<typeof BuildImageDTO>[],
+  currentImageId?: string | null,
 };
 
 const BuildImageList = ({
   collection,
+  currentImageId = null,
 }: BuildImageListProps) => (
   <DataTable
     link={Link}
@@ -24,7 +26,11 @@ const BuildImageList = ({
       },
       status: {
         header: "Status",
-        wrapper: status => <StatusBadge status={status} />,
+        wrapper: (status, id) => <StatusBadge status={id === currentImageId ? "active" : status} />,
+      },
+      createdAt: {
+        header: "Created at",
+        wrapper: date => new Date(date).toLocaleDateString("tr-TR"),
       },
     }}
     // editLink={pk => ""}
