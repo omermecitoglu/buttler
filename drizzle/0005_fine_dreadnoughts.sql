@@ -1,0 +1,1 @@
+ALTER TABLE `build_images` ADD `status` text DEFAULT 'pending' NOT NULL;

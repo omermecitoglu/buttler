@@ -5,6 +5,7 @@ import type z from "zod";
 const baseSchema = createInsertSchema(buildImages, {
   id: schema => schema.id.readonly().describe("Unique identifier of the build image"),
   serviceId: schema => schema.serviceId.describe("ID of the service associated with this build image"),
+  status: schema => schema.status.describe("Current status of the build image"),
   createdAt: schema => schema.createdAt.readonly().describe("Creation date of the build image as an ISO 8601 date string"),
   updatedAt: schema => schema.updatedAt.readonly().describe("Modification date of the build image as an ISO 8601 date string"),
 });
