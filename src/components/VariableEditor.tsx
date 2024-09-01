@@ -15,6 +15,7 @@ import InputGroup from "react-bootstrap/InputGroup";
 import InputGroupText from "react-bootstrap/InputGroupText";
 import OverlayTrigger from "react-bootstrap/OverlayTrigger";
 import Tooltip from "react-bootstrap/Tooltip";
+import { v4 as uuidv4 } from "uuid";
 import type { IconProp } from "@fortawesome/fontawesome-svg-core";
 
 type VariableEditorProps = {
@@ -46,7 +47,7 @@ const VariableEditor = ({
 
   const addItem = () => {
     setCollection(c => [...c, {
-      id: crypto.randomUUID(),
+      id: uuidv4(),
       key: "",
       value: "",
     }]);
