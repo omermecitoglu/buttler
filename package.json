@@ -1,6 +1,6 @@
 {
   "name": "@omer-x/buttler",
-  "version": "0.1.4",
+  "version": "0.2.0",
   "description": "automates CI/CD workflows using Docker and GitHub webhooks",
   "keywords": [
     "automation",
