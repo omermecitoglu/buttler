@@ -13,7 +13,7 @@ const ServiceBadge = ({
   const getVariant = () => {
     switch (status) {
       case "idle": return "secondary";
-      case "ready": return "success";
+      case "running": return "success";
     }
   };
   return (

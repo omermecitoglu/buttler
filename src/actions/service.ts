@@ -29,8 +29,8 @@ export async function update(id: string, _: unknown, formData: FormData): Promis
     await removeContainer(outdatedService.containerId);
     patch.containerId = null;
   }
-  if (outdatedService.status === "ready") {
-    patch.status = "built";
+  if (outdatedService.status === "running") {
+    patch.status = "idle";
   }
   await db.transaction(async tx => {
     await updateService(tx, id, patch);
@@ -60,14 +60,14 @@ export async function start(serviceId: string, _: FormData) {
     service.environmentVariables,
     service.ports
   );
-  await updateService(db, service.id, { status: "ready", containerId });
+  await updateService(db, service.id, { status: "running", containerId });
   redirect(`/services/${serviceId}`);
 }
 
 export async function stop(id: string, containerId: string, _: FormData) {
   if (containerId) {
     await removeContainer(containerId);
-    await updateService(db, id, { containerId: null });
+    await updateService(db, id, { status: "idle", containerId: null });
   }
   redirect(`/services/${id}`);
 }

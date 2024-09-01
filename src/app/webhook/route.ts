@@ -40,7 +40,7 @@ export async function POST(request: Request) {
           service.environmentVariables,
           service.ports
         );
-        await updateService(db, service.id, { status: "ready", containerId });
+        await updateService(db, service.id, { status: "running", containerId });
       }
     })();
   }
