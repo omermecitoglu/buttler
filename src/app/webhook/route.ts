@@ -34,13 +34,14 @@ export async function POST(request: Request) {
       // update container
       if (service.containerId) {
         await removeContainer(service.containerId);
+        await updateService(db, service.id, { status: "idle", containerId: null, imageId: null });
         const containerId = await createContainer(
           kebabCase(service.name),
           image.id,
           service.environmentVariables,
           service.ports
         );
-        await updateService(db, service.id, { status: "running", containerId });
+        await updateService(db, service.id, { status: "running", containerId, imageId: image.id });
       }
     })();
   }
