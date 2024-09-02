@@ -9,6 +9,6 @@ export default function getBuildImages(db: typeof database, serviceId: string, s
   return db.query.buildImages.findMany({
     columns: selectColumns(select),
     where: (table, { eq }) => eq(table.serviceId, serviceId),
-    orderBy: (u, { asc }) => [asc(u.createdAt)],
+    orderBy: (u, { desc }) => [desc(u.createdAt)],
   });
 }

@@ -30,7 +30,13 @@ const BuildImageList = ({
       },
       createdAt: {
         header: "Created at",
-        wrapper: date => new Date(date).toLocaleDateString("tr-TR"),
+        wrapper: date => (
+          <span>
+            {new Date(date).toLocaleDateString("tr-TR")}
+            {" • "}
+            {new Date(date).toLocaleTimeString("tr-TR")}
+          </span>
+        ),
       },
     }}
     // editLink={pk => ""}
