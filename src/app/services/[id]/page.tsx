@@ -1,11 +1,12 @@
 import { faCirclePlay } from "@fortawesome/free-solid-svg-icons/faCirclePlay";
 import { faCircleStop } from "@fortawesome/free-solid-svg-icons/faCircleStop";
+import { faScrewdriverWrench } from "@fortawesome/free-solid-svg-icons/faScrewdriverWrench";
 import LongColumn from "@omer-x/bs-ui-kit/LongColumn";
 import PageTitle from "@omer-x/bs-ui-kit/PageTitle";
 import SubmitButton from "@omer-x/bs-ui-kit/form/SubmitButton";
 import { notFound } from "next/navigation";
 import Table from "react-bootstrap/Table";
-import { start, stop } from "~/actions/service";
+import { build, start, stop } from "~/actions/service";
 import BackButton from "~/components/BackButton";
 import BuildImageList from "~/components/build-images/BuildImageList";
 import ServiceBadge from "~/components/services/ServiceBadge";
@@ -92,17 +93,23 @@ const ShowServicePage = async ({
           </tr>
         </tbody>
       </Table>
-      {service.containerId ? (
-        <form className="my-3" action={stop.bind(null, service.id, service.containerId)}>
-          <SubmitButton variant="danger" icon={faCircleStop} text="Stop" />
+      <div className="mt-3 d-flex gap-3">
+        <form action={build.bind(null, service.id)}>
+          <SubmitButton variant="primary" icon={faScrewdriverWrench} text="Build" />
         </form>
-      ) : (
-        <form className="my-3" action={start.bind(null, service.id)}>
-          <SubmitButton variant="success" icon={faCirclePlay} text="Start" />
-        </form>
-      )}
+        {service.containerId ? (
+          <form action={stop.bind(null, service.id, service.containerId)}>
+            <SubmitButton variant="danger" icon={faCircleStop} text="Stop" />
+          </form>
+        ) : (
+          <form action={start.bind(null, service.id)}>
+            <SubmitButton variant="success" icon={faCirclePlay} text="Start" />
+          </form>
+        )}
+      </div>
       {buildImages.length > 0 && (
         <>
+          <div className="mt-3" />
           <PageTitle name="Build Images" secondary>
             &nbsp;
           </PageTitle>

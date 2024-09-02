@@ -1,6 +1,7 @@
 "use server";
 import { kebabCase } from "change-case";
 import { redirect } from "next/navigation";
+import { startBuilding } from "~/core/build";
 import { createContainer, removeContainer } from "~/core/docker";
 import db from "~/database";
 import { NewServiceDTO, ServicePatchDTO } from "~/models/service";
@@ -69,6 +70,14 @@ export async function stop(id: string, containerId: string, _: FormData) {
   if (containerId) {
     await removeContainer(containerId);
     await updateService(db, id, { status: "idle", containerId: null, imageId: null });
+  }
+  redirect(`/services/${id}`);
+}
+
+export async function build(id: string, _: FormData) {
+  const service = await getService(db, id);
+  if (service) {
+    await startBuilding(service);
   }
   redirect(`/services/${id}`);
 }
