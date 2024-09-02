@@ -14,8 +14,8 @@ const StatusBadge = ({
       case "pending": return "warning";
       case "canceled": return "secondary";
       case "failed": return "danger";
-      case "ready": return "success";
-      case "active": return "primary";
+      case "ready": return "primary";
+      case "active": return "success";
     }
   };
   return (
