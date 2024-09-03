@@ -1,11 +1,10 @@
 import { faCirclePlay } from "@fortawesome/free-solid-svg-icons/faCirclePlay";
 import { faCircleStop } from "@fortawesome/free-solid-svg-icons/faCircleStop";
 import { faScrewdriverWrench } from "@fortawesome/free-solid-svg-icons/faScrewdriverWrench";
-import LongColumn from "@omer-x/bs-ui-kit/LongColumn";
+import InfoTable from "@omer-x/bs-ui-kit/InfoTable";
 import PageTitle from "@omer-x/bs-ui-kit/PageTitle";
 import SubmitButton from "@omer-x/bs-ui-kit/form/SubmitButton";
 import { notFound } from "next/navigation";
-import Table from "react-bootstrap/Table";
 import { build, start, stop } from "~/actions/service";
 import BackButton from "~/components/BackButton";
 import BuildImageList from "~/components/build-images/BuildImageList";
@@ -33,66 +32,46 @@ const ShowServicePage = async ({
       <PageTitle name={service.name}>
         <BackButton fallback="/services" />
       </PageTitle>
-      <Table>
-        <tbody className="text-nowrap">
-          <tr>
-            <th className="with-colon pt-0">
-              Git Repo
-            </th>
-            <LongColumn className="pt-0">
-              {service.repo}
-            </LongColumn>
-          </tr>
-          <tr>
-            <th className="with-colon">
-              Status
-            </th>
-            <td>
-              <ServiceBadge status={service.status} />
-            </td>
-          </tr>
-          <tr>
-            <th className="with-colon">
-              Current Image
-            </th>
-            <td>
-              {service.imageId}
-            </td>
-          </tr>
-          <tr>
-            <th className="with-colon">
-              Current Container
-            </th>
-            <td>
-              {service.containerId}
-            </td>
-          </tr>
-          <tr>
-            <th className="with-colon">
-              Ports
-            </th>
-            <td>
-              {Object.keys(service.ports).length}
-            </td>
-          </tr>
-          <tr>
-            <th className="with-colon">
-              Env. Variables
-            </th>
-            <td>
-              {Object.keys(service.environmentVariables).length}
-            </td>
-          </tr>
-          <tr>
-            <th className="with-colon border-bottom-0 pb-0">
-              Created at
-            </th>
-            <td className="border-bottom-0 pb-0">
-              {new Date(service.createdAt).toLocaleDateString("tr-TR")}
-            </td>
-          </tr>
-        </tbody>
-      </Table>
+      <InfoTable
+        source={service}
+        primaryKey="id"
+        schema={{
+          repo: {
+            header: "Git Repo",
+            long: true,
+          },
+          status: {
+            header: "Status",
+            wrapper: status => <ServiceBadge status={status} />,
+          },
+          imageId: {
+            header: "Current Image",
+            long: true,
+          },
+          containerId: {
+            header: "Current Container",
+            long: true,
+          },
+          ports: {
+            header: "Ports",
+            wrapper: record => Object.keys(record).length,
+          },
+          environmentVariables: {
+            header: "Env. Variables",
+            wrapper: record => Object.keys(record).length,
+          },
+          createdAt: {
+            header: "Created at",
+            wrapper: date => (
+              <span>
+                {new Date(date).toLocaleDateString("tr-TR")}
+                {" • "}
+                {new Date(date).toLocaleTimeString("tr-TR")}
+              </span>
+            ),
+          },
+        }}
+      />
       <div className="mt-3 d-flex gap-3">
         <form action={build.bind(null, service.id)}>
           <SubmitButton variant="primary" icon={faScrewdriverWrench} text="Build" />
