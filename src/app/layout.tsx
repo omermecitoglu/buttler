@@ -1,6 +1,7 @@
 import "~/styles/custom-bootstrap.scss";
 import "@fortawesome/fontawesome-svg-core/styles.css";
 import { config } from "@fortawesome/fontawesome-svg-core";
+import ThemedBody from "@omer-x/bs-ui-kit/ThemedBody";
 import Image from "next/image";
 import Link from "next/link";
 import React, { type ReactNode } from "react";
@@ -33,7 +34,7 @@ const RootLayout = ({
   children,
 }: RootLayoutProps) => (
   <html lang="en">
-    <body>
+    <ThemedBody>
       <Container as="main" className="py-3">
         <div className="d-flex justify-content-center mb-3">
           <Link href="/">
@@ -53,7 +54,7 @@ const RootLayout = ({
           </CardBody>
         </div>
       </Container>
-    </body>
+    </ThemedBody>
   </html>
 );
 
