@@ -68,6 +68,9 @@ export async function createContainer(
       PortBindings: Object.fromEntries(Object.entries(ports).map(([external, internal]) => {
         return [`${internal}/tcp`, [{ HostPort: external }]];
       })),
+      RestartPolicy: {
+        Name: "always",
+      },
     },
   });
   await container.start();
