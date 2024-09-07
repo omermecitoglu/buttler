@@ -68,8 +68,13 @@ export async function start(serviceId: string, _: FormData) {
 
 export async function stop(id: string, containerId: string, _: FormData) {
   if (containerId) {
-    await removeContainer(containerId);
-    await updateService(db, id, { status: "idle", containerId: null, imageId: null });
+    try {
+      await removeContainer(containerId);
+    } catch (error) {
+      // do nothing
+    } finally {
+      await updateService(db, id, { status: "idle", containerId: null, imageId: null });
+    }
   }
   redirect(`/services/${id}`);
 }
