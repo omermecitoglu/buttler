@@ -7,6 +7,7 @@ import SubmitButton from "@omer-x/bs-ui-kit/form/SubmitButton";
 import { notFound } from "next/navigation";
 import { build, start, stop } from "~/actions/service";
 import BackButton from "~/components/BackButton";
+import ContainerLogs from "~/components/ContainerLogs";
 import BuildImageList from "~/components/build-images/BuildImageList";
 import ServiceBadge from "~/components/services/ServiceBadge";
 import db from "~/database";
@@ -50,6 +51,9 @@ const ShowServicePage = async ({
           },
           containerId: {
             header: "Current Container",
+            wrapper: containerId => (
+              <>{containerId && <ContainerLogs containerId={containerId} />}</>
+            ),
             long: true,
           },
           ports: {
