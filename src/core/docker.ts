@@ -81,15 +81,13 @@ export async function removeContainer(containerId: string) {
   await docker.getContainer(containerId).remove({ force: true });
 }
 
-export function getContainerLogs(containerId: string, limit: number): Promise<string[]> {
+export function getContainerLogs(containerId: string, limit: number) {
   const container = docker.getContainer(containerId);
-  return new Promise((resolve, reject) => {
-    container.logs({ follow: false, stdout: true, stderr: true, tail: limit }, (err, stream) => {
+  return new Promise<string>((resolve, reject) => {
+    container.logs({ follow: false, stdout: true, stderr: true, tail: limit }, (err, buffer) => {
       if (err) return reject(err);
-      if (!stream) return reject(new Error("stream is undefined"));
-      const logs = stream.toString().split("\n");
-      // eslint-disable-next-line no-control-regex
-      resolve(logs.map(log => log.replace(/[\x00-\x1F\x7F]/g, "").trim()).filter(line => line !== ""));
+      if (!buffer) return reject(new Error("stream is undefined"));
+      resolve(buffer.toString());
     });
   });
 }

@@ -7,5 +7,5 @@ export async function GET(request: NextRequest) {
   if (!containerId) throw new Error("container id is not provided");
   const limit = parseInt(searchParams.get("limit") ?? "100");
   const logs = await getContainerLogs(containerId, isNaN(limit) ? 100 : limit);
-  return Response.json(logs);
+  return Response.json({ content: logs });
 }

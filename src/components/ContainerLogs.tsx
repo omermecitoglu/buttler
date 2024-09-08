@@ -7,6 +7,7 @@ import React, { useEffect, useState } from "react";
 import Button from "react-bootstrap/Button";
 import FormSelect from "react-bootstrap/FormSelect";
 import Modal from "react-bootstrap/Modal";
+import BashLogs from "./BashLogs";
 
 type ContainerLogsProps = {
   containerId: string,
@@ -16,7 +17,7 @@ const ContainerLogs = ({
   containerId,
 }: ContainerLogsProps) => {
   const [show, setShow] = useState(false);
-  const [logs, setLogs] = useState<string[]>([]);
+  const [logs, setLogs] = useState<string>("");
   const [limit, setLimit] = useState(100);
 
   const handleClose = () => setShow(false);
@@ -28,8 +29,8 @@ const ContainerLogs = ({
       url.searchParams.append("container", containerId);
       url.searchParams.append("limit", limit.toString());
       const response = await fetch(url, { signal });
-      const data = await response.json();
-      setLogs(data);
+      const { content } = await response.json();
+      setLogs(content);
     } catch (error) {
       console.error(error);
     }
@@ -42,12 +43,12 @@ const ContainerLogs = ({
   }, [show, logs, limit]);
 
   function refreshLogs() {
-    setLogs([]);
+    setLogs("");
   }
 
   function handleLimitChange(e: React.ChangeEvent<HTMLSelectElement>) {
     setLimit(parseInt(e.target.value));
-    setLogs([]);
+    setLogs("");
   }
 
   return (
@@ -59,17 +60,14 @@ const ContainerLogs = ({
         <Modal.Header closeButton>
           <Modal.Title>Container logs</Modal.Title>
         </Modal.Header>
-        <Modal.Body>
-          {!logs.length && (
+        <Modal.Body className="pb-0">
+          {logs.length ? (
+            <BashLogs content={logs} />
+          ) : (
             <div className="text-center">
               <FontAwesomeIcon size="2x" icon={faSpinner} className="fa-fw fa-spin-pulse" />
             </div>
           )}
-          {logs.map((log, index) => (
-            <p key={index}>
-              {log}
-            </p>
-          ))}
         </Modal.Body>
         <Modal.Footer>
           <div className="me-auto">
