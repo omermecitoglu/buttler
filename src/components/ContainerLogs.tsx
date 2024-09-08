@@ -5,6 +5,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import ActionButton from "@omer-x/bs-ui-kit/ActionButton";
 import React, { useEffect, useState } from "react";
 import Button from "react-bootstrap/Button";
+import FormCheck from "react-bootstrap/FormCheck";
 import FormSelect from "react-bootstrap/FormSelect";
 import Modal from "react-bootstrap/Modal";
 import BashLogs from "./BashLogs";
@@ -19,6 +20,7 @@ const ContainerLogs = ({
   const [show, setShow] = useState(false);
   const [logs, setLogs] = useState<string>("");
   const [limit, setLimit] = useState(100);
+  const [wrap, setWrap] = useState(true);
 
   const handleClose = () => setShow(false);
   const handleShow = () => setShow(true);
@@ -62,7 +64,7 @@ const ContainerLogs = ({
         </Modal.Header>
         <Modal.Body className="pb-0">
           {logs.length ? (
-            <BashLogs content={logs} />
+            <BashLogs content={logs} wrap={wrap} />
           ) : (
             <div className="text-center">
               <FontAwesomeIcon size="2x" icon={faSpinner} className="fa-fw fa-spin-pulse" />
@@ -70,13 +72,21 @@ const ContainerLogs = ({
           )}
         </Modal.Body>
         <Modal.Footer>
-          <div className="me-auto">
+          <div className="me-3">
             <FormSelect aria-label="Select limit" onChange={handleLimitChange}>
               <option value="100">100</option>
               <option value="1000">1.000</option>
               <option value="10000">10.000</option>
             </FormSelect>
           </div>
+          <FormCheck
+            type="switch"
+            id="custom-switch"
+            label="Wrap long lines"
+            className="me-auto"
+            checked={wrap}
+            onChange={e => setWrap(e.target.checked)}
+          />
           <ActionButton icon={faRefresh} text="Refresh" onClick={refreshLogs} />
           <Button variant="secondary" onClick={handleClose}>
             Close
