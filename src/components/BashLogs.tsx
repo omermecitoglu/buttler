@@ -1,5 +1,6 @@
-import "highlight.js/styles/default.css";
-import Highlight from "react-highlight";
+import useTheme from "@omer-x/bs-ui-kit/hooks/useTheme";
+import SyntaxHighlighter from "react-syntax-highlighter";
+import { atomOneDark, atomOneLight } from "react-syntax-highlighter/dist/esm/styles/hljs";
 
 type BashLogsProps = {
   content: string,
@@ -7,10 +8,13 @@ type BashLogsProps = {
 
 const BashLogs = ({
   content,
-}: BashLogsProps) => (
-  <Highlight className="bash">
-    {content}
-  </Highlight>
-);
+}: BashLogsProps) => {
+  const theme = useTheme();
+  return (
+    <SyntaxHighlighter language="bash" style={theme === "dark" ? atomOneDark : atomOneLight}>
+      {content}
+    </SyntaxHighlighter>
+  );
+};
 
 export default BashLogs;
