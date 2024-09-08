@@ -81,7 +81,7 @@ export async function removeContainer(containerId: string) {
   await docker.getContainer(containerId).remove({ force: true });
 }
 
-export function getContainerLogs(containerId: string, limit: 100): Promise<string[]> {
+export function getContainerLogs(containerId: string, limit: number): Promise<string[]> {
   const container = docker.getContainer(containerId);
   return new Promise((resolve, reject) => {
     container.logs({ follow: false, stdout: true, stderr: true, tail: limit }, (err, stream) => {

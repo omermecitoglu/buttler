@@ -5,6 +5,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import ActionButton from "@omer-x/bs-ui-kit/ActionButton";
 import React, { useEffect, useState } from "react";
 import Button from "react-bootstrap/Button";
+import FormSelect from "react-bootstrap/FormSelect";
 import Modal from "react-bootstrap/Modal";
 
 type ContainerLogsProps = {
@@ -16,15 +17,17 @@ const ContainerLogs = ({
 }: ContainerLogsProps) => {
   const [show, setShow] = useState(false);
   const [logs, setLogs] = useState<string[]>([]);
+  const [limit, setLimit] = useState(100);
 
   const handleClose = () => setShow(false);
   const handleShow = () => setShow(true);
 
-  async function fetchLogs() {
+  async function fetchLogs(signal: AbortSignal) {
     try {
       const url = new URL("/api/logs", window.location.origin);
       url.searchParams.append("container", containerId);
-      const response = await fetch(url);
+      url.searchParams.append("limit", limit.toString());
+      const response = await fetch(url, { signal });
       const data = await response.json();
       setLogs(data);
     } catch (error) {
@@ -33,14 +36,18 @@ const ContainerLogs = ({
   }
 
   useEffect(() => {
-    if (show && !logs.length) {
-      fetchLogs();
-    }
-  }, [show]);
+    if (!show || logs.length) return;
+    const controller = new AbortController();
+    fetchLogs(controller.signal);
+  }, [show, logs, limit]);
 
   function refreshLogs() {
     setLogs([]);
-    fetchLogs();
+  }
+
+  function handleLimitChange(e: React.ChangeEvent<HTMLSelectElement>) {
+    setLimit(parseInt(e.target.value));
+    setLogs([]);
   }
 
   return (
@@ -65,6 +72,13 @@ const ContainerLogs = ({
           ))}
         </Modal.Body>
         <Modal.Footer>
+          <div className="me-auto">
+            <FormSelect aria-label="Select limit" onChange={handleLimitChange}>
+              <option value="100">100</option>
+              <option value="1000">1.000</option>
+              <option value="10000">10.000</option>
+            </FormSelect>
+          </div>
           <ActionButton icon={faRefresh} text="Refresh" onClick={refreshLogs} />
           <Button variant="secondary" onClick={handleClose}>
             Close
