@@ -1,7 +1,8 @@
 import { faPlug } from "@fortawesome/free-solid-svg-icons/faPlug";
 import { faTerminal } from "@fortawesome/free-solid-svg-icons/faTerminal";
-import { FormWithState, SubmitButton } from "@omer-x/bs-ui-kit";
 import PageTitle from "@omer-x/bs-ui-kit/PageTitle";
+import ProgressiveForm from "@omer-x/bs-ui-kit/form/ProgressiveForm";
+import SubmitButton from "@omer-x/bs-ui-kit/form/SubmitButton";
 import { notFound } from "next/navigation";
 import Col from "react-bootstrap/Col";
 import Row from "react-bootstrap/Row";
@@ -30,7 +31,7 @@ const EditServicePage = async ({
       <PageTitle name="Edit Service">
         <BackButton fallback="/services" />
       </PageTitle>
-      <FormWithState action={update.bind(null, service.id)}>
+      <ProgressiveForm action={update.bind(null, service.id)}>
         <Row className="row-gap-3">
           <Col md="6" className="d-flex flex-column gap-3">
             <ServiceForm data={service} />
@@ -57,7 +58,7 @@ const EditServicePage = async ({
             />
           </Col>
         </Row>
-      </FormWithState>
+      </ProgressiveForm>
     </>
   );
 };
