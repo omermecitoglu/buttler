@@ -1,6 +1,6 @@
 import { faPlus } from "@fortawesome/free-solid-svg-icons/faPlus";
 import DataTable from "@omer-x/bs-ui-kit/DataTable";
-import PageTitle from "@omer-x/bs-ui-kit/PageTitle";
+import PageSection from "@omer-x/bs-ui-kit/PageSection";
 import ModalForm from "@omer-x/bs-ui-kit/form/ModalForm";
 import Link from "next/link";
 import React from "react";
@@ -24,8 +24,9 @@ const ServicesPage = async ({
   const services = await getServices(db, ["id", "name", "status", "ports", "environmentVariables"]);
 
   return (
-    <>
-      <PageTitle name="Services">
+    <PageSection
+      title="Services"
+      toolbar={(
         <ModalForm
           buttonIcon={faPlus}
           buttonSize="sm"
@@ -38,7 +39,8 @@ const ServicesPage = async ({
         >
           <ServiceForm />
         </ModalForm>
-      </PageTitle>
+      )}
+    >
       {services.length ? (
         <DataTable
           link={Link}
@@ -78,7 +80,7 @@ const ServicesPage = async ({
           No services found.
         </span>
       )}
-    </>
+    </PageSection>
   );
 };
 

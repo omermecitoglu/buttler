@@ -1,6 +1,6 @@
 import { faPlug } from "@fortawesome/free-solid-svg-icons/faPlug";
 import { faTerminal } from "@fortawesome/free-solid-svg-icons/faTerminal";
-import PageTitle from "@omer-x/bs-ui-kit/PageTitle";
+import PageSection from "@omer-x/bs-ui-kit/PageSection";
 import ProgressiveForm from "@omer-x/bs-ui-kit/form/ProgressiveForm";
 import SubmitButton from "@omer-x/bs-ui-kit/form/SubmitButton";
 import { notFound } from "next/navigation";
@@ -27,10 +27,7 @@ const EditServicePage = async ({
   if (!service) notFound();
 
   return (
-    <>
-      <PageTitle name="Edit Service">
-        <BackButton fallback="/services" />
-      </PageTitle>
+    <PageSection title="Edit Service" toolbar={<BackButton fallback="/services" />}>
       <ProgressiveForm action={update.bind(null, service.id)}>
         <Row className="row-gap-3">
           <Col md="6" className="d-flex flex-column gap-3">
@@ -59,7 +56,7 @@ const EditServicePage = async ({
           </Col>
         </Row>
       </ProgressiveForm>
-    </>
+    </PageSection>
   );
 };
 
