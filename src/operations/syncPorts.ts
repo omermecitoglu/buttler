@@ -2,7 +2,7 @@ import { and, eq, notInArray, sql } from "drizzle-orm";
 import type database from "~/database";
 import { ports } from "~/database/schema/ports";
 
-export async function syncPorts(db: typeof database, serviceId: string, record: Record<string, string>) {
+export async function syncPorts(db: Omit<typeof database, "$client">, serviceId: string, record: Record<string, string>) {
   const filters = [
     eq(ports.serviceId, serviceId),
   ];

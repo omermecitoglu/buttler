@@ -11,7 +11,7 @@ const streams = {} as Record<string, FixedReadableStream>;
 
 export function buildImage(imageId: string, repoPath: string, log: boolean) {
   const dockerfilePath = path.join(repoPath, "Dockerfile");
-  const tarStream = tar.pack(path.dirname(dockerfilePath));
+  const tarStream = tar.pack(path.dirname(dockerfilePath)) as unknown as NodeJS.ReadableStream;
 
   return new Promise<boolean>((resolve, reject) => {
     docker.buildImage(tarStream, { t: `${imageId}:latest` }, (err, stream) => {

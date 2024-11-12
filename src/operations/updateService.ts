@@ -4,7 +4,7 @@ import { services } from "~/database/schema/services";
 import type { ServicePatchDTO } from "~/models/service";
 import type { z } from "zod";
 
-export default async function updateService(db: typeof database, serviceId: string, patch: z.infer<typeof ServicePatchDTO>) {
+export default async function updateService(db: Omit<typeof database, "$client">, serviceId: string, patch: z.infer<typeof ServicePatchDTO>) {
   const results = await db.update(services)
     .set({
       ...patch,

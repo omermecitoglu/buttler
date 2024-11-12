@@ -4,7 +4,7 @@ import { drizzle } from "drizzle-orm/better-sqlite3";
 import env from "~/core/env";
 import * as schema from "./schema";
 
-const sqlite = new Database(path.resolve(env.CURRENT_WORKING_DIRECTORY, "buttler.db"));
-const db = drizzle(sqlite, { schema });
+const client = new Database(path.resolve(env.CURRENT_WORKING_DIRECTORY, "buttler.db"));
+const db = drizzle({ schema, client });
 
 export default db;

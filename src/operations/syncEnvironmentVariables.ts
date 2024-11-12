@@ -2,7 +2,7 @@ import { and, eq, notInArray, sql } from "drizzle-orm";
 import type database from "~/database";
 import { environmentVariables } from "~/database/schema/environment-variables";
 
-export async function syncEnvironmentVariables(db: typeof database, serviceId: string, record: Record<string, string>) {
+export async function syncEnvironmentVariables(db: Omit<typeof database, "$client">, serviceId: string, record: Record<string, string>) {
   const filters = [
     eq(environmentVariables.serviceId, serviceId),
   ];
