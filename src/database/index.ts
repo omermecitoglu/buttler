@@ -5,6 +5,6 @@ import env from "~/core/env";
 import * as schema from "./schema";
 
 const client = new Database(path.resolve(env.CURRENT_WORKING_DIRECTORY, "buttler.db"));
-const db = drizzle({ schema, client });
+const db = drizzle({ schema, client, casing: "snake_case" });
 
 export default db;

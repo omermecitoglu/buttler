@@ -10,4 +10,5 @@ export default {
   dbCredentials: {
     url: path.resolve(cwd, "buttler.db"),
   },
+  casing: "snake_case",
 } satisfies Config;
