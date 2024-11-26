@@ -81,7 +81,7 @@
   },
   "devDependencies": {
     "@next/eslint-plugin-next": "^14.2.18",
-    "@omer-x/eslint-config": "^1.0.7",
+    "@omer-x/eslint-config": "^2.0.3",
     "@omer-x/next-openapi-scaffold-generator": "^0.3.0",
     "@types/better-sqlite3": "^7.6.12",
     "@types/dockerode": "^3.3.32",
