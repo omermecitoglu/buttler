@@ -8,6 +8,12 @@ import { ports } from "./ports";
 
 export const services = sqliteTable("services", {
   id: text().primaryKey(),
+  kind: text({
+    enum: [
+      "git",
+      "database",
+    ],
+  }).notNull(),
   name: text().notNull(),
   repo: text().notNull(),
   status: text({
