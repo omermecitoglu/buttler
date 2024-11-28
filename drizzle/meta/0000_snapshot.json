@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "d4978208-4104-43fe-b88e-49e2caa5fc6f",
+  "id": "6a49c465-6637-4a6d-b0c0-ff74e3736c49",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "build_images": {
@@ -71,7 +71,8 @@
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {}
+      "uniqueConstraints": {},
+      "checkConstraints": {}
     },
     "environment_variables": {
       "name": "environment_variables",
@@ -123,7 +124,8 @@
           "name": "environment_variables_service_id_key_pk"
         }
       },
-      "uniqueConstraints": {}
+      "uniqueConstraints": {},
+      "checkConstraints": {}
     },
     "services": {
       "name": "services",
@@ -199,7 +201,8 @@
       },
       "foreignKeys": {},
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {}
+      "uniqueConstraints": {},
+      "checkConstraints": {}
     },
     "ports": {
       "name": "ports",
@@ -211,15 +214,15 @@
           "notNull": true,
           "autoincrement": false
         },
-        "key": {
-          "name": "key",
+        "external": {
+          "name": "external",
           "type": "integer",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
-        "value": {
-          "name": "value",
+        "internal": {
+          "name": "internal",
           "type": "integer",
           "primaryKey": false,
           "notNull": true,
@@ -243,17 +246,19 @@
         }
       },
       "compositePrimaryKeys": {
-        "ports_service_id_key_pk": {
+        "ports_service_id_external_pk": {
           "columns": [
             "service_id",
-            "key"
+            "external"
           ],
-          "name": "ports_service_id_key_pk"
+          "name": "ports_service_id_external_pk"
         }
       },
-      "uniqueConstraints": {}
+      "uniqueConstraints": {},
+      "checkConstraints": {}
     }
   },
+  "views": {},
   "enums": {},
   "_meta": {
     "schemas": {},

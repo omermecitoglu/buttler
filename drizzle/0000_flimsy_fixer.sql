@@ -7,6 +7,7 @@ CREATE TABLE `build_images` (
 	FOREIGN KEY (`service_id`) REFERENCES `services`(`id`) ON UPDATE restrict ON DELETE restrict
 );
 --> statement-breakpoint
+CREATE INDEX `build_image_created_at_index` ON `build_images` (`created_at`);--> statement-breakpoint
 CREATE TABLE `environment_variables` (
 	`service_id` text NOT NULL,
 	`key` text NOT NULL,
@@ -26,13 +27,11 @@ CREATE TABLE `services` (
 	`updated_at` text DEFAULT (CURRENT_TIMESTAMP) NOT NULL
 );
 --> statement-breakpoint
+CREATE INDEX `service_created_at_index` ON `services` (`created_at`);--> statement-breakpoint
 CREATE TABLE `ports` (
 	`service_id` text NOT NULL,
-	`key` integer NOT NULL,
-	`value` integer NOT NULL,
-	PRIMARY KEY(`service_id`, `key`),
+	`external` integer NOT NULL,
+	`internal` integer NOT NULL,
+	PRIMARY KEY(`service_id`, `external`),
 	FOREIGN KEY (`service_id`) REFERENCES `services`(`id`) ON UPDATE restrict ON DELETE cascade
 );
---> statement-breakpoint
-CREATE INDEX `build_image_created_at_index` ON `build_images` (`created_at`);--> statement-breakpoint
-CREATE INDEX `service_created_at_index` ON `services` (`created_at`);
