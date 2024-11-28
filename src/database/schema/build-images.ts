@@ -5,7 +5,7 @@ import { sqliteTable } from "drizzle-orm/sqlite-core/table";
 import { services } from "./services";
 
 export const buildImages = sqliteTable("build_images", {
-  id: text("id").primaryKey(),
+  id: text().primaryKey(),
   serviceId: text().notNull().references(() => services.id, { onDelete: "restrict", onUpdate: "restrict" }),
   status: text({ enum: ["pending", "canceled", "failed", "ready"] }).notNull().default("pending"),
   createdAt: text().notNull().default(sql`(CURRENT_TIMESTAMP)`),
