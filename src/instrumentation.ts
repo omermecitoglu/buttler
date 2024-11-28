@@ -1,5 +1,6 @@
 export async function register() {
   if (process.env.NEXT_RUNTIME === "nodejs") {
+    process.title = "buttler";
     const path = await import("node:path");
     const { default: Database } = await import("better-sqlite3");
     const { drizzle } = await import("drizzle-orm/better-sqlite3");
