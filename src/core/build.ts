@@ -23,7 +23,8 @@ async function buildInTheBackground(service: z.infer<typeof ServiceDTO>, imageId
       kebabCase(service.name),
       imageId,
       service.environmentVariables,
-      service.ports
+      service.ports,
+      {},
     );
     await updateService(db, service.id, { status: "running", containerId, imageId: imageId });
   }

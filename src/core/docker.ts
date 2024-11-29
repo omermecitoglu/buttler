@@ -58,7 +58,8 @@ export async function createContainer(
   serviceName: string,
   imageId: string,
   env: Record<string, string>,
-  ports: Record<string, string>
+  ports: Record<string, string>,
+  volumes: Record<string, string>,
 ) {
   const container = await docker.createContainer({
     name: serviceName,
@@ -71,6 +72,7 @@ export async function createContainer(
       RestartPolicy: {
         Name: "always",
       },
+      Binds: Object.entries(volumes).map(([key, value]) => `${key}:${value}`),
     },
   });
   await container.start();

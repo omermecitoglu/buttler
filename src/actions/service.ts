@@ -89,7 +89,8 @@ export async function start(serviceId: string, _: FormData) {
     kebabCase(service.name),
     latest.id,
     service.environmentVariables,
-    service.ports
+    service.ports,
+    {},
   );
   await updateService(db, service.id, { status: "running", containerId, imageId: latest.id });
   redirect(`/services/${serviceId}`);
