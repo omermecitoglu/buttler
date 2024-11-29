@@ -126,3 +126,13 @@ function demux(chunk: Buffer): string {
 
   return output.join("");
 }
+
+export async function createVolume(name: string) {
+  await docker.createVolume({
+    Name: name,
+    Driver: "local",
+    /* Labels: {
+      app: 'my_app',
+    }, */
+  });
+}
