@@ -75,9 +75,11 @@ const ShowServicePage = async ({
           }}
         />
         <div className="mt-3 d-flex gap-3">
-          <form action={build.bind(null, service.id)}>
-            <SubmitButton variant="primary" icon={faScrewdriverWrench} text="Build" />
-          </form>
+          {service.kind === "git" && (
+            <form action={build.bind(null, service.id)}>
+              <SubmitButton variant="primary" icon={faScrewdriverWrench} text="Build" />
+            </form>
+          )}
           {service.containerId ? (
             <form action={stop.bind(null, service.id, service.containerId)}>
               <SubmitButton variant="danger" icon={faCircleStop} text="Stop" />
