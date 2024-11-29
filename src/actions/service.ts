@@ -16,7 +16,36 @@ import { getData } from "~/utils/form";
 
 export async function create(formData: FormData) {
   const data = NewServiceDTO.parse(getData(formData));
-  await createService(db, data);
+  await db.transaction(async tx => {
+    const service = await createService(tx, data);
+    if (data.kind === "database") {
+      const envEntries: [string, string][] = [];
+      const portEntries: [string, string][] = [];
+      if (data.repo === "postgres") {
+        envEntries.push(["POSTGRES_PASSWORD", "example"]);
+        portEntries.push(["5432", "5432"]);
+      }
+      if (data.repo === "mysql") {
+        envEntries.push(["MYSQL_ROOT_PASSWORD", "example"]);
+        portEntries.push(["3306", "3306"]);
+      }
+      if (data.repo === "mongo") {
+        envEntries.push(["MONGO_INITDB_ROOT_USERNAME", "root"]);
+        envEntries.push(["MONGO_INITDB_ROOT_PASSWORD", "example"]);
+        portEntries.push(["27017", "27017"]);
+      }
+      if (data.repo === "redis") {
+        envEntries.push(["REDIS_ARGS", "--appendonly yes"]);
+        portEntries.push(["6379", "6379"]);
+      }
+      if (envEntries.length) {
+        await syncEnvironmentVariables(tx, service.id, Object.fromEntries(envEntries));
+      }
+      if (portEntries.length) {
+        await syncPorts(tx, service.id, Object.fromEntries(portEntries));
+      }
+    }
+  });
   redirect("/services");
 }
 
