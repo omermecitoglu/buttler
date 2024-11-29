@@ -138,3 +138,19 @@ export async function createVolume(name: string) {
     }, */
   });
 }
+
+export async function createNetwork(networkId: string) {
+  const network = await docker.createNetwork({
+    Name: networkId,
+    Driver: "bridge",
+    CheckDuplicate: true,
+    Internal: false,
+    Attachable: true,
+  });
+  return network;
+}
+
+export async function destroyNetwork(networkId: string) {
+  const network = docker.getNetwork(networkId);
+  await network.remove();
+}
