@@ -23,15 +23,21 @@ export default async function getService(db: typeof database, serviceId: string)
           containerPath: true,
         },
       },
+      networks: {
+        columns: {
+          id: true,
+        },
+      },
     },
     where: (table, { eq }) => eq(table.id, serviceId),
   });
   if (!service) return null;
-  const { ports, environmentVariables, volumes, ...others } = service;
+  const { ports, environmentVariables, volumes, networks, ...others } = service;
   return {
     ...others,
     environmentVariables: Object.fromEntries(environmentVariables.map(({ key, value }) => [key, value] as const)),
     ports: Object.fromEntries(ports.map(({ external, internal }) => [external, internal.toString()] as const)),
     volumes: Object.fromEntries(volumes.map(({ id, containerPath }) => [id, containerPath] as const)),
+    networks: networks.map(network => network.id),
   } satisfies z.infer<typeof ServiceDTO>;
 }

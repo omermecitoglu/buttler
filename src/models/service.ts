@@ -11,6 +11,7 @@ const baseSchema = createInsertSchema(services, {
   environmentVariables: z.record(z.string(), z.string()),
   ports: z.record(z.string(), z.string()),
   volumes: z.record(z.string(), z.string()),
+  networks: z.string().array(),
 });
 
 export const ServiceDTO = baseSchema.required()
@@ -21,6 +22,7 @@ export const NewServiceDTO = baseSchema.omit({
   environmentVariables: true,
   ports: true,
   volumes: true,
+  networks: true,
   createdAt: true,
   updatedAt: true,
 }).describe("Data Transfer Object for creating a new service");
