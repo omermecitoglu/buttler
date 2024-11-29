@@ -24,7 +24,7 @@ async function buildInTheBackground(service: z.infer<typeof ServiceDTO>, imageId
       imageId,
       service.environmentVariables,
       service.ports,
-      {},
+      service.volumes,
     );
     await updateService(db, service.id, { status: "running", containerId, imageId: imageId });
   }

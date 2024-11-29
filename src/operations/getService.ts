@@ -1,4 +1,6 @@
 import type database from "~/database";
+import type { ServiceDTO } from "~/models/service";
+import type z from "zod";
 
 export default async function getService(db: typeof database, serviceId: string) {
   const service = await db.query.services.findFirst({
@@ -15,14 +17,21 @@ export default async function getService(db: typeof database, serviceId: string)
           internal: true,
         },
       },
+      volumes: {
+        columns: {
+          id: true,
+          containerPath: true,
+        },
+      },
     },
     where: (table, { eq }) => eq(table.id, serviceId),
   });
   if (!service) return null;
-  const { ports, environmentVariables, ...others } = service;
+  const { ports, environmentVariables, volumes, ...others } = service;
   return {
     ...others,
-    environmentVariables: Object.fromEntries(environmentVariables.map(({ key, value }) => [key, value])),
-    ports: Object.fromEntries(ports.map(({ external, internal }) => [external, internal.toString()])),
-  };
+    environmentVariables: Object.fromEntries(environmentVariables.map(({ key, value }) => [key, value] as const)),
+    ports: Object.fromEntries(ports.map(({ external, internal }) => [external, internal.toString()] as const)),
+    volumes: Object.fromEntries(volumes.map(({ id, containerPath }) => [id, containerPath] as const)),
+  } satisfies z.infer<typeof ServiceDTO>;
 }

@@ -10,6 +10,7 @@ const baseSchema = createInsertSchema(services, {
 }).extend({
   environmentVariables: z.record(z.string(), z.string()),
   ports: z.record(z.string(), z.string()),
+  volumes: z.record(z.string(), z.string()),
 });
 
 export const ServiceDTO = baseSchema.required()
@@ -19,6 +20,7 @@ export const NewServiceDTO = baseSchema.omit({
   id: true,
   environmentVariables: true,
   ports: true,
+  volumes: true,
   createdAt: true,
   updatedAt: true,
 }).describe("Data Transfer Object for creating a new service");
@@ -28,6 +30,7 @@ export const ServicePatchDTO = NewServiceDTO.partial().omit({
 
 export function testServiceData() {
   return {
+    kind: "git",
     name: "unknown",
     repo: "unknown-git-repo",
   } satisfies z.infer<typeof NewServiceDTO>;

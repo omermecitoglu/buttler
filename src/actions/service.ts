@@ -90,7 +90,7 @@ export async function start(serviceId: string, _: FormData) {
     latest.id,
     service.environmentVariables,
     service.ports,
-    {},
+    service.volumes,
   );
   await updateService(db, service.id, { status: "running", containerId, imageId: latest.id });
   redirect(`/services/${serviceId}`);
