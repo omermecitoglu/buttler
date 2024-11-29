@@ -17,7 +17,7 @@ export async function syncPorts(db: Omit<typeof database, "$client">, serviceId:
       internal: parseInt(record[key]),
     }))).onConflictDoUpdate({
       target: [ports.serviceId, ports.external],
-      set: { internal: sql`excluded.value` },
+      set: { internal: sql`excluded.internal` },
     });
   }
 }
