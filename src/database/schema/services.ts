@@ -5,6 +5,7 @@ import { sqliteTable } from "drizzle-orm/sqlite-core/table";
 import { buildImages } from "./build-images";
 import { environmentVariables } from "./environment-variables";
 import { ports } from "./ports";
+import { volumes } from "./volumes";
 
 export const services = sqliteTable("services", {
   id: text().primaryKey(),
@@ -34,4 +35,5 @@ export const relationsOfServices = relations(services, ({ many }) => ({
   environmentVariables: many(environmentVariables),
   ports: many(ports),
   buildImages: many(buildImages),
+  volumes: many(volumes),
 }));
