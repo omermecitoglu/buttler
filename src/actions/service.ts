@@ -2,10 +2,11 @@
 import { kebabCase } from "change-case";
 import { redirect } from "next/navigation";
 import { startBuilding } from "~/core/build";
-import { createContainer, removeContainer } from "~/core/docker";
+import { createContainer, createVolume as createDockerVolume, removeContainer } from "~/core/docker";
 import db from "~/database";
 import { NewServiceDTO, ServicePatchDTO } from "~/models/service";
 import createService from "~/operations/createService";
+import createVolume from "~/operations/createVolume";
 import deleteService from "~/operations/deleteService";
 import getBuildImages from "~/operations/getBuildImages";
 import getService from "~/operations/getService";
@@ -24,19 +25,27 @@ export async function create(formData: FormData) {
       if (data.repo === "postgres") {
         envEntries.push(["POSTGRES_PASSWORD", "example"]);
         portEntries.push(["5432", "5432"]);
+        const volume = await createVolume(tx, { containerPath: "/var/lib/postgresql/data", serviceId: service.id });
+        await createDockerVolume(volume.id);
       }
       if (data.repo === "mysql") {
         envEntries.push(["MYSQL_ROOT_PASSWORD", "example"]);
         portEntries.push(["3306", "3306"]);
+        const volume = await createVolume(tx, { containerPath: "/var/lib/mysql", serviceId: service.id });
+        await createDockerVolume(volume.id);
       }
       if (data.repo === "mongo") {
         envEntries.push(["MONGO_INITDB_ROOT_USERNAME", "root"]);
         envEntries.push(["MONGO_INITDB_ROOT_PASSWORD", "example"]);
         portEntries.push(["27017", "27017"]);
+        const volume = await createVolume(tx, { containerPath: "/data/db", serviceId: service.id });
+        await createDockerVolume(volume.id);
       }
       if (data.repo === "redis") {
         envEntries.push(["REDIS_ARGS", "--appendonly yes"]);
         portEntries.push(["6379", "6379"]);
+        const volume = await createVolume(tx, { containerPath: "/data", serviceId: service.id });
+        await createDockerVolume(volume.id);
       }
       if (envEntries.length) {
         await syncEnvironmentVariables(tx, service.id, Object.fromEntries(envEntries));
