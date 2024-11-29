@@ -1,5 +1,6 @@
 import type database from "~/database";
 import { ServiceDTO } from "~/models/service";
+import type { Prettify } from "~/types/prettify";
 import { selectColumns } from "~/utils/column";
 import type { z } from "zod";
 
@@ -24,5 +25,5 @@ export default async function getServices<K extends z.infer<typeof selectSchema>
     columns: selectColumns(select),
     orderBy: (u, { asc }) => [asc(u.createdAt)],
   });
-  return result as Pick<typeof result[0], K>[];
+  return result as Prettify<Pick<typeof result[0], K>>[];
 }
