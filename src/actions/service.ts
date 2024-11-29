@@ -88,20 +88,33 @@ export async function destroy(id: string, _: FormData) {
 export async function start(serviceId: string, _: FormData) {
   const service = await getService(db, serviceId);
   if (!service) throw new Error("Invalid Service");
-  const images = await getBuildImages(db, serviceId, ["id", "createdAt"]);
-  const latest = images.reduce((bestVersion, nextVersion) => {
-    const best = new Date(bestVersion.createdAt).getTime();
-    const next = new Date(nextVersion.createdAt).getTime();
-    return (next > best) ? nextVersion : bestVersion;
-  }, images[0]);
+
+  const getLatestBuild = async () => {
+    const images = await getBuildImages(db, serviceId, ["id", "createdAt"]);
+    const latest = images.reduce((bestVersion, nextVersion) => {
+      const best = new Date(bestVersion.createdAt).getTime();
+      const next = new Date(nextVersion.createdAt).getTime();
+      return (next > best) ? nextVersion : bestVersion;
+    }, images[0]);
+    return latest.id;
+  };
+
+  const getServiceImage = async () => {
+    switch (service.kind) {
+      case "git": return await getLatestBuild();
+      case "database": return service.repo;
+    }
+  };
+
+  const image = await getServiceImage();
   const containerId = await createContainer(
     kebabCase(service.name),
-    latest.id,
+    image,
     service.environmentVariables,
     service.ports,
     service.volumes,
   );
-  await updateService(db, service.id, { status: "running", containerId, imageId: latest.id });
+  await updateService(db, service.id, { status: "running", containerId, imageId: image });
   redirect(`/services/${serviceId}`);
 }
 
