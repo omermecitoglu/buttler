@@ -4,6 +4,7 @@ import { index } from "drizzle-orm/sqlite-core/indexes";
 import { sqliteTable } from "drizzle-orm/sqlite-core/table";
 import { buildImages } from "./build-images";
 import { environmentVariables } from "./environment-variables";
+import { networks } from "./networks";
 import { ports } from "./ports";
 import { volumes } from "./volumes";
 
@@ -36,4 +37,5 @@ export const relationsOfServices = relations(services, ({ many }) => ({
   ports: many(ports),
   buildImages: many(buildImages),
   volumes: many(volumes),
+  networks: many(networks),
 }));
