@@ -2,9 +2,10 @@
 import { kebabCase } from "change-case";
 import { redirect } from "next/navigation";
 import { startBuilding } from "~/core/build";
-import { createContainer, createVolume as createDockerVolume, removeContainer } from "~/core/docker";
+import { createContainer, createNetwork as createDockerNetwork, createVolume as createDockerVolume, destroyNetwork, removeContainer } from "~/core/docker";
 import db from "~/database";
 import { NewServiceDTO, ServicePatchDTO } from "~/models/service";
+import createNetwork from "~/operations/createNetwork";
 import createService from "~/operations/createService";
 import createVolume from "~/operations/createVolume";
 import deleteService from "~/operations/deleteService";
@@ -53,6 +54,8 @@ export async function create(formData: FormData) {
       if (portEntries.length) {
         await syncPorts(tx, service.id, Object.fromEntries(portEntries));
       }
+      const network = await createNetwork(tx, service.id);
+      await createDockerNetwork(network.id);
     }
   });
   redirect("/services");
@@ -81,6 +84,10 @@ export async function update(id: string, _: unknown, formData: FormData): Promis
 }
 
 export async function destroy(id: string, _: FormData) {
+  const service = await getService(db, id);
+  if (service) {
+    await Promise.all(service.networks.map(destroyNetwork));
+  }
   await deleteService(db, id);
   redirect("/services");
 }
