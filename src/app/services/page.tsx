@@ -1,4 +1,7 @@
+import { faGitAlt } from "@fortawesome/free-brands-svg-icons/faGitAlt";
+import { faDatabase } from "@fortawesome/free-solid-svg-icons/faDatabase";
 import { faPlus } from "@fortawesome/free-solid-svg-icons/faPlus";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import DataTable from "@omer-x/bs-ui-kit/DataTable";
 import PageSection from "@omer-x/bs-ui-kit/PageSection";
 import ModalForm from "@omer-x/bs-ui-kit/form/ModalForm";
@@ -21,7 +24,14 @@ type ServicesPageProps = {
 const ServicesPage = async ({
   params: _params,
 }: ServicesPageProps) => {
-  const services = await getServices(db, ["id", "name", "status", "ports", "environmentVariables"]);
+  const services = await getServices(db, ["id", "kind", "name", "status", "ports", "environmentVariables"]);
+
+  const getTypeIcon = (kind: typeof services[0]["kind"]) => {
+    switch (kind) {
+      case "git": return faGitAlt;
+      case "database": return faDatabase;
+    }
+  };
 
   return (
     <PageSection
@@ -47,6 +57,10 @@ const ServicesPage = async ({
           collection={services}
           primaryKey="id"
           schema={{
+            kind: {
+              header: "",
+              wrapper: value => <FontAwesomeIcon icon={getTypeIcon(value)} size="lg" className="fa-fw" />,
+            },
             name: {
               header: "Name",
               wrapper: (value, pk) => <Link href={`/services/${pk}`}>{value}</Link>,
