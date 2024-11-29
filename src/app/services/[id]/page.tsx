@@ -1,9 +1,12 @@
 import { faCirclePlay } from "@fortawesome/free-solid-svg-icons/faCirclePlay";
 import { faCircleStop } from "@fortawesome/free-solid-svg-icons/faCircleStop";
+import { faDatabase } from "@fortawesome/free-solid-svg-icons/faDatabase";
 import { faScrewdriverWrench } from "@fortawesome/free-solid-svg-icons/faScrewdriverWrench";
 import InfoTable from "@omer-x/bs-ui-kit/InfoTable";
+import LinkButton from "@omer-x/bs-ui-kit/LinkButton";
 import PageSection from "@omer-x/bs-ui-kit/PageSection";
 import SubmitButton from "@omer-x/bs-ui-kit/form/SubmitButton";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { build, start, stop } from "~/actions/service";
 import BackButton from "~/components/BackButton";
@@ -30,7 +33,23 @@ const ShowServicePage = async ({
 
   return (
     <>
-      <PageSection title={service.name} toolbar={<BackButton fallback="/services" />}>
+      <PageSection
+        title={service.name}
+        toolbar={(
+          <>
+            {service.kind !== "database" && (
+              <LinkButton
+                as={Link}
+                icon={faDatabase}
+                href={`/services/${params.id}/databases`}
+                text="Databases"
+                size="sm"
+              />
+            )}
+            <BackButton fallback="/services" />
+          </>
+        )}
+      >
         <InfoTable
           source={service}
           primaryKey="id"
