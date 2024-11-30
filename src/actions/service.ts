@@ -122,6 +122,7 @@ export async function start(serviceId: string, _: FormData) {
     service.environmentVariables,
     service.ports,
     service.volumes,
+    service.providers.map(provider => provider.networkIds).flat(),
   );
   await updateService(db, service.id, { status: "running", containerId, imageId: image });
   redirect(`/services/${serviceId}`);

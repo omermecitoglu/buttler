@@ -62,6 +62,7 @@ export async function createContainer(
   env: Record<string, string>,
   ports: Record<string, string>,
   volumes: Record<string, string>,
+  networkIds: string[],
 ) {
   const container = await docker.createContainer({
     name: serviceName,
@@ -77,6 +78,7 @@ export async function createContainer(
       Binds: Object.entries(volumes).map(([key, value]) => `${key}:${value}`),
     },
   });
+  await Promise.all(networkIds.map(networkId => connectContainerToNetwork(container.id, networkId)));
   await container.start();
   return container.id;
 }
@@ -154,3 +156,20 @@ export async function destroyNetwork(networkId: string) {
   const network = docker.getNetwork(networkId);
   await network.remove();
 }
+
+async function connectContainerToNetwork(containerId: string, networkId: string) {
+  const network = docker.getNetwork(networkId);
+  await network.connect({
+    Container: containerId,
+  });
+}
+
+/*
+async function disconnectContainerFromNetwork(containerId: string, networkId: string) {
+  const network = docker.getNetwork(networkId);
+  await network.disconnect({
+    Container: containerId,
+    // Force: true, // is this necessary?
+  });
+}
+*/
