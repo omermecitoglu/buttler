@@ -7,8 +7,10 @@ import db from "~/database";
 import { NewServiceDTO, ServicePatchDTO } from "~/models/service";
 import createNetwork from "~/operations/createNetwork";
 import createService from "~/operations/createService";
+import createServiceLink from "~/operations/createServiceLink";
 import createVolume from "~/operations/createVolume";
 import deleteService from "~/operations/deleteService";
+import deleteServiceLink from "~/operations/deleteServiceLink";
 import getBuildImages from "~/operations/getBuildImages";
 import getService from "~/operations/getService";
 import { syncEnvironmentVariables } from "~/operations/syncEnvironmentVariables";
@@ -147,5 +149,11 @@ export async function build(id: string, _: FormData) {
 }
 
 export async function attachDatabase(serviceId: string, databaseId: string, _: FormData) {
-  // TODO: attach database
+  await createServiceLink(db, serviceId, databaseId);
+  redirect(`/services/${serviceId}/databases`);
+}
+
+export async function detachDatabase(serviceId: string, databaseId: string, _: FormData) {
+  await deleteServiceLink(db, serviceId, databaseId);
+  redirect(`/services/${serviceId}/databases`);
 }
