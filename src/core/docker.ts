@@ -100,7 +100,7 @@ export function executeCommandInContainer(containerId: string, command: string[]
         if (startError || !stream) return reject(startError);
         let output = "";
         stream.on("data", data => {
-          output += data.toString();
+          output += demux(data).toString();
         });
         stream.on("end", () => {
           resolve(output);
