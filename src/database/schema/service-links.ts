@@ -12,7 +12,7 @@ export const serviceLinks = sqliteTable("service_links", {
 }));
 
 export const relationsOfServiceLinks = relations(serviceLinks, ({ one }) => ({
-  service: one(services, {
+  client: one(services, {
     fields: [serviceLinks.clientId],
     references: [services.id],
     relationName: "client",

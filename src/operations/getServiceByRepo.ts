@@ -29,7 +29,7 @@ export default async function getServiceByRepo(db: typeof database, repo: string
           id: true,
         },
       },
-      links: {
+      providerlinks: {
         columns: {},
         with: {
           provider: {
@@ -56,7 +56,7 @@ export default async function getServiceByRepo(db: typeof database, repo: string
       clientLinks: {
         columns: {},
         with: {
-          service: {
+          client: {
             columns: {
               id: true,
               name: true,
@@ -68,14 +68,14 @@ export default async function getServiceByRepo(db: typeof database, repo: string
     where: (table, { eq }) => eq(table.repo, repo),
   });
   if (!service) return null;
-  const { ports, environmentVariables, volumes, networks, links, clientLinks, ...others } = service;
+  const { ports, environmentVariables, volumes, networks, providerlinks, clientLinks, ...others } = service;
   return {
     ...others,
     environmentVariables: Object.fromEntries(environmentVariables.map(({ key, value }) => [key, value] as const)),
     ports: Object.fromEntries(ports.map(({ external, internal }) => [external, internal.toString()] as const)),
     volumes: Object.fromEntries(volumes.map(({ id, containerPath }) => [id, containerPath] as const)),
     networkIds: networks.map(network => network.id),
-    providers: pluck(links, "provider").map(({
+    providers: pluck(providerlinks, "provider").map(({
       networks: providerNetworks,
       environmentVariables: providerVariables,
       ...otherPropsOfProvider
@@ -84,6 +84,6 @@ export default async function getServiceByRepo(db: typeof database, repo: string
       networkIds: pluck(providerNetworks, "id"),
       variables: Object.fromEntries(providerVariables.map(entry => [entry.key, entry.value] as const)),
     })),
-    clients: pluck(clientLinks, "service"),
+    clients: pluck(clientLinks, "client"),
   } satisfies z.infer<typeof ServiceDTO>;
 }
