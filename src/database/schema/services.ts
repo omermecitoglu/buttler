@@ -6,6 +6,7 @@ import { buildImages } from "./build-images";
 import { environmentVariables } from "./environment-variables";
 import { networks } from "./networks";
 import { ports } from "./ports";
+import { serviceLinks } from "./service-links";
 import { volumes } from "./volumes";
 
 export const services = sqliteTable("services", {
@@ -38,4 +39,5 @@ export const relationsOfServices = relations(services, ({ many }) => ({
   buildImages: many(buildImages),
   volumes: many(volumes),
   networks: many(networks),
+  links: many(serviceLinks, { relationName: "service" }),
 }));
