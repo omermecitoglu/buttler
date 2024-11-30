@@ -9,6 +9,8 @@
 
 // 4. Include any default map overrides here
 
+$enable-negative-margins: true;
+
 // 5. Include remainder of required parts
 @import "~bootstrap/scss/maps";
 @import "~bootstrap/scss/mixins";

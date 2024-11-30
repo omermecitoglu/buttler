@@ -93,7 +93,7 @@ const ShowServicePage = async ({
             },
           }}
         />
-        <div className="mt-3 d-flex gap-3">
+        <div className="d-flex gap-3 bg-primary-subtle p-3 mt-3 mx-n3 border-top border-bottom border-primary-subtle">
           {service.kind === "git" && (
             <form action={build.bind(null, service.id)}>
               <SubmitButton variant="primary" icon={faScrewdriverWrench} text="Build" />
