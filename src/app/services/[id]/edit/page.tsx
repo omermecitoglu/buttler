@@ -10,6 +10,7 @@ import { update } from "~/actions/service";
 import BackButton from "~/components/BackButton";
 import VariableEditor from "~/components/VariableEditor";
 import ServiceForm from "~/components/services/ServiceForm";
+import { getProviderVariables } from "~/core/provider";
 import db from "~/database";
 import getService from "~/operations/getService";
 
@@ -25,6 +26,10 @@ const EditServicePage = async ({
 }: EditServicePageProps) => {
   const service = await getService(db, params.id);
   if (!service) notFound();
+
+  const providerVariables = service.providers
+    .map(provider => getProviderVariables(service.name, provider.name, provider.variables))
+    .reduce((bundle, current) => ({ ...bundle, ...current }), {});
 
   return (
     <PageSection title="Edit Service" toolbar={<BackButton fallback="/services" />}>
@@ -52,6 +57,7 @@ const EditServicePage = async ({
               keyPlaceholder="e.g. CLIENT_KEY"
               name="env"
               defaultValue={service.environmentVariables}
+              databaseVariables={providerVariables}
             />
           </Col>
         </Row>
