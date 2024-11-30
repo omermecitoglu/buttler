@@ -53,11 +53,22 @@ export default async function getService(db: typeof database, serviceId: string)
           },
         },
       },
+      clientLinks: {
+        columns: {},
+        with: {
+          service: {
+            columns: {
+              id: true,
+              name: true,
+            },
+          },
+        },
+      },
     },
     where: (table, { eq }) => eq(table.id, serviceId),
   });
   if (!service) return null;
-  const { ports, environmentVariables, volumes, networks, links, ...others } = service;
+  const { ports, environmentVariables, volumes, networks, links, clientLinks, ...others } = service;
   return {
     ...others,
     environmentVariables: Object.fromEntries(environmentVariables.map(({ key, value }) => [key, value] as const)),
@@ -73,5 +84,6 @@ export default async function getService(db: typeof database, serviceId: string)
       networkIds: pluck(providerNetworks, "id"),
       variables: Object.fromEntries(providerVariables.map(entry => [entry.key, entry.value] as const)),
     })),
+    clients: pluck(clientLinks, "service"),
   } satisfies z.infer<typeof ServiceDTO>;
 }

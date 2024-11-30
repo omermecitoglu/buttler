@@ -40,4 +40,5 @@ export const relationsOfServices = relations(services, ({ many }) => ({
   volumes: many(volumes),
   networks: many(networks),
   links: many(serviceLinks, { relationName: "service" }),
+  clientLinks: many(serviceLinks, { relationName: "provider" }),
 }));
