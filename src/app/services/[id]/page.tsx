@@ -111,7 +111,7 @@ const ShowServicePage = async ({
             </form>
           )}
           {service.kind === "database" && service.containerId && (
-            <form action={backup.bind(null, service.id, service.containerId)}>
+            <form action={backup.bind(null, service.id)}>
               <SubmitButton variant="success" icon={faFloppyDisk} text="Backup" />
             </form>
           )}

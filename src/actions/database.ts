@@ -1,25 +1,6 @@
 "use server";
-import { snakeCase } from "change-case";
-import { Storage } from "megajs";
-import { executeCommandInContainer } from "~/core/docker";
-import db from "~/database";
-import getService from "~/operations/getService";
+import { backupDatabase } from "~/core/backup";
 
-export async function backup(serviceId: string, containerId: string, _: FormData) {
-  const service = await getService(db, serviceId);
-  const globalVariables = await db.query.globalVariables.findMany({});
-  const megaUserName = globalVariables.find(v => v.key === "mega-username")?.value;
-  const megaPassword = globalVariables.find(v => v.key === "mega-password")?.value;
-  if (!megaUserName || !megaPassword) return;
-  for (const client of service?.clients ?? []) {
-    const tableName = snakeCase(client.name);
-    const content = await executeCommandInContainer(containerId, ["pg_dump", "-U", "postgres", tableName]);
-    const storage = await new Storage({
-      email: megaUserName,
-      password: megaPassword,
-    }).ready;
-    const now = new Date();
-    const fileName = `${tableName}_${now.toISOString()}.sql`;
-    await storage.upload(fileName, content).complete;
-  }
+export async function backup(serviceId: string, _: FormData) {
+  await backupDatabase(serviceId);
 }
