@@ -3,6 +3,7 @@ import { kebabCase } from "change-case";
 import { redirect } from "next/navigation";
 import { startBuilding } from "~/core/build";
 import { createContainer, createNetwork as createDockerNetwork, createVolume as createDockerVolume, destroyNetwork, removeContainer } from "~/core/docker";
+import { getProviderVariables } from "~/core/provider";
 import db from "~/database";
 import { NewServiceDTO, ServicePatchDTO } from "~/models/service";
 import createNetwork from "~/operations/createNetwork";
@@ -116,10 +117,13 @@ export async function start(serviceId: string, _: FormData) {
   };
 
   const image = await getServiceImage();
+  const providerVariables = service.providers
+    .map(provider => getProviderVariables(service.name, provider.name, provider.variables))
+    .reduce((bundle, current) => ({ ...bundle, ...current }), {});
   const containerId = await createContainer(
     kebabCase(service.name),
     image,
-    service.environmentVariables,
+    { ...providerVariables, ...service.environmentVariables },
     service.ports,
     service.volumes,
     service.providers.map(provider => provider.networkIds).flat(),

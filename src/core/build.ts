@@ -7,6 +7,7 @@ import type { ServiceDTO } from "~/models/service";
 import createBuildImage from "~/operations/createBuildImage";
 import updateBuildImage from "~/operations/updateBuildImage";
 import updateService from "~/operations/updateService";
+import { getProviderVariables } from "./provider";
 import type z from "zod";
 
 async function buildInTheBackground(service: z.infer<typeof ServiceDTO>, imageId: string) {
@@ -19,10 +20,13 @@ async function buildInTheBackground(service: z.infer<typeof ServiceDTO>, imageId
   if (service.containerId) {
     await removeContainer(service.containerId);
     await updateService(db, service.id, { status: "idle", containerId: null, imageId: null });
+    const providerVariables = service.providers
+      .map(provider => getProviderVariables(service.name, provider.name, provider.variables))
+      .reduce((bundle, current) => ({ ...bundle, ...current }), {});
     const containerId = await createContainer(
       kebabCase(service.name),
       imageId,
-      service.environmentVariables,
+      { ...providerVariables, ...service.environmentVariables },
       service.ports,
       service.volumes,
       service.providers.map(provider => provider.networkIds).flat(),
