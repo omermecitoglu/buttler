@@ -87,6 +87,29 @@ export async function removeContainer(containerId: string) {
   await docker.getContainer(containerId).remove({ force: true });
 }
 
+export function executeCommandInContainer(containerId: string, command: string[]) {
+  return new Promise<string>((resolve, reject) => {
+    const container = docker.getContainer(containerId);
+    container.exec({
+      Cmd: command,
+      AttachStdout: true,
+      AttachStderr: true,
+    }, (execError, exec) => {
+      if (execError || !exec) return reject(execError);
+      exec.start({}, (startError, stream) => {
+        if (startError || !stream) return reject(startError);
+        let output = "";
+        stream.on("data", data => {
+          output += data.toString();
+        });
+        stream.on("end", () => {
+          resolve(output);
+        });
+      });
+    });
+  });
+}
+
 export function getContainerLogs(containerId: string, limit: number) {
   const container = docker.getContainer(containerId);
   return new Promise<string>((resolve, reject) => {

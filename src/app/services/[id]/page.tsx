@@ -1,6 +1,7 @@
 import { faCirclePlay } from "@fortawesome/free-solid-svg-icons/faCirclePlay";
 import { faCircleStop } from "@fortawesome/free-solid-svg-icons/faCircleStop";
 import { faDatabase } from "@fortawesome/free-solid-svg-icons/faDatabase";
+import { faFloppyDisk } from "@fortawesome/free-solid-svg-icons/faFloppyDisk";
 import { faScrewdriverWrench } from "@fortawesome/free-solid-svg-icons/faScrewdriverWrench";
 import InfoTable from "@omer-x/bs-ui-kit/InfoTable";
 import LinkButton from "@omer-x/bs-ui-kit/LinkButton";
@@ -8,6 +9,7 @@ import PageSection from "@omer-x/bs-ui-kit/PageSection";
 import SubmitButton from "@omer-x/bs-ui-kit/form/SubmitButton";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { backup } from "~/actions/database";
 import { build, start, stop } from "~/actions/service";
 import BackButton from "~/components/BackButton";
 import ContainerLogs from "~/components/ContainerLogs";
@@ -106,6 +108,11 @@ const ShowServicePage = async ({
           ) : (
             <form action={start.bind(null, service.id)}>
               <SubmitButton variant="success" icon={faCirclePlay} text="Start" />
+            </form>
+          )}
+          {service.kind === "database" && service.containerId && (
+            <form action={backup.bind(null, service.containerId, service.name)}>
+              <SubmitButton variant="success" icon={faFloppyDisk} text="Backup" />
             </form>
           )}
         </div>
