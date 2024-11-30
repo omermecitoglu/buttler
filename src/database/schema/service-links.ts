@@ -5,17 +5,17 @@ import { sqliteTable } from "drizzle-orm/sqlite-core/table";
 import { services } from "./services";
 
 export const serviceLinks = sqliteTable("service_links", {
-  serviceId: text().notNull().references(() => services.id, { onDelete: "cascade", onUpdate: "restrict" }),
+  clientId: text().notNull().references(() => services.id, { onDelete: "cascade", onUpdate: "restrict" }),
   providerId: text().notNull().references(() => services.id, { onDelete: "cascade", onUpdate: "restrict" }),
 }, table => ({
-  pk: primaryKey({ columns: [table.serviceId, table.providerId] }),
+  pk: primaryKey({ columns: [table.clientId, table.providerId] }),
 }));
 
 export const relationsOfServiceLinks = relations(serviceLinks, ({ one }) => ({
   service: one(services, {
-    fields: [serviceLinks.serviceId],
+    fields: [serviceLinks.clientId],
     references: [services.id],
-    relationName: "service",
+    relationName: "client",
   }),
   provider: one(services, {
     fields: [serviceLinks.providerId],
