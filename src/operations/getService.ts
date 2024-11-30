@@ -63,7 +63,7 @@ export default async function getService(db: typeof database, serviceId: string)
     environmentVariables: Object.fromEntries(environmentVariables.map(({ key, value }) => [key, value] as const)),
     ports: Object.fromEntries(ports.map(({ external, internal }) => [external, internal.toString()] as const)),
     volumes: Object.fromEntries(volumes.map(({ id, containerPath }) => [id, containerPath] as const)),
-    networks: networks.map(network => network.id),
+    networkIds: networks.map(network => network.id),
     providers: pluck(links, "provider").map(({
       networks: providerNetworks,
       environmentVariables: providerVariables,

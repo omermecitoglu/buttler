@@ -11,7 +11,7 @@ const baseSchema = createInsertSchema(services, {
   environmentVariables: z.record(z.string(), z.string()),
   ports: z.record(z.string(), z.string()),
   volumes: z.record(z.string(), z.string()),
-  networks: z.string().array(),
+  networkIds: z.string().array(),
   providers: z.object({
     id: z.string(),
     name: z.string(),
@@ -28,7 +28,7 @@ export const NewServiceDTO = baseSchema.omit({
   environmentVariables: true,
   ports: true,
   volumes: true,
-  networks: true,
+  networkIds: true,
   providers: true,
   createdAt: true,
   updatedAt: true,
