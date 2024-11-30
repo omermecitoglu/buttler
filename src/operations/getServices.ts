@@ -25,5 +25,5 @@ export default async function getServices<K extends z.infer<typeof selectSchema>
     columns: selectColumns(select),
     orderBy: (u, { asc }) => [asc(u.createdAt)],
   });
-  return result as Prettify<Pick<typeof result[0], K>>[];
+  return result as unknown as Prettify<Pick<z.infer<typeof ServiceDTO>, K>>[];
 }
