@@ -16,6 +16,7 @@ const baseSchema = createInsertSchema(services, {
     id: z.string(),
     name: z.string(),
     networkIds: z.string().array(),
+    variables: z.record(z.string(), z.string()),
   }).array(),
 });
 
