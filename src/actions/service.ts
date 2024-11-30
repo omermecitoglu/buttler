@@ -1,4 +1,5 @@
 "use server";
+import crypto from "node:crypto";
 import { kebabCase } from "change-case";
 import { redirect } from "next/navigation";
 import { startBuilding } from "~/core/build";
@@ -27,8 +28,8 @@ export async function create(formData: FormData) {
       const envEntries: [string, string][] = [];
       const portEntries: [string, string][] = [];
       if (data.repo === "postgres") {
-        envEntries.push(["POSTGRES_PASSWORD", "example"]);
-        portEntries.push(["5432", "5432"]);
+        envEntries.push(["POSTGRES_PASSWORD", crypto.randomUUID()]);
+        // portEntries.push(["5432", "5432"]);
         const volume = await createVolume(tx, { containerPath: "/var/lib/postgresql/data", serviceId: service.id });
         await createDockerVolume(volume.id);
       }
@@ -89,7 +90,7 @@ export async function update(id: string, _: unknown, formData: FormData): Promis
 export async function destroy(id: string, _: FormData) {
   const service = await getService(db, id);
   if (service) {
-    await Promise.all(service.networks.map(destroyNetwork));
+    await Promise.all(service.networkIds.map(destroyNetwork));
   }
   await deleteService(db, id);
   redirect("/services");
@@ -126,7 +127,7 @@ export async function start(serviceId: string, _: FormData) {
     { ...providerVariables, ...service.environmentVariables },
     service.ports,
     service.volumes,
-    service.providers.map(provider => provider.networkIds).flat(),
+    [...service.networkIds, ...service.providers.map(provider => provider.networkIds).flat()],
   );
   await updateService(db, service.id, { status: "running", containerId, imageId: image });
   redirect(`/services/${serviceId}`);
