@@ -37,6 +37,13 @@ export default async function getService(db: typeof database, serviceId: string)
               id: true,
               name: true,
             },
+            with: {
+              networks: {
+                columns: {
+                  id: true,
+                },
+              },
+            },
           },
         },
       },
@@ -51,6 +58,9 @@ export default async function getService(db: typeof database, serviceId: string)
     ports: Object.fromEntries(ports.map(({ external, internal }) => [external, internal.toString()] as const)),
     volumes: Object.fromEntries(volumes.map(({ id, containerPath }) => [id, containerPath] as const)),
     networks: networks.map(network => network.id),
-    providers: pluck(links, "provider"),
+    providers: pluck(links, "provider").map(({ networks: providerNetworks, ...otherPropsOfProvider }) => ({
+      ...otherPropsOfProvider,
+      networkIds: pluck(providerNetworks, "id"),
+    })),
   } satisfies z.infer<typeof ServiceDTO>;
 }
