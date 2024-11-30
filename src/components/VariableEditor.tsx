@@ -2,6 +2,7 @@
 import { faArrowRotateLeft } from "@fortawesome/free-solid-svg-icons/faArrowRotateLeft";
 import { faBroom } from "@fortawesome/free-solid-svg-icons/faBroom";
 import { faCopy } from "@fortawesome/free-solid-svg-icons/faCopy";
+import { faDatabase } from "@fortawesome/free-solid-svg-icons/faDatabase";
 import { faPlus } from "@fortawesome/free-solid-svg-icons/faPlus";
 import { faXmark } from "@fortawesome/free-solid-svg-icons/faXmark";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -26,6 +27,7 @@ type VariableEditorProps = {
   valuePlaceholder?: string,
   name: string,
   defaultValue?: Record<string, string>,
+  databaseVariables?: Record<string, string>,
 };
 
 const VariableEditor = ({
@@ -36,6 +38,7 @@ const VariableEditor = ({
   valuePlaceholder,
   name,
   defaultValue = {},
+  databaseVariables = {},
 }: VariableEditorProps) => {
   const initialCollection = Object.keys(defaultValue).map(key => ({ id: key, key, value: defaultValue[key] }));
   const [collection, setCollection] = useState<{ id: string, key: string, value: string }[]>(initialCollection);
@@ -138,6 +141,18 @@ const VariableEditor = ({
       </CardHeader>
       <CardBody className="d-flex flex-column gap-3">
         <input type="hidden" name={name} value={finalValue} />
+        {Object.entries(databaseVariables).map(([key, value]) => (
+          <InputGroup key={key} size="sm">
+            <InputGroupText>
+              <FontAwesomeIcon icon={faDatabase} size="lg" className="fa-fw" />
+            </InputGroupText>
+            <FormControl type={type} value={key} disabled />
+            <FormControl type={type} value={value} disabled />
+            <Button variant="danger" disabled>
+              <FontAwesomeIcon icon={faXmark} size="lg" className="fa-fw" />
+            </Button>
+          </InputGroup>
+        ))}
         {collection.map(item => (
           <InputGroup key={item.id} size="sm">
             <InputGroupText>
