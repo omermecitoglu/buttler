@@ -1,1 +1,0 @@
-ALTER TABLE `services` ADD `kind` text DEFAULT 'git' NOT NULL;
