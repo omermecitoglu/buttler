@@ -145,3 +145,7 @@ export async function build(id: string, _: FormData) {
   }
   redirect(`/services/${id}`);
 }
+
+export async function attachDatabase(serviceId: string, databaseId: string, _: FormData) {
+  // TODO: attach database
+}
