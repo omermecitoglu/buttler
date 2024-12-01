@@ -22,7 +22,7 @@ async function buildInTheBackground(service: z.infer<typeof ServiceDTO>, imageId
     await updateService(db, service.id, { status: "idle", containerId: null, imageId: null });
     const providerVariables = service.providers
       .map(provider => getProviderVariables(service.name, provider.name, provider.variables))
-      .reduce((bundle, current) => ({ ...bundle, ...current }), {});
+      .reduce((bundle, current) => Object.assign(bundle, current), {});
     const containerId = await createContainer(
       kebabCase(service.name),
       imageId,

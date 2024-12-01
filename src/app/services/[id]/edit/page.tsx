@@ -29,7 +29,10 @@ const EditServicePage = async ({
 
   const providerVariables = service.providers
     .map(provider => getProviderVariables(service.name, provider.name, provider.variables))
-    .reduce((bundle, current) => ({ ...bundle, ...current }), {});
+    .reduce((bundle, current) => {
+      Object.assign(bundle, current);
+      return bundle;
+    }, {});
 
   return (
     <PageSection title="Edit Service" toolbar={<BackButton fallback="/services" />}>

@@ -120,7 +120,7 @@ export async function start(serviceId: string, _: FormData) {
   const image = await getServiceImage();
   const providerVariables = service.providers
     .map(provider => getProviderVariables(service.name, provider.name, provider.variables))
-    .reduce((bundle, current) => ({ ...bundle, ...current }), {});
+    .reduce((bundle, current) => Object.assign(bundle, current), {});
   const containerId = await createContainer(
     kebabCase(service.name),
     image,
