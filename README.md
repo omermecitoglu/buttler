@@ -110,59 +110,59 @@ buttler restart
 
 ### Dark Mode
 
-![Screenshot 01](/screenshots/01.png)
+![Screenshot 01](https://raw.githubusercontent.com/omermecitoglu/buttler/main/screenshots/01.png)
 
 ### Settings
 
-![Screenshot 02](/screenshots/02.png)
+![Screenshot 02](https://raw.githubusercontent.com/omermecitoglu/buttler/main/screenshots/02.png)
 
 ### Custom service
 
-![Screenshot 03](/screenshots/03.png)
+![Screenshot 03](https://raw.githubusercontent.com/omermecitoglu/buttler/main/screenshots/03.png)
 
 ### Database service
 
-![Screenshot 04](/screenshots/04.png)
+![Screenshot 04](https://raw.githubusercontent.com/omermecitoglu/buttler/main/screenshots/04.png)
 
 ### List of services
 
-![Screenshot 05](/screenshots/05.png)
+![Screenshot 05](https://raw.githubusercontent.com/omermecitoglu/buttler/main/screenshots/05.png)
 
 ### Edit service page
 
-![Screenshot 06](/screenshots/06.png)
+![Screenshot 06](https://raw.githubusercontent.com/omermecitoglu/buttler/main/screenshots/06.png)
 
-![Screenshot 07](/screenshots/07.png)
+![Screenshot 07](https://raw.githubusercontent.com/omermecitoglu/buttler/main/screenshots/07.png)
 
 ### Service details
 
-![Screenshot 10](/screenshots/10.png)
+![Screenshot 10](https://raw.githubusercontent.com/omermecitoglu/buttler/main/screenshots/10.png)
 
 ### Manual Build
 
-![Screenshot 08](/screenshots/08.png)
+![Screenshot 08](https://raw.githubusercontent.com/omermecitoglu/buttler/main/screenshots/08.png)
 
 ### List of build images
 
-![Screenshot 09](/screenshots/09.png)
+![Screenshot 09](https://raw.githubusercontent.com/omermecitoglu/buttler/main/screenshots/09.png)
 
 ### Manual backup
 
-![Screenshot 11](/screenshots/11.png)
+![Screenshot 11](https://raw.githubusercontent.com/omermecitoglu/buttler/main/screenshots/11.png)
 
 ### Container logs
 
-![Screenshot 12](/screenshots/12.png)
+![Screenshot 12](https://raw.githubusercontent.com/omermecitoglu/buttler/main/screenshots/12.png)
 
 ### Linking services
 
-![Screenshot 13](/screenshots/13.png)
+![Screenshot 13](https://raw.githubusercontent.com/omermecitoglu/buttler/main/screenshots/13.png)
 
-![Screenshot 14](/screenshots/14.png)
+![Screenshot 14](https://raw.githubusercontent.com/omermecitoglu/buttler/main/screenshots/14.png)
 
 ### Auto env inheritance
 
-![Screenshot 15](/screenshots/15.png)
+![Screenshot 15](https://raw.githubusercontent.com/omermecitoglu/buttler/main/screenshots/15.png)
 
 ## Contributing
 
