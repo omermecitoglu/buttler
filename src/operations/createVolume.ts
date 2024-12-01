@@ -10,7 +10,7 @@ const baseSchema = createInsertSchema(volumes, {
   containerPath: schema => schema.containerPath.describe("Container path of the volume"),
 });
 
-export const NewVolumeDTO = baseSchema.omit({
+const NewVolumeDTO = baseSchema.omit({
   id: true,
 }).describe("Data Transfer Object for creating a new volume");
 
