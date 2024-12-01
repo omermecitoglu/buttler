@@ -30,6 +30,9 @@ jobs:
         # with:
           # token: ${{ secrets.CODECOV_TOKEN }}
 
+      - name: Create database
+        run: npm run build:migration
+
       - name: Build package
         run: npm run build
 
