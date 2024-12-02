@@ -17,8 +17,8 @@ export async function backupDatabase(serviceId: string) {
   for (const client of service.clients) {
     const tableName = snakeCase(client.name);
     const content = await executeCommandInContainer(service.containerId, ["pg_dump", "-U", "postgres", tableName]);
-    const now = new Date();
-    const fileName = `${tableName}_${now.toISOString()}.sql`;
+    const isoString = new Date().toISOString();
+    const fileName = `${tableName}_${isoString.slice(0, 10)}_${isoString.slice(11, 19)}.sql`;
     await uploadToMega(megaUserName, megaPassword, fileName, content);
   }
 }
