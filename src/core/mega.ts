@@ -6,6 +6,10 @@ export async function uploadToMega(username: string, password: string, fileName:
     email: username,
     password: password,
   }).ready;
-  const file = await storage.upload(fileName, content).complete;
+  const buffer = Buffer.from(content);
+  const file = await storage.upload({
+    name: fileName,
+    size: buffer.length,
+  }, buffer).complete;
   return file;
 }
