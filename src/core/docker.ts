@@ -77,6 +77,7 @@ export async function createContainer(
       },
       Binds: Object.entries(volumes).map(([key, value]) => `${key}:${value}`),
     },
+    Tty: true,
   });
   await Promise.all(networkIds.map(networkId => connectContainerToNetwork(container.id, networkId)));
   await container.start();
@@ -117,42 +118,9 @@ export function getContainerLogs(containerId: string, limit: number) {
     container.logs({ follow: false, stdout: true, stderr: true, tail: limit }, (err, buffer) => {
       if (err) return reject(err);
       if (!buffer) return reject(new Error("stream is undefined"));
-      resolve(demux(buffer));
+      resolve(buffer.toString());
     });
   });
-}
-
-function demux(chunk: Buffer): string {
-  const output: string[] = [];
-  let offset = 0;
-
-  while (offset < chunk.length) {
-    // Check if there are enough bytes to read the header
-    if (offset + 8 > chunk.length) {
-      break;
-    }
-
-    // Read the first 8 bytes for the header
-    // const streamType = chunk.readUInt8(offset);
-    const size = chunk.readUInt32BE(offset + 4); // Read the size of the output
-
-    // Move the offset to the start of the actual output
-    offset += 8;
-
-    // Check if there's enough data for the output
-    if (offset + size > chunk.length) {
-      break;
-    }
-
-    // Extract the output based on the size
-    const outputChunk = chunk.slice(offset, offset + size).toString();
-    output.push(outputChunk);
-
-    // Move the offset to the end of the current output
-    offset += size;
-  }
-
-  return output.join("");
 }
 
 export async function createVolume(name: string) {
