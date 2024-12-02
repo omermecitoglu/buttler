@@ -94,13 +94,14 @@ export function executeCommandInContainer(containerId: string, command: string[]
       Cmd: command,
       AttachStdout: true,
       AttachStderr: true,
+      Tty: true,
     }, (execError, exec) => {
       if (execError || !exec) return reject(execError);
-      exec.start({}, (startError, stream) => {
+      exec.start({ Tty: true }, (startError, stream) => {
         if (startError || !stream) return reject(startError);
         let output = "";
         stream.on("data", data => {
-          output += demux(data).toString();
+          output += data.toString();
         });
         stream.on("end", () => {
           resolve(output);
