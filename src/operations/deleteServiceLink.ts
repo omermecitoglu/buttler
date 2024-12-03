@@ -7,6 +7,6 @@ export default async function deleteServiceLink(db: Omit<typeof database, "$clie
     .delete(serviceLinks)
     .where(and(
       eq(serviceLinks.clientId, clientId),
-      eq(serviceLinks.providerId, providerId)
+      eq(serviceLinks.providerId, providerId),
     ));
 }
