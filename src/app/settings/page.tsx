@@ -7,9 +7,7 @@ import InstantInput from "~/components/InstantInput";
 import db from "~/database";
 
 type SettingsPageProps = {
-  params: {
-    locale: string,
-  },
+  params: Promise<{ locale: string }>,
 };
 
 const SettingsPage = async ({

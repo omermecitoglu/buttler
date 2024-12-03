@@ -20,16 +20,14 @@ import getBuildImages from "~/operations/getBuildImages";
 import getService from "~/operations/getService";
 
 type ShowServicePageProps = {
-  params: {
-    locale: string,
-    id: string,
-  },
+  params: Promise<{ locale: string, id: string }>,
 };
 
 const ShowServicePage = async ({
   params,
 }: ShowServicePageProps) => {
-  const service = await getService(db, params.id);
+  const { id: serviceId } = await params;
+  const service = await getService(db, serviceId);
   if (!service) notFound();
   const buildImages = await getBuildImages(db, service.id, ["id", "status", "createdAt"]);
 
@@ -43,7 +41,7 @@ const ShowServicePage = async ({
               <LinkButton
                 as={Link}
                 icon={faDatabase}
-                href={`/services/${params.id}/databases`}
+                href={`/services/${serviceId}/databases`}
                 text="Databases"
                 size="sm"
               />

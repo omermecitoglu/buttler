@@ -16,9 +16,7 @@ import getServices from "~/operations/getServices";
 export const dynamic = "force-dynamic";
 
 type ServicesPageProps = {
-  params: {
-    locale: string,
-  },
+  params: Promise<{ locale: string }>,
 };
 
 const ServicesPage = async ({

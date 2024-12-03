@@ -3,7 +3,9 @@
 const nextConfig = {
   output: "standalone",
   experimental: {
-    instrumentationHook: true,
+  },
+  sassOptions: {
+    silenceDeprecations: ["mixed-decls", "color-functions", "global-builtin", "import", "legacy-js-api"],
   },
   webpack: config => {
     config.externals.push("dockerode");

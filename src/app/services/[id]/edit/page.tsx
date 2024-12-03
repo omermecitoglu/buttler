@@ -15,16 +15,14 @@ import db from "~/database";
 import getService from "~/operations/getService";
 
 type EditServicePageProps = {
-  params: {
-    locale: string,
-    id: string,
-  },
+  params: Promise<{ locale: string, id: string }>,
 };
 
 const EditServicePage = async ({
   params,
 }: EditServicePageProps) => {
-  const service = await getService(db, params.id);
+  const { id: serviceId } = await params;
+  const service = await getService(db, serviceId);
   if (!service) notFound();
 
   const providerVariables = service.providers

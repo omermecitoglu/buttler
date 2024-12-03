@@ -13,16 +13,14 @@ import getServices from "~/operations/getServices";
 import { pluck } from "~/utils/object";
 
 type ServiceDatabasesPageProps = {
-  params: {
-    locale: string,
-    id: string,
-  },
+  params: Promise<{ locale: string, id: string }>,
 };
 
 const ServiceDatabasesPage = async ({
   params,
 }: ServiceDatabasesPageProps) => {
-  const service = await getService(db, params.id);
+  const { id: serviceId } = await params;
+  const service = await getService(db, serviceId);
   if (!service) notFound();
   const allServices = await getServices(db, ["id", "kind", "name"]);
   const alreadyProvidedDatabases = pluck(service.providers, "id");
@@ -41,9 +39,9 @@ const ServiceDatabasesPage = async ({
             title="Add database"
             collection={availableDatabases}
             emptyWarning="No available database"
-            action={attachDatabase.bind(null, params.id)}
+            action={attachDatabase.bind(null, serviceId)}
           />
-          <BackButton fallback={`/services/${params.id}`} />
+          <BackButton fallback={`/services/${serviceId}`} />
         </>
       )}
     >
