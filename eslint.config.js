@@ -8,6 +8,6 @@ export default [
     },
   },
   {
-    ignores: [".next/*"],
+    ignores: [".next/*", "ui/*", "bin/*"],
   },
 ];
