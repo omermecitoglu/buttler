@@ -8,6 +8,11 @@ export const buildImages = sqliteTable("build_images", {
   id: text().primaryKey(),
   serviceId: text().notNull().references(() => services.id, { onDelete: "restrict", onUpdate: "restrict" }),
   status: text({ enum: ["pending", "canceled", "failed", "ready"] }).notNull().default("pending"),
+  errorCode: text({
+    enum: [
+      "REPO_NOT_FOUND",
+    ],
+  }),
   createdAt: text().notNull().default(sql`(CURRENT_TIMESTAMP)`),
   updatedAt: text().notNull().default(sql`(CURRENT_TIMESTAMP)`),
 }, table => ({

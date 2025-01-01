@@ -8,6 +8,13 @@
       "when": 1733009126467,
       "tag": "0000_bored_night_thrasher",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1735698135591,
+      "tag": "0001_colorful_punisher",
+      "breakpoints": true
     }
   ]
 }
