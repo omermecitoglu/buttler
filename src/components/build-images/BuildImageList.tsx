@@ -7,7 +7,7 @@ import StatusBadge from "./StatusBadge";
 import type z from "zod";
 
 type BuildImageListProps = {
-  collection: z.infer<typeof BuildImageDTO>[],
+  collection: Pick<z.infer<typeof BuildImageDTO>, "id" | "status" | "createdAt">[],
   currentImageId?: string | null,
 };
 
