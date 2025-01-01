@@ -4,10 +4,9 @@ import React from "react";
 import { destroy } from "~/actions/build-image";
 import type { BuildImageDTO } from "~/models/build-image";
 import StatusBadge from "./StatusBadge";
-import type z from "zod";
 
 type BuildImageListProps = {
-  collection: Pick<z.infer<typeof BuildImageDTO>, "id" | "status" | "createdAt">[],
+  collection: Pick<BuildImageDTO, "id" | "status" | "createdAt">[],
   currentImageId?: string | null,
 };
 

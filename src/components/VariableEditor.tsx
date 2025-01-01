@@ -84,7 +84,7 @@ const VariableEditor = ({
           }
           return [...c, ...items];
         });
-      } catch (err) {
+      } catch {
         // do nothing
       }
     }
@@ -102,7 +102,7 @@ const VariableEditor = ({
     try {
       const text = collection.map(item => `${item.key}=${item.value}`);
       await navigator.clipboard.writeText(text.join("\n"));
-    } catch (err) {
+    } catch {
       // do nothing
     }
   };

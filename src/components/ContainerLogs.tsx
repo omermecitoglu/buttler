@@ -26,16 +26,12 @@ const ContainerLogs = ({
   const handleShow = () => setShow(true);
 
   async function fetchLogs(signal: AbortSignal) {
-    try {
-      const url = new URL("/api/logs", window.location.origin);
-      url.searchParams.append("container", containerId);
-      url.searchParams.append("limit", limit.toString());
-      const response = await fetch(url, { signal });
-      const { content } = await response.json();
-      setLogs(content);
-    } catch (error) {
-      console.error(error);
-    }
+    const url = new URL("/api/logs", window.location.origin);
+    url.searchParams.append("container", containerId);
+    url.searchParams.append("limit", limit.toString());
+    const response = await fetch(url, { signal });
+    const { content } = await response.json();
+    setLogs(content);
   }
 
   useEffect(() => {

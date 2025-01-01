@@ -1,7 +1,6 @@
 import type database from "~/database";
 import type { ServiceDTO } from "~/models/service";
 import { pluck } from "~/utils/object";
-import type z from "zod";
 
 export default async function getServiceByRepo(db: typeof database, repo: string) {
   const service = await db.query.services.findFirst({
@@ -85,5 +84,5 @@ export default async function getServiceByRepo(db: typeof database, repo: string
       variables: Object.fromEntries(providerVariables.map(entry => [entry.key, entry.value] as const)),
     })),
     clients: pluck(clientLinks, "client"),
-  } satisfies z.infer<typeof ServiceDTO>;
+  } satisfies ServiceDTO;
 }

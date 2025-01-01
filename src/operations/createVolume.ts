@@ -10,11 +10,13 @@ const baseSchema = createInsertSchema(volumes, {
   containerPath: schema => schema.containerPath.describe("Container path of the volume"),
 });
 
-const NewVolumeDTO = baseSchema.omit({
+const NewVolumeSchema = baseSchema.omit({
   id: true,
 }).describe("Data Transfer Object for creating a new volume");
 
-export default async function createVolume(db: Omit<typeof database, "$client">, data: z.infer<typeof NewVolumeDTO>) {
+type NewVolumeDTO = z.infer<typeof NewVolumeSchema>;
+
+export default async function createVolume(db: Omit<typeof database, "$client">, data: NewVolumeDTO) {
   const [volume] = await db.insert(volumes).values({
     id: crypto.randomUUID(),
     ...data,

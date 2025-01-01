@@ -5,6 +5,8 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { Command } from "commander";
 
+/* eslint-disable no-console */
+
 async function checkFile(filePath: string) {
   try {
     await fs.access(filePath);

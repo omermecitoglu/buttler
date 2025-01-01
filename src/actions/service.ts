@@ -6,7 +6,7 @@ import { startBuilding } from "~/core/build";
 import { createContainer, createNetwork as createDockerNetwork, createVolume as createDockerVolume, destroyNetwork, removeContainer } from "~/core/docker";
 import { getProviderVariables } from "~/core/provider";
 import db from "~/database";
-import { NewServiceDTO, ServicePatchDTO } from "~/models/service";
+import { NewServiceSchema, ServicePatchSchema } from "~/models/service";
 import createNetwork from "~/operations/createNetwork";
 import createService from "~/operations/createService";
 import createServiceLink from "~/operations/createServiceLink";
@@ -21,7 +21,7 @@ import updateService from "~/operations/updateService";
 import { getData } from "~/utils/form";
 
 export async function create(formData: FormData) {
-  const data = NewServiceDTO.parse(getData(formData));
+  const data = NewServiceSchema.parse(getData(formData));
   await db.transaction(async tx => {
     const service = await createService(tx, data);
     if (data.kind === "database") {
@@ -68,7 +68,7 @@ export async function create(formData: FormData) {
 export async function update(id: string, _: unknown, formData: FormData): Promise<Record<string, string>> {
   const env = JSON.parse(formData.get("env") as string) as Record<string, string>;
   const ports = JSON.parse(formData.get("ports") as string) as Record<string, string>;
-  const patch = ServicePatchDTO.omit({ repo: true }).parse(getData(formData));
+  const patch = ServicePatchSchema.omit({ repo: true }).parse(getData(formData));
   const outdatedService = await getService(db, id);
   if (!outdatedService) throw new Error("Invalid Service");
   if (outdatedService.containerId) {
@@ -137,7 +137,7 @@ export async function stop(id: string, containerId: string, _: FormData) {
   if (containerId) {
     try {
       await removeContainer(containerId);
-    } catch (error) {
+    } catch {
       // do nothing
     } finally {
       await updateService(db, id, { status: "idle", containerId: null, imageId: null });

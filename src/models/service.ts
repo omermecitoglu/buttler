@@ -24,10 +24,12 @@ const baseSchema = createInsertSchema(services, {
   }).array(),
 });
 
-export const ServiceDTO = baseSchema.required()
+const ServiceSchema = baseSchema.required()
   .describe("Represents a service running in the system");
 
-export const NewServiceDTO = baseSchema.omit({
+export type ServiceDTO = z.infer<typeof ServiceSchema>;
+
+export const NewServiceSchema = baseSchema.omit({
   id: true,
   environmentVariables: true,
   ports: true,
@@ -39,13 +41,17 @@ export const NewServiceDTO = baseSchema.omit({
   updatedAt: true,
 }).describe("Data Transfer Object for creating a new service");
 
-export const ServicePatchDTO = NewServiceDTO.partial().omit({
+export type NewServiceDTO = z.infer<typeof NewServiceSchema>;
+
+export const ServicePatchSchema = NewServiceSchema.partial().omit({
 }).describe("Data Transfer Object for updating an existing service");
+
+export type ServicePatchDTO = z.infer<typeof ServicePatchSchema>;
 
 export function testServiceData() {
   return {
     kind: "git",
     name: "unknown",
     repo: "unknown-git-repo",
-  } satisfies z.infer<typeof NewServiceDTO>;
+  } satisfies NewServiceDTO;
 }

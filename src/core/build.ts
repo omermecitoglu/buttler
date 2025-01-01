@@ -8,9 +8,8 @@ import createBuildImage from "~/operations/createBuildImage";
 import updateBuildImage from "~/operations/updateBuildImage";
 import updateService from "~/operations/updateService";
 import { getProviderVariables } from "./provider";
-import type z from "zod";
 
-async function buildInTheBackground(service: z.infer<typeof ServiceDTO>, imageId: string) {
+async function buildInTheBackground(service: ServiceDTO, imageId: string) {
   const repoPath = await cloneRepo(service.repo, service.id);
   const success = await buildImage(imageId, repoPath, false);
   await deleteRepo(service.id);
@@ -35,7 +34,7 @@ async function buildInTheBackground(service: z.infer<typeof ServiceDTO>, imageId
   }
 }
 
-export async function startBuilding(service: z.infer<typeof ServiceDTO>) {
+export async function startBuilding(service: ServiceDTO) {
   const image = await createBuildImage(db, { serviceId: service.id });
   buildInTheBackground(service, image.id);
   return image;

@@ -10,20 +10,26 @@ const baseSchema = createInsertSchema(buildImages, {
   updatedAt: schema => schema.updatedAt.readonly().describe("Modification date of the build image as an ISO 8601 date string"),
 });
 
-export const BuildImageDTO = baseSchema.required()
+const BuildImageSchema = baseSchema.required()
   .describe("Represents a build image definition");
 
-export const NewBuildImageDTO = baseSchema.omit({
+export type BuildImageDTO = z.infer<typeof BuildImageSchema>;
+
+const NewBuildImageSchema = baseSchema.omit({
   id: true,
   createdAt: true,
   updatedAt: true,
 }).describe("Data Transfer Object for creating a new build image");
 
-export const BuildImagePatchDTO = NewBuildImageDTO.partial().omit({
+export type NewBuildImageDTO = z.infer<typeof NewBuildImageSchema>;
+
+const BuildImagePatchSchema = NewBuildImageSchema.partial().omit({
 }).describe("Data Transfer Object for updating an existing build image");
+
+export type BuildImagePatchDTO = z.infer<typeof BuildImagePatchSchema>;
 
 export function testBuildImageData() {
   return {
     serviceId: "unknown-service",
-  } satisfies z.infer<typeof NewBuildImageDTO>;
+  } satisfies NewBuildImageDTO;
 }

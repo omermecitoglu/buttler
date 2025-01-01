@@ -3,16 +3,15 @@ import Input from "@omer-x/bs-ui-kit/form/Input";
 import Select from "@omer-x/bs-ui-kit/form/Select";
 import React, { useState } from "react";
 import type { ServiceDTO } from "~/models/service";
-import type z from "zod";
 
 type ServiceFormProps = {
-  data?: z.infer<typeof ServiceDTO>,
+  data?: ServiceDTO,
 };
 
 const ServiceForm = ({
   data,
 }: ServiceFormProps) => {
-  const [kind, setKind] = useState<z.infer<typeof ServiceDTO>["kind"]>(data?.kind ?? "git");
+  const [kind, setKind] = useState<ServiceDTO["kind"]>(data?.kind ?? "git");
 
   const dbEngineName = (engine: "mysql" | "postgres" | "mongo" | "redis") => {
     switch (engine) {

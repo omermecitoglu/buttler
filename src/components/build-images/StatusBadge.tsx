@@ -1,9 +1,8 @@
 import Badge from "react-bootstrap/Badge";
 import type { BuildImageDTO } from "~/models/build-image";
-import type z from "zod";
 
 type StatusBadgeProps = {
-  status: z.infer<typeof BuildImageDTO>["status"] | "active",
+  status: BuildImageDTO["status"] | "active",
 };
 
 const StatusBadge = ({

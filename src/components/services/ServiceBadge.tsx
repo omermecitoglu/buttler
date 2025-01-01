@@ -1,10 +1,9 @@
 import React from "react";
 import Badge from "react-bootstrap/Badge";
 import type { ServiceDTO } from "~/models/service";
-import type z from "zod";
 
 type ServiceBadgeProps = {
-  status: z.infer<typeof ServiceDTO>["status"],
+  status: ServiceDTO["status"],
 };
 
 const ServiceBadge = ({
