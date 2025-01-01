@@ -29,7 +29,7 @@ const ShowServicePage = async ({
   const { id: serviceId } = await params;
   const service = await getService(db, serviceId);
   if (!service) notFound();
-  const buildImages = await getBuildImages(db, service.id, ["id", "status", "createdAt"]);
+  const buildImages = await getBuildImages(db, service.id, ["id", "status", "errorCode", "createdAt"]);
   const readyImages = buildImages.filter(image => image.status === "ready");
 
   return (

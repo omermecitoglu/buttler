@@ -3,10 +3,11 @@ import Link from "next/link";
 import React from "react";
 import { destroy } from "~/actions/build-image";
 import type { BuildImageDTO } from "~/models/build-image";
+import type { Prettify } from "~/types/prettify";
 import StatusBadge from "./StatusBadge";
 
 type BuildImageListProps = {
-  collection: Pick<BuildImageDTO, "id" | "status" | "createdAt">[],
+  collection: Prettify<Pick<BuildImageDTO, "id" | "status" | "errorCode" | "createdAt">>[],
   currentImageId?: string | null,
 };
 
@@ -25,7 +26,12 @@ const BuildImageList = ({
       },
       status: {
         header: "Status",
-        wrapper: (status, id) => <StatusBadge status={id === currentImageId ? "active" : status} />,
+        wrapper: (status, id, { errorCode }) => (
+          <StatusBadge
+            status={id === currentImageId ? "active" : status}
+            errorCode={errorCode}
+          />
+        ),
       },
       createdAt: {
         header: "Created at",
