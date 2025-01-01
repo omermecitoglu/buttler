@@ -52,8 +52,12 @@ async function cancelBuild(serviceId: string, imageId: string) {
 */
 
 export async function removeImage(imageId: string) {
-  const image = docker.getImage(imageId);
-  await image.remove();
+  try {
+    const image = docker.getImage(imageId);
+    await image.remove();
+  } catch {
+    // do nothing
+  }
 }
 
 export async function createContainer(
