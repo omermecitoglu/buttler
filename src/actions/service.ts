@@ -101,12 +101,13 @@ export async function start(serviceId: string, _: FormData) {
   if (!service) throw new Error("Invalid Service");
 
   const getLatestBuild = async () => {
-    const images = await getBuildImages(db, serviceId, ["id", "createdAt"]);
-    const latest = images.reduce((bestVersion, nextVersion) => {
+    const images = await getBuildImages(db, serviceId, ["id", "status", "createdAt"]);
+    const readyImages = images.filter(image => image.status === "ready");
+    const latest = readyImages.reduce((bestVersion, nextVersion) => {
       const best = new Date(bestVersion.createdAt).getTime();
       const next = new Date(nextVersion.createdAt).getTime();
       return (next > best) ? nextVersion : bestVersion;
-    }, images[0]);
+    }, readyImages[0]);
     return latest.id;
   };
 

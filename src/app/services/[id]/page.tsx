@@ -30,6 +30,7 @@ const ShowServicePage = async ({
   const service = await getService(db, serviceId);
   if (!service) notFound();
   const buildImages = await getBuildImages(db, service.id, ["id", "status", "createdAt"]);
+  const readyImages = buildImages.filter(image => image.status === "ready");
 
   return (
     <>
@@ -99,11 +100,12 @@ const ShowServicePage = async ({
               <SubmitButton variant="primary" icon={faScrewdriverWrench} text="Build" />
             </form>
           )}
-          {service.containerId ? (
+          {service.containerId && (
             <form action={stop.bind(null, service.id, service.containerId)}>
               <SubmitButton variant="danger" icon={faCircleStop} text="Stop" />
             </form>
-          ) : (
+          )}
+          {!service.containerId && (readyImages.length > 0) && (
             <form action={start.bind(null, service.id)}>
               <SubmitButton variant="success" icon={faCirclePlay} text="Start" />
             </form>
