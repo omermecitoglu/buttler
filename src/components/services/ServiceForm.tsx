@@ -61,7 +61,7 @@ const ServiceForm = ({
             "postgres",
             // "mysql",
             // "mongo",
-            // "redis",
+            "redis",
           ]}
           optionName={dbEngineName}
         />

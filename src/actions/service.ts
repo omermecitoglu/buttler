@@ -48,7 +48,7 @@ export async function create(formData: FormData) {
       }
       if (data.repo === "redis") {
         envEntries.push(["REDIS_ARGS", "--appendonly yes"]);
-        portEntries.push(["6379", "6379"]);
+        // portEntries.push(["6379", "6379"]);
         const volume = await createVolume(tx, { containerPath: "/data", serviceId: service.id });
         await createDockerVolume(volume.id);
       }
