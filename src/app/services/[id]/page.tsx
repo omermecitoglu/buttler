@@ -105,7 +105,7 @@ const ShowServicePage = async ({
               <SubmitButton variant="danger" icon={faCircleStop} text="Stop" />
             </form>
           )}
-          {!service.containerId && (readyImages.length > 0) && (
+          {!service.containerId && (service.kind === "database" || readyImages.length > 0) && (
             <form action={start.bind(null, service.id)}>
               <SubmitButton variant="success" icon={faCirclePlay} text="Start" />
             </form>
