@@ -3,7 +3,7 @@ import crypto from "node:crypto";
 import { kebabCase } from "change-case";
 import { redirect } from "next/navigation";
 import { startBuilding } from "~/core/build";
-import { createContainer, createNetwork as createDockerNetwork, createVolume as createDockerVolume, destroyNetwork, removeContainer } from "~/core/docker";
+import { createContainer, createNetwork as createDockerNetwork, createVolume as createDockerVolume, destroyNetwork, pullImage, removeContainer } from "~/core/docker";
 import { getProviderVariables } from "~/core/provider";
 import db from "~/database";
 import { NewServiceSchema, ServicePatchSchema } from "~/models/service";
@@ -114,7 +114,10 @@ export async function start(serviceId: string, _: FormData) {
   const getServiceImage = async () => {
     switch (service.kind) {
       case "git": return await getLatestBuild();
-      case "database": return service.repo;
+      case "database": {
+        await pullImage(service.repo);
+        return service.repo;
+      }
     }
   };
 

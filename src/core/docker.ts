@@ -51,6 +51,18 @@ async function cancelBuild(serviceId: string, imageId: string) {
 }
 */
 
+export function pullImage(imageName: string) {
+  return new Promise<unknown>((resolve, reject) => {
+    docker.pull(`${imageName}:latest`, (pullError: Error | null, stream: NodeJS.ReadableStream) => {
+      if (pullError) return reject(pullError);
+      docker.modem.followProgress(stream, (modemError, res) => {
+        if (modemError) return reject(modemError);
+        resolve(res);
+      });
+    });
+  });
+}
+
 export async function removeImage(imageId: string) {
   try {
     const image = docker.getImage(imageId);
