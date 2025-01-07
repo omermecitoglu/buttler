@@ -25,7 +25,7 @@ export async function startBuilding(service: ServiceDTO) {
         await removeContainer(service.containerId);
         await updateService(db, service.id, { status: "idle", containerId: null, imageId: null });
         const providerVariables = service.providers
-          .map(provider => getProviderVariables(service.name, provider.name, provider.variables))
+          .map(provider => getProviderVariables(service.name, provider.name, provider.repo, provider.variables))
           .reduce((bundle, current) => Object.assign(bundle, current), {});
         const containerId = await createContainer(
           kebabCase(service.name),

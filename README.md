@@ -39,7 +39,7 @@ Buttler automates CI/CD workflows using Docker and GitHub webhooks
     - [PostgreSQL](https://www.postgresql.org)
     - [MySQL](https://www.mysql.com) *(not implemented yet)*
     - [MongoDB](https://www.mongodb.com) *(not implemented yet)*
-    - [Redis](https://redis.io) *(not implemented yet)*
+    - [Redis](https://redis.io)
   - can be linked to other services ([see screenshots](#linking-services))
 - Services dashboard ([see screenshots](#list-of-services))
 - Edit service page ([see screenshots](#edit-service-page))

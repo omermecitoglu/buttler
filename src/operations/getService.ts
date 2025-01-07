@@ -35,6 +35,7 @@ export default async function getService(db: typeof database, serviceId: string)
             columns: {
               id: true,
               name: true,
+              repo: true,
             },
             with: {
               networks: {

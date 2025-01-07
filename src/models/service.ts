@@ -15,6 +15,7 @@ const baseSchema = createInsertSchema(services, {
   providers: z.object({
     id: z.string(),
     name: z.string(),
+    repo: z.string(),
     networkIds: z.string().array(),
     variables: z.record(z.string(), z.string()),
   }).array(),
