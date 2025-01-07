@@ -16,7 +16,7 @@ export async function startBuilding(service: ServiceDTO) {
   after(async () => {
     try {
       const repoPath = await cloneRepo(service.repo, service.id);
-      const success = await buildImage(image.id, repoPath, false);
+      const success = await buildImage(image.id, repoPath, service.environmentVariables, false);
       await deleteRepo(service.id);
       if (success) {
         await updateBuildImage(db, image.id, { status: "ready" });

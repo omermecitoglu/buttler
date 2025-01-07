@@ -9,12 +9,15 @@ type FixedReadableStream = NodeJS.ReadableStream & { destroy: (reason: unknown) 
 
 const streams = {} as Record<string, FixedReadableStream>;
 
-export function buildImage(imageId: string, repoPath: string, log: boolean) {
+export function buildImage(imageId: string, repoPath: string, environmentVariables: Record<string, string>, log: boolean) {
   const dockerfilePath = path.join(repoPath, "Dockerfile");
   const tarStream = tar.pack(path.dirname(dockerfilePath)) as unknown as NodeJS.ReadableStream;
 
   return new Promise<boolean>((resolve, reject) => {
-    docker.buildImage(tarStream, { t: `${imageId}:latest` }, (err, stream) => {
+    docker.buildImage(tarStream, {
+      t: `${imageId}:latest`,
+      buildargs: environmentVariables,
+    }, (err, stream) => {
       if (err) return reject(err);
       if (!stream) return reject(new Error("no stream"));
       // stream.pipe(process.stdout, { end: true });
