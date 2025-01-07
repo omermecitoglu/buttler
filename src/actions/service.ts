@@ -58,7 +58,7 @@ export async function create(formData: FormData) {
       if (portEntries.length) {
         await syncPorts(tx, service.id, Object.fromEntries(portEntries));
       }
-      const network = await createNetwork(tx, service.id);
+      const network = await createNetwork(tx, service.id, "provider");
       await createDockerNetwork(network.id);
     }
   });

@@ -5,6 +5,12 @@ import { services } from "./services";
 
 export const networks = sqliteTable("networks", {
   id: text().primaryKey(),
+  kind: text({
+    enum: [
+      "provider",
+      "custom",
+    ],
+  }).notNull(),
   serviceId: text().notNull().references(() => services.id, { onDelete: "cascade", onUpdate: "restrict" }),
 });
 

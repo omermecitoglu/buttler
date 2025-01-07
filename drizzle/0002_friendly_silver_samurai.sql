@@ -1,0 +1,1 @@
+ALTER TABLE `networks` ADD `kind` text DEFAULT 'provider' NOT NULL;
