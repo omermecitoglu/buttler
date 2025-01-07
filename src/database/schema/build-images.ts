@@ -11,6 +11,7 @@ export const buildImages = sqliteTable("build_images", {
   errorCode: text({
     enum: [
       "REPO_NOT_FOUND",
+      "BUILD_FAILED",
     ],
   }),
   createdAt: text().notNull().default(sql`(CURRENT_TIMESTAMP)`),

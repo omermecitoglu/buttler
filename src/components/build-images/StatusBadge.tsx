@@ -27,6 +27,8 @@ const StatusBadge = ({
     switch (code) {
       case "REPO_NOT_FOUND":
         return "Please make sure you have the correct access rights and the repository exists.";
+      case "BUILD_FAILED":
+        return "Build was failed.";
       default:
         return "Unknown error";
     }

@@ -24,11 +24,12 @@ export function buildImage(imageId: string, repoPath: string, log: boolean) {
         const parsedData = JSON.parse(logData);
         if ("stream" in parsedData) {
           // eslint-disable-next-line no-console
-          console.log(parsedData.stream.slice(0, -1));
+          console.log(parsedData.stream);
         }
       });
       stream.on("end", () => {
-        resolve(true);
+        const image = docker.getImage(`${imageId}:latest`);
+        image.inspect().then(() => resolve(true)).catch(() => resolve(false));
       });
       stream.on("error", reason => {
         if (reason === "UPDATE") {

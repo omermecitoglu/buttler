@@ -18,10 +18,14 @@ export async function startBuilding(service: ServiceDTO) {
       const repoPath = await cloneRepo(service.repo, service.id);
       const success = await buildImage(image.id, repoPath, false);
       await deleteRepo(service.id);
-      await updateBuildImage(db, image.id, { status: success ? "ready" : "failed" });
+      if (success) {
+        await updateBuildImage(db, image.id, { status: "ready" });
+      } else {
+        await updateBuildImage(db, image.id, { status: "failed", errorCode: "BUILD_FAILED" });
+      }
 
       // update container
-      if (service.containerId) {
+      if (success && service.containerId) {
         await removeContainer(service.containerId);
         await updateService(db, service.id, { status: "idle", containerId: null, imageId: null });
         const providerVariables = service.providers
