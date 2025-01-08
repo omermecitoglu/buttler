@@ -9,6 +9,7 @@ import type { ServiceDTO } from "~/models/service";
 import createBuildImage from "~/operations/createBuildImage";
 import updateBuildImage from "~/operations/updateBuildImage";
 import updateService from "~/operations/updateService";
+import env from "./env";
 import { getProviderVariables } from "./provider";
 
 export async function startBuilding(service: ServiceDTO) {
@@ -17,7 +18,7 @@ export async function startBuilding(service: ServiceDTO) {
     try {
       const repoPath = await cloneRepo(service.repo, service.id);
       const networkId = service.providers.at(0)?.networkIds.at(0);
-      const success = await buildImage(image.id, repoPath, service.environmentVariables, networkId, false);
+      const success = await buildImage(image.id, repoPath, service.environmentVariables, networkId, env.DEBUG_MODE === "yes");
       await deleteRepo(service.id);
       if (success) {
         await updateBuildImage(db, image.id, { status: "ready" });

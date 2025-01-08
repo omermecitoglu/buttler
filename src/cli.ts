@@ -16,7 +16,7 @@ async function checkFile(filePath: string) {
   }
 }
 
-function spawnChildProcess(detached: boolean) {
+function spawnChildProcess(detached: boolean, debug: boolean) {
   const __filename = fileURLToPath(import.meta.url);
   const __dirname = dirname(__filename);
   const appPath = resolve(__dirname, "../ui/server.js");
@@ -29,6 +29,7 @@ function spawnChildProcess(detached: boolean) {
       WEBHOOK_SECRET: "buttler",
       CURRENT_WORKING_DIRECTORY: process.cwd(),
       DRIZZLE_DIR: resolve(__dirname, "../drizzle"),
+      ...(debug ? { DEBUG_MODE: "yes" } : {}),
     },
   });
   if (detached) child.unref();
@@ -44,7 +45,7 @@ async function start(development: boolean) {
   if (exists) {
     return console.warn("the application is already running");
   }
-  const pid = spawnChildProcess(!development);
+  const pid = spawnChildProcess(!development, development);
   await fs.writeFile(pidFilePath, `${pid}`, "utf8");
   console.log("the application has started");
 }
