@@ -26,6 +26,7 @@ export default async function getService(db: typeof database, serviceId: string)
       networks: {
         columns: {
           id: true,
+          kind: true,
         },
       },
       providerlinks: {
@@ -74,7 +75,7 @@ export default async function getService(db: typeof database, serviceId: string)
     environmentVariables: Object.fromEntries(environmentVariables.map(({ key, value }) => [key, value] as const)),
     ports: Object.fromEntries(ports.map(({ external, internal }) => [external, internal.toString()] as const)),
     volumes: Object.fromEntries(volumes.map(({ id, containerPath }) => [id, containerPath] as const)),
-    networkIds: networks.map(network => network.id),
+    networkIds: pluck(networks, "id"),
     providers: pluck(providerlinks, "provider").map(({
       networks: providerNetworks,
       environmentVariables: providerVariables,
