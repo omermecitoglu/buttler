@@ -95,7 +95,7 @@ const ShowServicePage = async ({
                   icon={faDatabase}
                   href={`/services/${serviceId}/databases`}
                   text="Databases"
-                  variant="secondary"
+                  variant="outline-primary"
                   size="sm"
                   stretched
                 />
@@ -104,7 +104,7 @@ const ShowServicePage = async ({
                   icon={faNetworkWired}
                   href={`/services/${serviceId}/networks`}
                   text="Networks"
-                  variant="secondary"
+                  variant="outline-primary"
                   size="sm"
                   stretched
                 />
