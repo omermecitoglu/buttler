@@ -2,23 +2,31 @@ import "server-only";
 import { kebabCase } from "change-case";
 import { after } from "next/server";
 import { GitError } from "simple-git";
-import { buildImage, createContainer, removeContainer } from "~/core/docker";
+import { buildImage, createContainer, createNetwork, destroyNetwork, removeContainer } from "~/core/docker";
 import { cloneRepo, deleteRepo } from "~/core/git";
 import db from "~/database";
 import type { ServiceDTO } from "~/models/service";
 import createBuildImage from "~/operations/createBuildImage";
 import updateBuildImage from "~/operations/updateBuildImage";
 import updateService from "~/operations/updateService";
+import { pluck } from "~/utils/object";
 import env from "./env";
 import { getProviderVariables } from "./provider";
 
 export async function startBuilding(service: ServiceDTO) {
   const image = await createBuildImage(db, { serviceId: service.id });
   after(async () => {
+    const providerContainerIds = pluck(service.providers, "containerId").filter(c => c !== null);
+    const buildNetwork = await createNetwork(`build-${image.id}`, providerContainerIds);
     try {
       const repoPath = await cloneRepo(service.repo, service.id);
-      const networkId = service.providers.at(0)?.networkIds.at(0);
-      const success = await buildImage(image.id, repoPath, service.environmentVariables, networkId, env.DEBUG_MODE === "yes");
+      const success = await buildImage(
+        image.id,
+        repoPath,
+        service.environmentVariables,
+        buildNetwork.id,
+        env.DEBUG_MODE === "yes",
+      );
       await deleteRepo(service.id);
       if (success) {
         await updateBuildImage(db, image.id, { status: "ready" });
@@ -49,6 +57,8 @@ export async function startBuilding(service: ServiceDTO) {
       } else {
         await updateBuildImage(db, image.id, { status: "failed" });
       }
+    } finally {
+      await destroyNetwork(buildNetwork.id, providerContainerIds);
     }
   });
   return image;

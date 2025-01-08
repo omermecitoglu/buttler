@@ -90,7 +90,7 @@ export async function update(id: string, _: unknown, formData: FormData): Promis
 export async function destroy(id: string, _: FormData) {
   const service = await getService(db, id);
   if (service) {
-    await Promise.all(service.networkIds.map(destroyNetwork));
+    await Promise.all(service.networkIds.map(networkId => destroyNetwork(networkId)));
   }
   await deleteService(db, id);
   redirect("/services");

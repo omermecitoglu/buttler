@@ -160,7 +160,7 @@ export async function createVolume(name: string) {
   });
 }
 
-export async function createNetwork(networkId: string) {
+export async function createNetwork(networkId: string, containerIds: string[] = []) {
   const network = await docker.createNetwork({
     Name: networkId,
     Driver: "bridge",
@@ -168,11 +168,13 @@ export async function createNetwork(networkId: string) {
     Internal: false,
     Attachable: true,
   });
+  await Promise.all(containerIds.map(containerId => connectContainerToNetwork(containerId, network.id)));
   return network;
 }
 
-export async function destroyNetwork(networkId: string) {
+export async function destroyNetwork(networkId: string, containerIds: string[] = []) {
   const network = docker.getNetwork(networkId);
+  await Promise.all(containerIds.map(containerId => disconnectContainerFromNetwork(containerId, network.id)));
   await network.remove();
 }
 
@@ -183,7 +185,6 @@ async function connectContainerToNetwork(containerId: string, networkId: string)
   });
 }
 
-/*
 async function disconnectContainerFromNetwork(containerId: string, networkId: string) {
   const network = docker.getNetwork(networkId);
   await network.disconnect({
@@ -191,4 +192,3 @@ async function disconnectContainerFromNetwork(containerId: string, networkId: st
     // Force: true, // is this necessary?
   });
 }
-*/

@@ -36,6 +36,7 @@ export default async function getServiceByRepo(db: typeof database, repo: string
               id: true,
               name: true,
               repo: true,
+              containerId: true,
             },
             with: {
               networks: {
