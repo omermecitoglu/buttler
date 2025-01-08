@@ -42,7 +42,7 @@ const ShowServicePage = async ({
         toolbar={<BackButton fallback="/services" />}
       >
         <Row className="row-gap-3">
-          <Col md="8" lg="9">
+          <Col {...(service.kind !== "database" ? { md: 8, lg: 9 } : {})}>
             <InfoTable
               source={service}
               primaryKey="id"
@@ -87,32 +87,30 @@ const ShowServicePage = async ({
               }}
             />
           </Col>
-          <Col md="4" lg="3">
-            <div className="d-grid gap-3">
-              {service.kind !== "database" && (
-                <>
-                  <LinkButton
-                    as={Link}
-                    icon={faDatabase}
-                    href={`/services/${serviceId}/databases`}
-                    text="Databases"
-                    variant="secondary"
-                    size="sm"
-                    stretched
-                  />
-                  <LinkButton
-                    as={Link}
-                    icon={faNetworkWired}
-                    href={`/services/${serviceId}/networks`}
-                    text="Networks"
-                    variant="secondary"
-                    size="sm"
-                    stretched
-                  />
-                </>
-              )}
-            </div>
-          </Col>
+          {service.kind !== "database" && (
+            <Col md="4" lg="3">
+              <div className="d-grid gap-3">
+                <LinkButton
+                  as={Link}
+                  icon={faDatabase}
+                  href={`/services/${serviceId}/databases`}
+                  text="Databases"
+                  variant="secondary"
+                  size="sm"
+                  stretched
+                />
+                <LinkButton
+                  as={Link}
+                  icon={faNetworkWired}
+                  href={`/services/${serviceId}/networks`}
+                  text="Networks"
+                  variant="secondary"
+                  size="sm"
+                  stretched
+                />
+              </div>
+            </Col>
+          )}
         </Row>
         <div className="d-flex gap-3 bg-primary-subtle p-3 mt-3 mx-n3 border-top border-bottom border-primary-subtle">
           {service.kind === "git" && (
