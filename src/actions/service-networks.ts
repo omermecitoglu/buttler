@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { createNetwork as createDockerNetwork, destroyNetwork as destroyDockerNetwork } from "~/core/docker";
 import db from "~/database";
 import createNetwork from "~/operations/createNetwork";
+import createServiceLink from "~/operations/createServiceLink";
 import deleteNetwork from "~/operations/deleteNetwork";
 
 export async function create(serviceId: string) {
@@ -20,4 +21,9 @@ export async function destroy(networkId: string, _: FormData) {
     return serviceId;
   });
   redirect(`/services/${outputServiceId}/networks`);
+}
+
+export async function connect(serviceId: string, providerId: string, _: FormData) {
+  await createServiceLink(db, serviceId, providerId);
+  redirect(`/services/${serviceId}/networks`);
 }

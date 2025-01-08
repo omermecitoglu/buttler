@@ -1,3 +1,4 @@
+import { faPlug } from "@fortawesome/free-solid-svg-icons/faPlug";
 import { faPlus } from "@fortawesome/free-solid-svg-icons/faPlus";
 import ActionButton from "@omer-x/bs-ui-kit/ActionButton";
 import DataTable from "@omer-x/bs-ui-kit/DataTable";
@@ -5,8 +6,9 @@ import PageSection from "@omer-x/bs-ui-kit/PageSection";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import React from "react";
-import { create as createNetwork, destroy as destroyNetwork } from "~/actions/service-networks";
+import { connect, create as createNetwork, destroy as destroyNetwork } from "~/actions/service-networks";
 import BackButton from "~/components/BackButton";
+import ModalList from "~/components/ModalList";
 import db from "~/database";
 import getNetwork from "~/operations/getNetwork";
 import getService from "~/operations/getService";
@@ -25,12 +27,40 @@ const ServiceNetworksPage = async ({
   const providerNetworkIds = pluck(service.providers, "networkIds").flat();
   const serviceNetworkIds = [providerNetworkIds, service.networkIds].flat();
   const serviceNetworks = await Promise.all(serviceNetworkIds.map(getNetwork.bind(null, db)));
+  const allNetworks = await db.query.networks.findMany({
+    with: {
+      service: {
+        columns: {
+          id: true,
+          name: true,
+        },
+      },
+    },
+    columns: {
+      id: true,
+    },
+    where: (n, { eq, ne, and }) => and(eq(n.kind, "custom"), ne(n.serviceId, serviceId)),
+  });
+  const availableNetworks = Object.fromEntries(allNetworks
+    .filter(n => !serviceNetworkIds.includes(n.id))
+    .map(n => [n.service.id, n.service.name] as const));
   return (
     <PageSection
       title={`Networks of ${service.name}`}
       toolbar={(
         <>
+          <ModalList
+            buttonVariant="primary"
+            buttonSize="sm"
+            buttonIcon={faPlug}
+            buttonText="Connect"
+            title="Connect to Network"
+            collection={availableNetworks}
+            emptyWarning="No available networks"
+            action={connect.bind(null, serviceId)}
+          />
           <ActionButton
+            variant="success"
             size="sm"
             icon={faPlus}
             text="Create"
