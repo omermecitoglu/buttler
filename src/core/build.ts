@@ -20,10 +20,13 @@ export async function startBuilding(service: ServiceDTO) {
     const buildNetwork = await createNetwork(`build-${image.id}`, providerContainerIds);
     try {
       const repoPath = await cloneRepo(service.repo, service.id);
+      const providerVariables = mergeObjects(service.providers.map(provider => {
+        return getProviderVariables(service.name, provider.name, provider.repo, provider.variables);
+      }));
       const success = await buildImage(
         image.id,
         repoPath,
-        service.environmentVariables,
+        { ...providerVariables, ...service.environmentVariables },
         buildNetwork.id,
         env.DEBUG_MODE === "yes",
       );
@@ -38,9 +41,6 @@ export async function startBuilding(service: ServiceDTO) {
       if (success && service.containerId) {
         await removeContainer(service.containerId);
         await updateService(db, service.id, { status: "idle", containerId: null, imageId: null });
-        const providerVariables = mergeObjects(service.providers.map(provider => {
-          return getProviderVariables(service.name, provider.name, provider.repo, provider.variables);
-        }));
         const containerId = await createContainer(
           kebabCase(service.name),
           image.id,
