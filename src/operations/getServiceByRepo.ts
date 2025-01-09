@@ -66,7 +66,11 @@ export default async function getServiceByRepo(db: typeof database, repo: string
         },
       },
     },
-    where: (table, { eq }) => eq(table.repo, repo),
+    where: (table, { eq, like, or }) => or(
+      eq(table.repo, `https://github.com/${repo}.git`),
+      eq(table.repo, `git@github.com:${repo}.git`),
+      like(table.repo, `https://%:%@github.com/${repo}.git`),
+    ),
   });
   if (!service) return null;
   const { ports, environmentVariables, volumes, networks, providerlinks, clientLinks, ...others } = service;
