@@ -47,7 +47,7 @@ export async function startBuilding(service: ServiceDTO) {
           { ...providerVariables, ...service.environmentVariables },
           service.ports,
           service.volumes,
-          service.providers.map(provider => provider.networkIds).flat(),
+          [...service.networkIds, ...service.providers.map(provider => provider.networkIds).flat()],
         );
         await updateService(db, service.id, { status: "running", containerId, imageId: image.id });
       }
