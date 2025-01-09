@@ -11,3 +11,7 @@ export function omit<T extends object, K extends keyof T>(object: T, ...keys: K[
 export function pluck<T, K extends keyof T>(collection: T[], key: K) {
   return collection.map(item => item[key]) as T[K][];
 }
+
+export function mergeObjects<T extends object>(collection: T[]) {
+  return collection.reduce((bundle, current) => Object.assign(bundle, current), {} as T);
+}

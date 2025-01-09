@@ -9,7 +9,7 @@ import type { ServiceDTO } from "~/models/service";
 import createBuildImage from "~/operations/createBuildImage";
 import updateBuildImage from "~/operations/updateBuildImage";
 import updateService from "~/operations/updateService";
-import { pluck } from "~/utils/object";
+import { mergeObjects, pluck } from "~/utils/object";
 import env from "./env";
 import { getProviderVariables } from "./provider";
 
@@ -38,9 +38,9 @@ export async function startBuilding(service: ServiceDTO) {
       if (success && service.containerId) {
         await removeContainer(service.containerId);
         await updateService(db, service.id, { status: "idle", containerId: null, imageId: null });
-        const providerVariables = service.providers
-          .map(provider => getProviderVariables(service.name, provider.name, provider.repo, provider.variables))
-          .reduce((bundle, current) => Object.assign(bundle, current), {});
+        const providerVariables = mergeObjects(service.providers.map(provider => {
+          return getProviderVariables(service.name, provider.name, provider.repo, provider.variables);
+        }));
         const containerId = await createContainer(
           kebabCase(service.name),
           image.id,

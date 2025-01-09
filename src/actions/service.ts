@@ -19,6 +19,7 @@ import { syncEnvironmentVariables } from "~/operations/syncEnvironmentVariables"
 import { syncPorts } from "~/operations/syncPorts";
 import updateService from "~/operations/updateService";
 import { getData } from "~/utils/form";
+import { mergeObjects } from "~/utils/object";
 
 export async function create(formData: FormData) {
   const data = NewServiceSchema.parse(getData(formData));
@@ -122,9 +123,9 @@ export async function start(serviceId: string, _: FormData) {
   };
 
   const image = await getServiceImage();
-  const providerVariables = service.providers
-    .map(provider => getProviderVariables(service.name, provider.name, provider.repo, provider.variables))
-    .reduce((bundle, current) => Object.assign(bundle, current), {});
+  const providerVariables = mergeObjects(service.providers.map(provider => {
+    return getProviderVariables(service.name, provider.name, provider.repo, provider.variables);
+  }));
   const containerId = await createContainer(
     kebabCase(service.name),
     image,
