@@ -5,6 +5,7 @@ import db from "~/database";
 import getServiceByRepo from "~/operations/getServiceByRepo";
 
 type WekHookEvent = {
+  ref: string,
   repository: {
     full_name: string,
   },
@@ -25,6 +26,7 @@ export async function POST(request: Request) {
     }
     case "push": {
       const event = JSON.parse(Buffer.from(buffer).toString()) as WekHookEvent;
+      if (event.ref !== "refs/heads/main") break;
       const service = await getServiceByRepo(db, event.repository.full_name);
       if (service) {
         await startBuilding(service);
