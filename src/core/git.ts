@@ -16,12 +16,16 @@ export async function cloneRepo(repoUrl: string, serviceId: string) {
     binary: "git",
     maxConcurrentProcesses: 6,
   });
-  const numberOfCommits = await getNumberOfCommit(git);
+  const latestTaggedCommitHash = await getLatestTaggedCommitHash(git, repoUrl);
   await git.clone(repoUrl, repoPath, {
-    "--depth": (numberOfCommits + 1).toString(),
+    "--depth": "1",
     "--single-branch": null,
     "--branch": "main",
   });
+  if (latestTaggedCommitHash) {
+    await git.cwd(repoPath);
+    await git.fetch("origin", latestTaggedCommitHash);
+  }
   return repoPath;
 }
 
@@ -29,15 +33,11 @@ export async function deleteRepo(serviceId: string) {
   await fs.rm(getRepoPath(serviceId), { recursive: true, force: true });
 }
 
-async function getNumberOfCommit(git: SimpleGit) {
-  try {
-    const tags = await git.tags();
-    const latestTag = tags.latest;
-    const numberOfCommits = await git.raw(["rev-list", "--count", `${latestTag}..HEAD`]);
-    const output = parseInt(numberOfCommits);
-    if (isNaN(output)) throw new Error("NaN");
-    return output;
-  } catch {
-    return 0;
+async function getLatestTaggedCommitHash(git: SimpleGit, repoUrl: string) {
+  const output = await git.listRemote(["--tags", repoUrl]);
+  const entries = output.split("\n").slice(0, -1).map(entry => entry.split("\t"));
+  const lastEntry = entries.at(-1);
+  if (lastEntry && lastEntry.length === 2) {
+    return lastEntry[0];
   }
 }
