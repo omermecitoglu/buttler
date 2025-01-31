@@ -22,7 +22,7 @@ export async function cloneRepo(repoUrl: string, serviceId: string) {
     "--branch": "main",
   });
   await git.cwd(repoPath);
-  await git.fetch("--tags");
+  await git.fetch(["--tags"]);
   return repoPath;
 }
 
