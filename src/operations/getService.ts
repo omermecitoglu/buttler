@@ -1,6 +1,7 @@
 import type database from "~/database";
 import type { ServiceDTO } from "~/models/service";
 import { pluck } from "~/utils/object";
+import createRecord from "~/utils/record";
 
 export default async function getService(db: typeof database, serviceId: string) {
   const service = await db.query.services.findFirst({
@@ -26,7 +27,6 @@ export default async function getService(db: typeof database, serviceId: string)
       networks: {
         columns: {
           id: true,
-          kind: true,
         },
       },
       providerlinks: {
@@ -73,9 +73,9 @@ export default async function getService(db: typeof database, serviceId: string)
   const { ports, environmentVariables, volumes, networks, providerlinks, clientLinks, ...others } = service;
   return {
     ...others,
-    environmentVariables: Object.fromEntries(environmentVariables.map(({ key, value }) => [key, value] as const)),
+    environmentVariables: createRecord(environmentVariables, "key", "value"),
     ports: Object.fromEntries(ports.map(({ external, internal }) => [external, internal.toString()] as const)),
-    volumes: Object.fromEntries(volumes.map(({ id, containerPath }) => [id, containerPath] as const)),
+    volumes: createRecord(volumes, "id", "containerPath"),
     networkIds: pluck(networks, "id"),
     providers: pluck(providerlinks, "provider").map(({
       networks: providerNetworks,
@@ -84,7 +84,7 @@ export default async function getService(db: typeof database, serviceId: string)
     }) => ({
       ...otherPropsOfProvider,
       networkIds: pluck(providerNetworks, "id"),
-      variables: Object.fromEntries(providerVariables.map(entry => [entry.key, entry.value] as const)),
+      variables: createRecord(providerVariables, "key", "value"),
     })),
     clients: pluck(clientLinks, "client"),
   } satisfies ServiceDTO;
