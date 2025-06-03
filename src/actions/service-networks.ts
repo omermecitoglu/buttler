@@ -8,13 +8,8 @@ import deleteNetwork from "~/operations/deleteNetwork";
 
 export async function create(serviceId: string) {
   await db.transaction(async tx => {
-    try {
-      const { id: networkId } = await createNetwork(tx, serviceId, "custom");
-      await createDockerNetwork(networkId);
-    } catch (error) {
-      console.error(error);
-      throw error;
-    }
+    const { id: networkId } = await createNetwork(tx, serviceId, "custom");
+    await createDockerNetwork(networkId);
   });
   redirect(`/services/${serviceId}/networks`);
 }
