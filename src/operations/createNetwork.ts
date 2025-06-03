@@ -9,10 +9,15 @@ const schema = createInsertSchema(networks);
 type NetworkDTO = z.infer<typeof schema>;
 
 export default async function createNetwork(db: Omit<typeof database, "$client">, serviceId: string, kind: NetworkDTO["kind"]) {
-  const [network] = await db.insert(networks).values({
-    id: crypto.randomUUID(),
-    kind,
-    serviceId,
-  }).returning({ id: networks.id });
-  return network;
+  try {
+    const [network] = await db.insert(networks).values({
+      id: crypto.randomUUID(),
+      kind,
+      serviceId,
+    }).returning({ id: networks.id });
+    return network;
+  } catch (error) {
+    console.error(error);
+    throw error;
+  }
 }
