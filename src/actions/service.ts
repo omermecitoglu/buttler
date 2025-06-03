@@ -65,11 +65,12 @@ export async function create(formData: FormData) {
       }
     });
   } catch (error) {
-    console.error(error);
-    if (error && typeof error === "object" && "message" in error) {
-      console.log(error.message);
+    if (error && typeof error === "object" && "message" in error && error.message === "Transaction function cannot return a promise") {
+      // do nothing. This is a known bug in Drizzle ORM
+      // Check https://github.com/omermecitoglu/buttler/issues/40
+    } else {
+      throw error;
     }
-    throw error;
   }
   redirect("/services");
 }
