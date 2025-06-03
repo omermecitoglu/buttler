@@ -89,11 +89,20 @@ export async function update(id: string, _: unknown, formData: FormData): Promis
   if (outdatedService.status === "running") {
     patch.status = "idle";
   }
-  await db.transaction(async tx => {
-    await updateService(tx, id, patch);
-    await syncEnvironmentVariables(tx, id, env);
-    await syncPorts(tx, id, ports);
-  });
+  try {
+    await db.transaction(async tx => {
+      await updateService(tx, id, patch);
+      await syncEnvironmentVariables(tx, id, env);
+      await syncPorts(tx, id, ports);
+    });
+  } catch (error) {
+    if (error && typeof error === "object" && "message" in error && error.message === "Transaction function cannot return a promise") {
+      // do nothing. This is a known bug in Drizzle ORM
+      // Check https://github.com/omermecitoglu/buttler/issues/40
+    } else {
+      throw error;
+    }
+  }
   redirect("/services");
 }
 
