@@ -23,46 +23,54 @@ import { mergeObjects } from "~/utils/object";
 
 export async function create(formData: FormData) {
   const data = NewServiceSchema.parse(getData(formData));
-  await db.transaction(async tx => {
-    const service = await createService(tx, data);
-    if (data.kind === "database") {
-      const envEntries: [string, string][] = [];
-      const portEntries: [string, string][] = [];
-      if (data.repo === "postgres") {
-        envEntries.push(["POSTGRES_PASSWORD", crypto.randomUUID()]);
-        // portEntries.push(["5432", "5432"]);
-        const volume = await createVolume(tx, { containerPath: "/var/lib/postgresql/data", serviceId: service.id });
-        await createDockerVolume(volume.id);
+  try {
+    await db.transaction(async tx => {
+      const service = await createService(tx, data);
+      if (data.kind === "database") {
+        const envEntries: [string, string][] = [];
+        const portEntries: [string, string][] = [];
+        if (data.repo === "postgres") {
+          envEntries.push(["POSTGRES_PASSWORD", crypto.randomUUID()]);
+          // portEntries.push(["5432", "5432"]);
+          const volume = await createVolume(tx, { containerPath: "/var/lib/postgresql/data", serviceId: service.id });
+          await createDockerVolume(volume.id);
+        }
+        if (data.repo === "mysql") {
+          envEntries.push(["MYSQL_ROOT_PASSWORD", "example"]);
+          portEntries.push(["3306", "3306"]);
+          const volume = await createVolume(tx, { containerPath: "/var/lib/mysql", serviceId: service.id });
+          await createDockerVolume(volume.id);
+        }
+        if (data.repo === "mongo") {
+          envEntries.push(["MONGO_INITDB_ROOT_USERNAME", "root"]);
+          envEntries.push(["MONGO_INITDB_ROOT_PASSWORD", "example"]);
+          portEntries.push(["27017", "27017"]);
+          const volume = await createVolume(tx, { containerPath: "/data/db", serviceId: service.id });
+          await createDockerVolume(volume.id);
+        }
+        if (data.repo === "redis") {
+          envEntries.push(["REDIS_ARGS", "--appendonly yes"]);
+          // portEntries.push(["6379", "6379"]);
+          const volume = await createVolume(tx, { containerPath: "/data", serviceId: service.id });
+          await createDockerVolume(volume.id);
+        }
+        if (envEntries.length) {
+          await syncEnvironmentVariables(tx, service.id, Object.fromEntries(envEntries));
+        }
+        if (portEntries.length) {
+          await syncPorts(tx, service.id, Object.fromEntries(portEntries));
+        }
+        const network = await createNetwork(tx, service.id, "provider");
+        await createDockerNetwork(network.id);
       }
-      if (data.repo === "mysql") {
-        envEntries.push(["MYSQL_ROOT_PASSWORD", "example"]);
-        portEntries.push(["3306", "3306"]);
-        const volume = await createVolume(tx, { containerPath: "/var/lib/mysql", serviceId: service.id });
-        await createDockerVolume(volume.id);
-      }
-      if (data.repo === "mongo") {
-        envEntries.push(["MONGO_INITDB_ROOT_USERNAME", "root"]);
-        envEntries.push(["MONGO_INITDB_ROOT_PASSWORD", "example"]);
-        portEntries.push(["27017", "27017"]);
-        const volume = await createVolume(tx, { containerPath: "/data/db", serviceId: service.id });
-        await createDockerVolume(volume.id);
-      }
-      if (data.repo === "redis") {
-        envEntries.push(["REDIS_ARGS", "--appendonly yes"]);
-        // portEntries.push(["6379", "6379"]);
-        const volume = await createVolume(tx, { containerPath: "/data", serviceId: service.id });
-        await createDockerVolume(volume.id);
-      }
-      if (envEntries.length) {
-        await syncEnvironmentVariables(tx, service.id, Object.fromEntries(envEntries));
-      }
-      if (portEntries.length) {
-        await syncPorts(tx, service.id, Object.fromEntries(portEntries));
-      }
-      const network = await createNetwork(tx, service.id, "provider");
-      await createDockerNetwork(network.id);
+    });
+  } catch (error) {
+    console.error(error);
+    if (error && typeof error === "object" && "message" in error) {
+      console.log(error.message);
     }
-  });
+    throw error;
+  }
   redirect("/services");
 }
 
