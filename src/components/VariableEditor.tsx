@@ -17,6 +17,7 @@ import InputGroupText from "react-bootstrap/InputGroupText";
 import OverlayTrigger from "react-bootstrap/OverlayTrigger";
 import Tooltip from "react-bootstrap/Tooltip";
 import { v4 as uuidv4 } from "uuid";
+import { parseEnvVariables } from "~/utils/parseEnvVariables";
 import type { IconProp } from "@fortawesome/fontawesome-svg-core";
 
 type VariableEditorProps = {
@@ -81,8 +82,8 @@ const VariableEditor = ({
       })();
       if (text) {
         if (text.includes("=")) {
-          const newItems = text.replace(/\r\n/g, "\n").split("\n").map(line => {
-            const [key, value] = line.split("=");
+          const newItems = Object.entries(parseEnvVariables(text)).map(line => {
+            const [key, value] = line;
             return {
               id: crypto.randomUUID(),
               key,
