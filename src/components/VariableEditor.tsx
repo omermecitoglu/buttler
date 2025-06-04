@@ -69,23 +69,37 @@ const VariableEditor = ({
   };
 
   const handleKeyDown = async (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.ctrlKey && e.key === "v") {
-      e.preventDefault();
-      try {
-        const text = await navigator.clipboard.readText();
-        const items = text.split("\n").map(line => {
-          const [key, value] = line.split("=");
-          return { id: crypto.randomUUID(), key, value };
-        });
-        setCollection(c => {
-          const lastItem = c[c.length - 1];
-          if (!lastItem.key.length && !lastItem.value.length) {
-            return items;
-          }
-          return [...c, ...items];
-        });
-      } catch {
-        // do nothing
+    const isAppleDevice = (/Mac|iPhone|iPad|iPod/).test(navigator.userAgent);
+    const isPressingCtrl = isAppleDevice ? e.metaKey : e.ctrlKey;
+    if (isPressingCtrl && e.key === "v") {
+      const text = await (async () => {
+        try {
+          return await navigator.clipboard.readText();
+        } catch {
+          return null;
+        }
+      })();
+      if (text) {
+        if (text.includes("=")) {
+          const newItems = text.replace(/\r\n/g, "\n").split("\n").map(line => {
+            const [key, value] = line.split("=");
+            return {
+              id: crypto.randomUUID(),
+              key,
+              value,
+            };
+          });
+          setCollection(c => {
+            const lastItem = c[c.length - 1];
+            if (!lastItem.key.length && !lastItem.value.length) {
+              return [...c.slice(0, -1), ...newItems];
+            }
+            return [...c, ...newItems];
+          });
+        } else {
+          const input = e.target as HTMLInputElement;
+          input.value = text;
+        }
       }
     }
   };
