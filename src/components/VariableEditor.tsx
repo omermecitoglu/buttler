@@ -41,8 +41,19 @@ const VariableEditor = ({
   defaultValue = {},
   databaseVariables = {},
 }: VariableEditorProps) => {
-  const initialCollection = Object.keys(defaultValue).map(key => ({ id: key, key, value: defaultValue[key] }));
-  const [collection, setCollection] = useState<{ id: string, key: string, value: string }[]>(initialCollection);
+  type Item = {
+    id: string,
+    key: string,
+    value: string,
+    multiLine: boolean,
+  };
+  const initialCollection = Object.keys(defaultValue).map<Item>(key => ({
+    id: key,
+    key,
+    value: defaultValue[key],
+    multiLine: defaultValue[key].includes("\n"),
+  }));
+  const [collection, setCollection] = useState<Item[]>(initialCollection);
 
   const finalValue = useMemo(() => {
     const record = Object.fromEntries(collection.map(item => (item.key ? [item.key, item.value] : [])));
@@ -54,6 +65,7 @@ const VariableEditor = ({
       id: uuidv4(),
       key: "",
       value: "",
+      multiLine: false,
     }]);
   };
 
@@ -73,6 +85,7 @@ const VariableEditor = ({
     const isAppleDevice = (/Mac|iPhone|iPad|iPod/).test(navigator.userAgent);
     const isPressingCtrl = isAppleDevice ? e.metaKey : e.ctrlKey;
     if (isPressingCtrl && e.key === "v") {
+      e.preventDefault();
       const text = await (async () => {
         try {
           return await navigator.clipboard.readText();
@@ -82,12 +95,14 @@ const VariableEditor = ({
       })();
       if (text) {
         if (text.includes("=")) {
-          const newItems = Object.entries(parseEnvVariables(text)).map(line => {
+          const newItems = Object.entries(parseEnvVariables(text)).map<Item>(line => {
             const [key, value] = line;
+            const multiLine = value.startsWith('"') && value.endsWith('"');
             return {
               id: crypto.randomUUID(),
               key,
-              value,
+              value: multiLine ? JSON.parse(value) : value,
+              multiLine,
             };
           });
           setCollection(c => {
@@ -181,14 +196,26 @@ const VariableEditor = ({
               onKeyDown={handleKeyDown}
               required
             />
-            <FormControl
-              type={type}
-              value={item.value}
-              onChange={e => updateItemValue(item.id, e.target.value)}
-              placeholder={valuePlaceholder}
-              onKeyDown={handleKeyDown}
-              required
-            />
+            {item.multiLine && type === "text" ? (
+              <FormControl
+                as="textarea"
+                rows={3}
+                value={item.value}
+                onChange={e => updateItemValue(item.id, e.target.value)}
+                placeholder={valuePlaceholder}
+                onKeyDown={handleKeyDown}
+                required
+              />
+            ) : (
+              <FormControl
+                type={type}
+                value={item.value}
+                onChange={e => updateItemValue(item.id, e.target.value)}
+                placeholder={valuePlaceholder}
+                onKeyDown={handleKeyDown}
+                required
+              />
+            )}
             <Button variant="danger" onClick={() => removeItem(item.id)}>
               <FontAwesomeIcon icon={faXmark} size="lg" className="fa-fw" />
             </Button>
