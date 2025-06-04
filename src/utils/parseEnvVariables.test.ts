@@ -38,4 +38,16 @@ describe("parseEnvVariables", () => {
       FOO: "bar",
     });
   });
+
+  it("should parse environment variables with carriage return", () => {
+    const input = `
+      FOO=bar\r
+      BAZ=qux
+    `;
+    const output = parseEnvVariables(input);
+    expect(output).toEqual({
+      FOO: "bar",
+      BAZ: "qux",
+    });
+  });
 });
