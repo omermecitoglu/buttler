@@ -97,7 +97,7 @@ export async function createContainer(
     Env: Object.entries(env).map(([key, value]) => `${key}=${value}`),
     HostConfig: {
       PortBindings: Object.fromEntries(Object.entries(ports).map(([external, internal]) => {
-        return [`${internal}/tcp`, [{ HostPort: external }]];
+        return [`${internal}/tcp`, [{ HostIp: "127.0.0.1", HostPort: external }]];
       })),
       RestartPolicy: {
         Name: "always",
