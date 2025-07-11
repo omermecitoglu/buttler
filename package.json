@@ -42,6 +42,7 @@
     "node": ">=19.0.0"
   },
   "scripts": {
+    "add:resource": "next-admin-panel-generator",
     "test": "vitest run --coverage",
     "test:watch": "vitest --coverage",
     "add:model": "generate-scaffold",
@@ -84,6 +85,7 @@
   "devDependencies": {
     "@next/eslint-plugin-next": "^15.3.5",
     "@omer-x/eslint-config": "^2.1.3",
+    "@omer-x/next-admin-panel-generator": "^1.2.2",
     "@omer-x/next-openapi-scaffold-generator": "^0.3.0",
     "@types/better-sqlite3": "^7.6.13",
     "@types/dockerode": "^3.3.42",
