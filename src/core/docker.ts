@@ -192,3 +192,10 @@ async function disconnectContainerFromNetwork(containerId: string, networkId: st
     // Force: true, // is this necessary?
   });
 }
+
+export async function getHostIp() {
+  const network = docker.getNetwork("bridge");
+  const inspection = await network.inspect();
+  const gateway = inspection.IPAM?.Config?.[0]?.Gateway;
+  return gateway as string;
+}
