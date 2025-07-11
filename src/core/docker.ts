@@ -90,19 +90,27 @@ export async function createContainer(
   ports: Record<string, string>,
   volumes: Record<string, string>,
   networkIds: string[],
+  options: {
+    readOnlyFiles?: Record<string, string>,
+  } = {},
 ) {
   const container = await docker.createContainer({
     name: serviceName,
     Image: imageId,
     Env: Object.entries(env).map(([key, value]) => `${key}=${value}`),
     HostConfig: {
+      Binds: [
+        ...Object.entries(volumes).map(([key, value]) => `${key}:${value}`),
+        ...Object.entries(options.readOnlyFiles ?? {}).map(([source, destination]) => {
+          return `${source}:${destination}:ro`;
+        }),
+      ],
       PortBindings: Object.fromEntries(Object.entries(ports).map(([external, internal]) => {
         return [`${internal}/tcp`, [{ HostIp: "127.0.0.1", HostPort: external }]];
       })),
       RestartPolicy: {
         Name: "always",
       },
-      Binds: Object.entries(volumes).map(([key, value]) => `${key}:${value}`),
     },
     Tty: true,
   });

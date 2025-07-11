@@ -30,7 +30,7 @@ async function getServiceImage(service: ServiceDTO) {
   }
 }
 
-export async function startService(service: ServiceDTO) {
+export async function startService(service: ServiceDTO, readOnlyFiles?: Record<string, string>) {
   const image = await getServiceImage(service);
   const providerVariables = mergeObjects(service.providers.map(provider => {
     return getProviderVariables(service.name, provider.name, provider.repo, provider.variables);
@@ -42,6 +42,7 @@ export async function startService(service: ServiceDTO) {
     service.ports,
     service.volumes,
     [...service.networkIds, ...service.providers.map(provider => provider.networkIds).flat()],
+    { readOnlyFiles },
   );
   await updateService(db, service.id, { status: "running", containerId, imageId: image });
 }
