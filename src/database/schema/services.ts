@@ -13,6 +13,7 @@ export const services = sqliteTable("services", {
   id: text().primaryKey(),
   kind: text({
     enum: [
+      "system",
       "git",
       "database",
     ],
