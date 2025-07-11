@@ -1,4 +1,4 @@
-import { describe, expect, it } from "@jest/globals";
+import { describe, expect, it } from "vitest";
 import { parseEnvVariables } from "./parseEnvVariables";
 
 /* eslint-disable @stylistic/max-len */

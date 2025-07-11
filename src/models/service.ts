@@ -49,11 +49,3 @@ export const ServicePatchSchema = NewServiceSchema.partial().omit({
 }).describe("Data Transfer Object for updating an existing service");
 
 export type ServicePatchDTO = z.infer<typeof ServicePatchSchema>;
-
-export function testServiceData() {
-  return {
-    kind: "git",
-    name: "unknown",
-    repo: "unknown-git-repo",
-  } satisfies NewServiceDTO;
-}

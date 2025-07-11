@@ -27,9 +27,3 @@ const BuildImagePatchSchema = NewBuildImageSchema.partial().omit({
 }).describe("Data Transfer Object for updating an existing build image");
 
 export type BuildImagePatchDTO = z.infer<typeof BuildImagePatchSchema>;
-
-export function testBuildImageData() {
-  return {
-    serviceId: "unknown-service",
-  } satisfies NewBuildImageDTO;
-}
