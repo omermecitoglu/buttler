@@ -10,7 +10,20 @@ export const configSchema = z.object({
 
 export async function getConfigs() {
   const content = await readFileContent(".", "config.json");
-  return configSchema.parse(content ? JSON.parse(content) : {});
+  const data = configSchema.parse(content ? JSON.parse(content) : {});
+  const sslCertificate = await readFileContent("system/ssl", "ssl-certificate.pem");
+  if (sslCertificate) {
+    data.sslCertificate = sslCertificate;
+  }
+  const sslCertificateKey = await readFileContent("system/ssl", "ssl-certificate-key.pem");
+  if (sslCertificateKey) {
+    data.sslCertificateKey = sslCertificateKey;
+  }
+  const sslClientCertificate = await readFileContent("system/ssl", "ssl-client-certificate.crt");
+  if (sslClientCertificate) {
+    data.sslClientCertificate = sslClientCertificate;
+  }
+  return data;
 }
 
 export async function saveConfigs(input: z.infer<typeof configSchema>) {
