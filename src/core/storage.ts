@@ -1,5 +1,4 @@
-import { constants } from "fs";
-import fs from "node:fs/promises";
+import fs, { constants } from "node:fs/promises";
 import { homedir } from "node:os";
 import path from "node:path";
 
@@ -15,6 +14,14 @@ export async function checkFile(dir: string, fileName: string) {
     return true;
   } catch {
     return false;
+  }
+}
+
+export async function readFileContent(dir: string, fileName: string) {
+  try {
+    return await fs.readFile(getFilePath(dir, fileName), "utf8");
+  } catch {
+    return null;
   }
 }
 
