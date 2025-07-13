@@ -3,9 +3,9 @@ import db from "~/database";
 import createService from "~/operations/createService";
 import { syncPorts } from "~/operations/syncPorts";
 import { message } from "./console";
-import { getHostIp } from "./docker";
+import { executeCommandInContainer, getHostIp } from "./docker";
 import { generateNginxConfig } from "./nginx-conf";
-import { startService, stopService } from "./service";
+import { startService } from "./service";
 import { checkFile, getFilePath, saveFile } from "./storage";
 
 async function findOrCreateReverseProxyServer() {
@@ -27,10 +27,6 @@ async function findOrCreateReverseProxyServer() {
 
 export async function startReverseProxyService() {
   const service = await findOrCreateReverseProxyServer();
-  if (service.status === "running" && service.containerId) {
-    await stopService(service.id, service.containerId);
-    service.status = "idle";
-  }
   if (service.status === "idle") {
     const hostIp = await getHostIp();
     const nginxConfig = await saveFile("system", "nginx.conf", generateNginxConfig(hostIp));
@@ -49,5 +45,14 @@ export async function startReverseProxyService() {
       [getFilePath("system/ssl", "ssl-certificate-key.pem")]: "/etc/ssl/key.pem",
       [getFilePath("system/ssl", "ssl-client-certificate.crt")]: "/etc/ssl/cloudflare.crt",
     });
+  }
+}
+
+export async function reloadReverseProxyService() {
+  const service = await findOrCreateReverseProxyServer();
+  if (service.status === "running" && service.containerId) {
+    await executeCommandInContainer(service.containerId, ["nginx -s reload"]);
+  } else {
+    await startReverseProxyService();
   }
 }
