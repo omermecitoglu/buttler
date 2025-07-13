@@ -10,8 +10,9 @@ function generateHttpToHttpsRedirection(serverNames: string[]) {
 
 function generateHttpsServer(serverNames: string[], ip: string, port: string | number) {
   const configuration = [
-    "listen 443 ssl http2;",
-    "listen [::]:443 ssl http2;",
+    "listen 443 ssl;",
+    "listen [::]:443 ssl;",
+    "http2 on;",
     `server_name ${serverNames.join(" ")};`,
     "ssl_certificate         /etc/ssl/cert.pem;",
     "ssl_certificate_key     /etc/ssl/key.pem;",

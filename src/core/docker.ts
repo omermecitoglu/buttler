@@ -106,12 +106,13 @@ export async function createContainer(
         }),
       ],
       PortBindings: Object.fromEntries(Object.entries(ports).map(([external, internal]) => {
-        return [`${internal}/tcp`, [{ HostIp: "127.0.0.1", HostPort: external }]];
+        return [`${internal}/tcp`, [{ HostPort: external }]];
       })),
       RestartPolicy: {
         Name: "always",
       },
     },
+    ExposedPorts: Object.fromEntries(Object.values(ports).map(port => [`${port}/tcp`, {}] as const)),
     Tty: true,
   });
   await Promise.all(networkIds.map(networkId => connectContainerToNetwork(container.id, networkId)));

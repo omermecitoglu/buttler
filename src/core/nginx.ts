@@ -1,6 +1,7 @@
 import { getAllServices, getSingleService } from "~/data/services";
 import db from "~/database";
 import createService from "~/operations/createService";
+import { syncPorts } from "~/operations/syncPorts";
 import { getHostIp } from "./docker";
 import { generateNginxConfig } from "./nginx-conf";
 import { startService, stopService } from "./service";
@@ -15,8 +16,12 @@ async function findOrCreateReverseProxyServer() {
   console.log("\x1b[34m%s\x1b[0m", "the Reverse Proxy Server was not found, creating one...");
   const createdService = await createService(db, {
     kind: "system",
-    name: "Reverse Proxy Server",
+    name: "Buttler Reverse Proxy Server",
     repo: "nginx",
+  });
+  await syncPorts(db, createdService.id, {
+    80: "80",
+    443: "443",
   });
   return getSingleService(createdService.id);
 }
