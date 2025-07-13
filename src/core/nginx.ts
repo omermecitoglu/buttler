@@ -34,15 +34,14 @@ export async function startReverseProxyService() {
   if (service.status === "idle") {
     const hostIp = await getHostIp();
     const nginxConfig = await saveFile("system", "nginx.conf", generateNginxConfig(hostIp));
-    if (!(await checkFile("system/ssl", "ssl-certificate.pem"))) {
-      return message("warning", "ssl-certificate.pem is missing! so the Reverse Proxy Server wasn't launched");
+
+    const sslFiles = ["ssl-certificate.pem", "ssl-certificate-key.pem", "ssl-client-certificate.crt"];
+    const checks = await Promise.all(sslFiles.map(fileName => checkFile("system/ssl", fileName)));
+    const missingFile = checks.findIndex(check => !check);
+    if (missingFile !== -1) {
+      return message("warning", `${sslFiles[missingFile]} is missing! so the Reverse Proxy Server wasn't launched`);
     }
-    if (!(await checkFile("system/ssl", "ssl-certificate-key.pem"))) {
-      return message("warning", "ssl-certificate-key.pem is missing! so the Reverse Proxy Server wasn't launched");
-    }
-    if (!(await checkFile("system/ssl", "ssl-client-certificate.crt"))) {
-      return message("warning", "ssl-client-certificate.crt is missing! so the Reverse Proxy Server wasn't launched");
-    }
+
     message("success", "Starting the Reverse Proxy Server...");
     await startService(service, {
       [nginxConfig]: "/etc/nginx/nginx.conf",
