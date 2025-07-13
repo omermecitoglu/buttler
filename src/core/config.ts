@@ -3,9 +3,18 @@ import { z } from "zod/v4";
 import { readFileContent, saveFile } from "./storage";
 
 export const configSchema = z.object({
-  sslCertificate: z.string().optional(),
-  sslCertificateKey: z.string().optional(),
-  sslClientCertificate: z.string().optional(),
+  sslCertificate: z.string().trim()
+    .startsWith("-----BEGIN CERTIFICATE-----")
+    .endsWith("-----END CERTIFICATE-----")
+    .optional(),
+  sslCertificateKey: z.string().trim()
+    .startsWith("-----BEGIN PRIVATE KEY-----")
+    .endsWith("-----END PRIVATE KEY-----")
+    .optional(),
+  sslClientCertificate: z.string().trim()
+    .startsWith("-----BEGIN CERTIFICATE-----")
+    .endsWith("-----END CERTIFICATE-----")
+    .optional(),
 });
 
 export async function getConfigs() {
