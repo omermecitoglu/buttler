@@ -39,10 +39,13 @@ function generateHttpsServer(serverNames: string[], ip: string, port: string | n
 export async function generateNginxConfig(appHostName?: string) {
   const allServices = await getAllServices();
   const servers = allServices.filter(service => service.kind === "git").map(service => {
+    if (!service.mainPort) {
+      return `# skipping ${service.name}, because it doesn't have a main port`;
+    }
     if (!service.domains.length) {
       return `# skipping ${service.name}, because it doesn't have any domain names`;
     }
-    return generateHttpsServer(pluck(service.domains, "name"), kebabCase(service.name), 3000);
+    return generateHttpsServer(pluck(service.domains, "name"), kebabCase(service.name), service.mainPort);
   });
   if (appHostName) {
     servers.unshift(generateHttpsServer([appHostName], await getHostIp(), 3000));
