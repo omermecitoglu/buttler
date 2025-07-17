@@ -6,6 +6,7 @@ import { buildImages } from "./build-images";
 import { environmentVariables } from "./environment-variables";
 import { networks } from "./networks";
 import { ports } from "./ports";
+import { serviceDomains } from "./service-domains";
 import { serviceLinks } from "./service-links";
 import { volumes } from "./volumes";
 
@@ -42,4 +43,5 @@ export const relationsOfServices = relations(services, ({ many }) => ({
   networks: many(networks),
   providerlinks: many(serviceLinks, { relationName: "client" }),
   clientLinks: many(serviceLinks, { relationName: "provider" }),
+  domains: many(serviceDomains),
 }));

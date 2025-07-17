@@ -66,6 +66,12 @@ export default async function getService(db: typeof database, serviceId: string)
           },
         },
       },
+      domains: {
+        columns: {
+          id: true,
+          name: true,
+        },
+      },
     },
     where: (table, { eq }) => eq(table.id, serviceId),
   });
