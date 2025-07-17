@@ -1,22 +1,17 @@
 import "server-only";
 import { z } from "zod/v4";
-import { readFileContent, saveFile } from "./storage";
+import { omit } from "~/utils/object";
+import { generateNginxConfig } from "./nginx-conf";
+import { readFileContent, removeFile, saveFile } from "./storage";
 
 export const configSchema = z.object({
-  appHostName: z.url().optional(),
-  sslCertificate: z.string().trim()
-    .startsWith("-----BEGIN CERTIFICATE-----")
-    .endsWith("-----END CERTIFICATE-----")
-    .optional(),
-  sslCertificateKey: z.string().trim()
-    .startsWith("-----BEGIN PRIVATE KEY-----")
-    .endsWith("-----END PRIVATE KEY-----")
-    .optional(),
-  sslClientCertificate: z.string().trim()
-    .startsWith("-----BEGIN CERTIFICATE-----")
-    .endsWith("-----END CERTIFICATE-----")
-    .optional(),
-});
+  appHostName: z.url(),
+  sslCertificate: z.string().trim().startsWith("-----BEGIN CERTIFICATE-----").endsWith("-----END CERTIFICATE-----"),
+  sslCertificateKey: z.string().trim().startsWith("-----BEGIN PRIVATE KEY-----").endsWith("-----END PRIVATE KEY-----"),
+  sslClientCertificate: z.string().trim().startsWith("-----BEGIN CERTIFICATE-----").endsWith("-----END CERTIFICATE-----"),
+}).partial();
+
+type Configs = z.infer<typeof configSchema>;
 
 export async function getConfigs() {
   const content = await readFileContent(".", "config.json");
@@ -37,6 +32,52 @@ export async function getConfigs() {
 }
 
 export async function saveConfigs(input: z.infer<typeof configSchema>) {
-  const data = configSchema.parse(input);
+  const data = configSchema.parse(omit(input, "sslCertificate", "sslCertificateKey", "sslClientCertificate"));
   await saveFile(".", "config.json", JSON.stringify(data, null, 2) + "\n");
+}
+
+export async function onConfigUpdate<K extends keyof Configs>(key: K, oldValue: Configs[K], newValue: Configs[K]) {
+  switch (key) {
+    case "appHostName":
+      if (newValue) {
+        await saveFile("system/ssl", "ssl-certificate.pem", newValue);
+      } else {
+        await removeFile("system/ssl", "ssl-certificate.pem");
+      }
+      return {
+        reloadNginx: oldValue !== newValue,
+        coldRestart: false,
+      };
+    case "sslCertificate":
+      if (newValue) {
+        await saveFile("system/ssl", "ssl-certificate-key.pem", newValue);
+      } else {
+        await removeFile("system/ssl", "ssl-certificate-key.pem");
+      }
+      return {
+        reloadNginx: oldValue !== newValue,
+        coldRestart: false,
+      };
+    case "sslCertificateKey":
+      if (newValue) {
+        await saveFile("system/ssl", "ssl-client-certificate.crt", newValue);
+      } else {
+        await removeFile("system/ssl", "ssl-client-certificate.crt");
+      }
+      return {
+        reloadNginx: oldValue !== newValue,
+        coldRestart: false,
+      };
+    case "sslClientCertificate":
+      await saveFile("system", "nginx.conf", await generateNginxConfig(newValue));
+      return {
+        reloadNginx: oldValue !== newValue,
+        coldRestart: false,
+      };
+    default:
+      return {
+        reloadNginx: false,
+        coldRestart: false,
+      };
+  }
 }

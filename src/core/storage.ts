@@ -32,3 +32,7 @@ export async function saveFile(dir: string, fileName: string, content: string) {
   await fs.writeFile(filePath, content, "utf-8");
   return filePath;
 }
+
+export async function removeFile(dir: string, fileName: string) {
+  await fs.unlink(getFilePath(dir, fileName));
+}
