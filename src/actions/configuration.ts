@@ -3,6 +3,7 @@ import { defineFormAction } from "@omer-x/bs-ui-kit/server-action";
 import { redirect } from "next/navigation";
 import { configSchema, getConfigs, saveConfigs } from "~/core/config";
 import { reloadReverseProxyService } from "~/core/nginx";
+import { generateNginxConfig } from "~/core/nginx-conf";
 import { saveFile } from "~/core/storage";
 
 export const { updateConfigs } = defineFormAction({
@@ -27,6 +28,7 @@ export const { updateConfigs } = defineFormAction({
     }
     const appHostNameChanged = others.appHostName !== old.appHostName;
     if (appHostNameChanged) {
+      await saveFile("system", "nginx.conf", await generateNginxConfig(others.appHostName));
       needsToReload = true;
     }
     if (needsToReload) {

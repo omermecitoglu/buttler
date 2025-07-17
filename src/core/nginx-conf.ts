@@ -1,3 +1,5 @@
+import { getHostIp } from "./docker";
+
 function generateHttpToHttpsRedirection(serverNames: string[]) {
   const configuration = [
     "listen 80;",
@@ -31,9 +33,10 @@ function generateHttpsServer(serverNames: string[], ip: string, port: string | n
   return `${generateHttpToHttpsRedirection(serverNames)}\n${httpsServer}`;
 }
 
-export function generateNginxConfig(bridgeIp: string, appHostName: string) {
-  const servers = [
-    generateHttpsServer([appHostName], bridgeIp, 3000),
-  ];
+export async function generateNginxConfig(appHostName?: string) {
+  const servers = [];
+  if (appHostName) {
+    servers.push(generateHttpsServer([appHostName], await getHostIp(), 3000));
+  }
   return `events {}\n\nhttp {\n${servers.map(s => `\t${s}\n`).join("")}}`;
 }

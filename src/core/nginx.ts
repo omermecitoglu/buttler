@@ -3,10 +3,9 @@ import db from "~/database";
 import createService from "~/operations/createService";
 import { syncPorts } from "~/operations/syncPorts";
 import { message } from "./console";
-import { executeCommandInContainer, getHostIp } from "./docker";
-import { generateNginxConfig } from "./nginx-conf";
-import { startService } from "./service";
-import { checkFile, getFilePath, saveFile } from "./storage";
+import { executeCommandInContainer } from "./docker";
+import { startService, stopService } from "./service";
+import { checkFile, getFilePath } from "./storage";
 
 async function findOrCreateReverseProxyServer() {
   const allServices = await getAllServices();
@@ -28,9 +27,6 @@ async function findOrCreateReverseProxyServer() {
 export async function startReverseProxyService() {
   const service = await findOrCreateReverseProxyServer();
   if (service.status === "idle") {
-    const hostIp = await getHostIp();
-    const nginxConfig = await saveFile("system", "nginx.conf", generateNginxConfig(hostIp));
-
     const sslFiles = ["ssl-certificate.pem", "ssl-certificate-key.pem", "ssl-client-certificate.crt"];
     const checks = await Promise.all(sslFiles.map(fileName => checkFile("system/ssl", fileName)));
     const missingFile = checks.findIndex(check => !check);
@@ -40,7 +36,7 @@ export async function startReverseProxyService() {
 
     message("success", "Starting the Reverse Proxy Server...");
     await startService(service, {
-      [nginxConfig]: "/etc/nginx/nginx.conf",
+      [getFilePath("system", "nginx.conf")]: "/etc/nginx/nginx.conf",
       [getFilePath("system/ssl", "ssl-certificate.pem")]: "/etc/ssl/cert.pem",
       [getFilePath("system/ssl", "ssl-certificate-key.pem")]: "/etc/ssl/key.pem",
       [getFilePath("system/ssl", "ssl-client-certificate.crt")]: "/etc/ssl/cloudflare.crt",
@@ -48,10 +44,15 @@ export async function startReverseProxyService() {
   }
 }
 
-export async function reloadReverseProxyService() {
+export async function reloadReverseProxyService(needsColdRestart: boolean) {
   const service = await findOrCreateReverseProxyServer();
   if (service.status === "running" && service.containerId) {
-    await executeCommandInContainer(service.containerId, ["nginx -s reload"]);
+    if (needsColdRestart) {
+      await stopService(service.id, service.containerId);
+      await startReverseProxyService();
+    } else {
+      await executeCommandInContainer(service.containerId, ["nginx -s reload"]);
+    }
   } else {
     await startReverseProxyService();
   }
