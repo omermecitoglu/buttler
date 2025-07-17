@@ -1,5 +1,5 @@
 import { relations, sql } from "drizzle-orm";
-import { text } from "drizzle-orm/sqlite-core/columns";
+import { integer, text } from "drizzle-orm/sqlite-core/columns";
 import { index } from "drizzle-orm/sqlite-core/indexes";
 import { sqliteTable } from "drizzle-orm/sqlite-core/table";
 import { buildImages } from "./build-images";
@@ -29,6 +29,7 @@ export const services = sqliteTable("services", {
   }).notNull().default("idle"),
   imageId: text(),
   containerId: text(),
+  mainPort: integer({ mode: "number" }),
   createdAt: text().notNull().default(sql`(CURRENT_TIMESTAMP)`),
   updatedAt: text().notNull().default(sql`(CURRENT_TIMESTAMP)`),
 }, table => ({
