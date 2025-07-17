@@ -54,6 +54,9 @@ const SettingsPage = async ({
             schema={configSchema}
             defaultValues={currentConfigs}
             properties={{
+              appHostName: {
+                label: "Host Name",
+              },
               sslCertificate: {
                 label: "SSL Certificate",
                 gridSize: { md: 4 },

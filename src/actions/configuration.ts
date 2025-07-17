@@ -25,8 +25,12 @@ export const { updateConfigs } = defineFormAction({
       await saveFile("system/ssl", "ssl-client-certificate.crt", sslClientCertificate);
       needsToReload = true;
     }
+    const appHostNameChanged = others.appHostName !== old.appHostName;
+    if (appHostNameChanged) {
+      needsToReload = true;
+    }
     if (needsToReload) {
-      await reloadReverseProxyService();
+      await reloadReverseProxyService(false);
     }
     await saveConfigs(others);
     return redirect("/settings");

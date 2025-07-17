@@ -3,6 +3,7 @@ import { z } from "zod/v4";
 import { readFileContent, saveFile } from "./storage";
 
 export const configSchema = z.object({
+  appHostName: z.url().optional(),
   sslCertificate: z.string().trim()
     .startsWith("-----BEGIN CERTIFICATE-----")
     .endsWith("-----END CERTIFICATE-----")
