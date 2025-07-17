@@ -1,3 +1,6 @@
+import { kebabCase } from "change-case";
+import { getAllServices } from "~/data/services";
+import { pluck } from "~/utils/object";
 import { getHostIp } from "./docker";
 
 function generateHttpToHttpsRedirection(serverNames: string[]) {
@@ -34,9 +37,15 @@ function generateHttpsServer(serverNames: string[], ip: string, port: string | n
 }
 
 export async function generateNginxConfig(appHostName?: string) {
-  const servers = [];
+  const allServices = await getAllServices();
+  const servers = allServices.filter(service => service.kind === "git").map(service => {
+    if (!service.domains.length) {
+      return `# skipping ${service.name}, because it doesn't have any domain names`;
+    }
+    return generateHttpsServer(pluck(service.domains, "name"), kebabCase(service.name), 3000);
+  });
   if (appHostName) {
-    servers.push(generateHttpsServer([appHostName], await getHostIp(), 3000));
+    servers.unshift(generateHttpsServer([appHostName], await getHostIp(), 3000));
   }
   return `events {}\n\nhttp {\n${servers.map(s => `\t${s}\n`).join("")}}`;
 }
