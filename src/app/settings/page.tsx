@@ -56,21 +56,36 @@ const SettingsPage = async ({
             properties={{
               appHostName: {
                 label: "Host Name",
+                messages: {
+                  INVALID_URL: "Not a valid URL",
+                },
               },
               sslCertificate: {
                 label: "SSL Certificate",
                 gridSize: { md: 4 },
                 lines: 5,
+                messages: {
+                  INVALID_STARTS_WITH: "Not a valid certificate",
+                  INVALID_ENDS_WITH: "Not a valid certificate",
+                },
               },
               sslCertificateKey: {
                 label: "SSL Certificate Key",
                 gridSize: { md: 4 },
                 lines: 5,
+                messages: {
+                  INVALID_STARTS_WITH: "Not a valid certificate Key",
+                  INVALID_ENDS_WITH: "Not a valid certificate Key",
+                },
               },
               sslClientCertificate: {
                 label: "SSL Client Certificate",
                 gridSize: { md: 4 },
                 lines: 5,
+                messages: {
+                  INVALID_STARTS_WITH: "Not a valid certificate",
+                  INVALID_ENDS_WITH: "Not a valid certificate",
+                },
               },
             }}
           />

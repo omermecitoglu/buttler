@@ -38,7 +38,7 @@ export async function saveConfigs(input: z.infer<typeof configSchema>) {
 
 export async function onConfigUpdate<K extends keyof Configs>(key: K, oldValue: Configs[K], newValue: Configs[K]) {
   switch (key) {
-    case "appHostName":
+    case "sslCertificate":
       if (newValue) {
         await saveFile("system/ssl", "ssl-certificate.pem", newValue);
       } else {
@@ -48,7 +48,7 @@ export async function onConfigUpdate<K extends keyof Configs>(key: K, oldValue: 
         reloadNginx: oldValue !== newValue,
         coldRestart: false,
       };
-    case "sslCertificate":
+    case "sslCertificateKey":
       if (newValue) {
         await saveFile("system/ssl", "ssl-certificate-key.pem", newValue);
       } else {
@@ -58,7 +58,7 @@ export async function onConfigUpdate<K extends keyof Configs>(key: K, oldValue: 
         reloadNginx: oldValue !== newValue,
         coldRestart: false,
       };
-    case "sslCertificateKey":
+    case "sslClientCertificate":
       if (newValue) {
         await saveFile("system/ssl", "ssl-client-certificate.crt", newValue);
       } else {
@@ -68,7 +68,7 @@ export async function onConfigUpdate<K extends keyof Configs>(key: K, oldValue: 
         reloadNginx: oldValue !== newValue,
         coldRestart: false,
       };
-    case "sslClientCertificate":
+    case "appHostName":
       await saveFile("system", "nginx.conf", await generateNginxConfig(newValue));
       return {
         reloadNginx: oldValue !== newValue,
