@@ -5,6 +5,7 @@ import { services } from "~/database/schema/services";
 const baseSchema = createInsertSchema(services, {
   id: schema => schema.id.readonly().describe("Unique identifier of the service"),
   name: schema => schema.name.describe("Name of the service"),
+  mainPort: () => z.coerce.number(),
   createdAt: schema => schema.createdAt.readonly().describe("Creation date of the service as an ISO 8601 date string"),
   updatedAt: schema => schema.updatedAt.readonly().describe("Modification date of the service as an ISO 8601 date string"),
 }).extend({

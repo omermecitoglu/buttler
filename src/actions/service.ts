@@ -2,8 +2,12 @@
 import crypto from "node:crypto";
 import { redirect } from "next/navigation";
 import { startBuilding } from "~/core/build";
+import { getConfigs } from "~/core/config";
 import { createNetwork as createDockerNetwork, createVolume as createDockerVolume, destroyNetwork, removeContainer } from "~/core/docker";
+import { reloadReverseProxyService } from "~/core/nginx";
+import { generateNginxConfig } from "~/core/nginx-conf";
 import { startService, stopService } from "~/core/service";
+import { saveFile } from "~/core/storage";
 import { getSingleService } from "~/data/services";
 import db from "~/database";
 import { NewServiceSchema, ServicePatchSchema } from "~/models/service";
@@ -93,6 +97,11 @@ export async function update(id: string, _: unknown, formData: FormData): Promis
       await syncEnvironmentVariables(tx, id, env);
       await syncPorts(tx, id, ports);
     });
+    if (patch.mainPort && outdatedService.mainPort !== patch.mainPort) {
+      const configs = await getConfigs();
+      await saveFile("system", "nginx.conf", await generateNginxConfig(configs.appHostName));
+      await reloadReverseProxyService(false);
+    }
   } catch (error) {
     if (error && typeof error === "object" && "message" in error && error.message === "Transaction function cannot return a promise") {
       // do nothing. This is a known bug in Drizzle ORM
