@@ -9,6 +9,8 @@ export const configSchema = z.object({
   sslCertificate: z.string().trim().startsWith("-----BEGIN CERTIFICATE-----").endsWith("-----END CERTIFICATE-----"),
   sslCertificateKey: z.string().trim().startsWith("-----BEGIN PRIVATE KEY-----").endsWith("-----END PRIVATE KEY-----"),
   sslClientCertificate: z.string().trim().startsWith("-----BEGIN CERTIFICATE-----").endsWith("-----END CERTIFICATE-----"),
+  sessionCookieName: z.string(),
+  sessionPassword: z.string(),
 }).partial();
 
 type Configs = z.infer<typeof configSchema>;
