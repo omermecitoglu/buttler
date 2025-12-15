@@ -11,6 +11,8 @@ export const configSchema = z.object({
   sslClientCertificate: z.string().trim().startsWith("-----BEGIN CERTIFICATE-----").endsWith("-----END CERTIFICATE-----"),
   sessionCookieName: z.string(),
   sessionPassword: z.string(),
+  githubAppClientId: z.string(),
+  githubAppClientSecret: z.string(),
 }).partial();
 
 type Configs = z.infer<typeof configSchema>;
