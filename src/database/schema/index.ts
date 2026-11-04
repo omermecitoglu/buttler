@@ -6,3 +6,4 @@ export * from "./build-images";
 export * from "./volumes";
 export * from "./networks";
 export * from "./service-links";
+export * from "./service-domains";

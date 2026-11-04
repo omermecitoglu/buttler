@@ -3,5 +3,8 @@ export async function register() {
     process.title = "buttler";
     const { default: migrate } = await import("./database/migrate");
     migrate();
+
+    const { startReverseProxyService } = await import("./core/nginx");
+    await startReverseProxyService();
   }
 }

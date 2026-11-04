@@ -1,10 +1,14 @@
 "use server";
 import crypto from "node:crypto";
-import { kebabCase } from "change-case";
 import { redirect } from "next/navigation";
 import { startBuilding } from "~/core/build";
-import { createContainer, createNetwork as createDockerNetwork, createVolume as createDockerVolume, destroyNetwork, pullImage, removeContainer } from "~/core/docker";
-import { getProviderVariables } from "~/core/provider";
+import { getConfigs } from "~/core/config";
+import { createNetwork as createDockerNetwork, createVolume as createDockerVolume, destroyNetwork, removeContainer } from "~/core/docker";
+import { reloadReverseProxyService } from "~/core/nginx";
+import { generateNginxConfig } from "~/core/nginx-conf";
+import { startService, stopService } from "~/core/service";
+import { saveFile } from "~/core/storage";
+import { getSingleService } from "~/data/services";
 import db from "~/database";
 import { NewServiceSchema, ServicePatchSchema } from "~/models/service";
 import createNetwork from "~/operations/createNetwork";
@@ -13,13 +17,11 @@ import createServiceLink from "~/operations/createServiceLink";
 import createVolume from "~/operations/createVolume";
 import deleteService from "~/operations/deleteService";
 import deleteServiceLink from "~/operations/deleteServiceLink";
-import getBuildImages from "~/operations/getBuildImages";
 import getService from "~/operations/getService";
 import { syncEnvironmentVariables } from "~/operations/syncEnvironmentVariables";
 import { syncPorts } from "~/operations/syncPorts";
 import updateService from "~/operations/updateService";
 import { getData } from "~/utils/form";
-import { mergeObjects } from "~/utils/object";
 
 export async function create(formData: FormData) {
   const data = NewServiceSchema.parse(getData(formData));
@@ -95,6 +97,11 @@ export async function update(id: string, _: unknown, formData: FormData): Promis
       await syncEnvironmentVariables(tx, id, env);
       await syncPorts(tx, id, ports);
     });
+    if (patch.mainPort && outdatedService.mainPort !== patch.mainPort) {
+      const configs = await getConfigs();
+      await saveFile("system", "nginx.conf", await generateNginxConfig(configs.appHostName));
+      await reloadReverseProxyService(false);
+    }
   } catch (error) {
     if (error && typeof error === "object" && "message" in error && error.message === "Transaction function cannot return a promise") {
       // do nothing. This is a known bug in Drizzle ORM
@@ -116,57 +123,14 @@ export async function destroy(id: string, _: FormData) {
 }
 
 export async function start(serviceId: string, _: FormData) {
-  const service = await getService(db, serviceId);
-  if (!service) throw new Error("Invalid Service");
-
-  const getLatestBuild = async () => {
-    const images = await getBuildImages(db, serviceId, ["id", "status", "createdAt"]);
-    const readyImages = images.filter(image => image.status === "ready");
-    const latest = readyImages.reduce((bestVersion, nextVersion) => {
-      const best = new Date(bestVersion.createdAt).getTime();
-      const next = new Date(nextVersion.createdAt).getTime();
-      return (next > best) ? nextVersion : bestVersion;
-    }, readyImages[0]);
-    return latest.id;
-  };
-
-  const getServiceImage = async () => {
-    switch (service.kind) {
-      case "git": return await getLatestBuild();
-      case "database": {
-        await pullImage(service.repo);
-        return service.repo;
-      }
-    }
-  };
-
-  const image = await getServiceImage();
-  const providerVariables = mergeObjects(service.providers.map(provider => {
-    return getProviderVariables(service.name, provider.name, provider.repo, provider.variables);
-  }));
-  const containerId = await createContainer(
-    kebabCase(service.name),
-    image,
-    { ...providerVariables, ...service.environmentVariables },
-    service.ports,
-    service.volumes,
-    [...service.networkIds, ...service.providers.map(provider => provider.networkIds).flat()],
-  );
-  await updateService(db, service.id, { status: "running", containerId, imageId: image });
+  const service = await getSingleService(serviceId);
+  await startService(service);
   redirect(`/services/${serviceId}`);
 }
 
-export async function stop(id: string, containerId: string, _: FormData) {
-  if (containerId) {
-    try {
-      await removeContainer(containerId);
-    } catch {
-      // do nothing
-    } finally {
-      await updateService(db, id, { status: "idle", containerId: null, imageId: null });
-    }
-  }
-  redirect(`/services/${id}`);
+export async function stop(serviceId: string, containerId: string, _: FormData) {
+  await stopService(serviceId, containerId);
+  redirect(`/services/${serviceId}`);
 }
 
 export async function build(id: string, _: FormData) {

@@ -90,20 +90,29 @@ export async function createContainer(
   ports: Record<string, string>,
   volumes: Record<string, string>,
   networkIds: string[],
+  options: {
+    readOnlyFiles?: Record<string, string>,
+  } = {},
 ) {
   const container = await docker.createContainer({
     name: serviceName,
     Image: imageId,
     Env: Object.entries(env).map(([key, value]) => `${key}=${value}`),
     HostConfig: {
+      Binds: [
+        ...Object.entries(volumes).map(([key, value]) => `${key}:${value}`),
+        ...Object.entries(options.readOnlyFiles ?? {}).map(([source, destination]) => {
+          return `${source}:${destination}:ro`;
+        }),
+      ],
       PortBindings: Object.fromEntries(Object.entries(ports).map(([external, internal]) => {
-        return [`${internal}/tcp`, [{ HostIp: "127.0.0.1", HostPort: external }]];
+        return [`${internal}/tcp`, [{ HostPort: external }]];
       })),
       RestartPolicy: {
         Name: "always",
       },
-      Binds: Object.entries(volumes).map(([key, value]) => `${key}:${value}`),
     },
+    ExposedPorts: Object.fromEntries(Object.values(ports).map(port => [`${port}/tcp`, {}] as const)),
     Tty: true,
   });
   await Promise.all(networkIds.map(networkId => connectContainerToNetwork(container.id, networkId)));
@@ -191,4 +200,11 @@ async function disconnectContainerFromNetwork(containerId: string, networkId: st
     Container: containerId,
     // Force: true, // is this necessary?
   });
+}
+
+export async function getHostIp() {
+  const network = docker.getNetwork("bridge");
+  const inspection = await network.inspect();
+  const gateway = inspection.IPAM?.Config?.[0]?.Gateway;
+  return gateway as string;
 }

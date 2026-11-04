@@ -1,11 +1,12 @@
 import { relations, sql } from "drizzle-orm";
-import { text } from "drizzle-orm/sqlite-core/columns";
+import { integer, text } from "drizzle-orm/sqlite-core/columns";
 import { index } from "drizzle-orm/sqlite-core/indexes";
 import { sqliteTable } from "drizzle-orm/sqlite-core/table";
 import { buildImages } from "./build-images";
 import { environmentVariables } from "./environment-variables";
 import { networks } from "./networks";
 import { ports } from "./ports";
+import { serviceDomains } from "./service-domains";
 import { serviceLinks } from "./service-links";
 import { volumes } from "./volumes";
 
@@ -13,6 +14,7 @@ export const services = sqliteTable("services", {
   id: text().primaryKey(),
   kind: text({
     enum: [
+      "system",
       "git",
       "database",
     ],
@@ -27,6 +29,7 @@ export const services = sqliteTable("services", {
   }).notNull().default("idle"),
   imageId: text(),
   containerId: text(),
+  mainPort: integer({ mode: "number" }),
   createdAt: text().notNull().default(sql`(CURRENT_TIMESTAMP)`),
   updatedAt: text().notNull().default(sql`(CURRENT_TIMESTAMP)`),
 }, table => ({
@@ -41,4 +44,5 @@ export const relationsOfServices = relations(services, ({ many }) => ({
   networks: many(networks),
   providerlinks: many(serviceLinks, { relationName: "client" }),
   clientLinks: many(serviceLinks, { relationName: "provider" }),
+  domains: many(serviceDomains),
 }));

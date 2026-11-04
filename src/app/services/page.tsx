@@ -1,6 +1,7 @@
 import { faGitAlt } from "@fortawesome/free-brands-svg-icons/faGitAlt";
 import { faDatabase } from "@fortawesome/free-solid-svg-icons/faDatabase";
 import { faPlus } from "@fortawesome/free-solid-svg-icons/faPlus";
+import { faScrewdriverWrench } from "@fortawesome/free-solid-svg-icons/faScrewdriverWrench";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import DataTable from "@omer-x/bs-ui-kit/DataTable";
 import PageSection from "@omer-x/bs-ui-kit/PageSection";
@@ -22,10 +23,12 @@ type ServicesPageProps = {
 const ServicesPage = async ({
   params: _params,
 }: ServicesPageProps) => {
-  const services = await getServices(db, ["id", "kind", "name", "status", "ports", "environmentVariables"]);
+  const allServices = await getServices(db, ["id", "kind", "name", "status", "ports", "environmentVariables"]);
+  const services = allServices.filter(service => service.kind !== "system");
 
-  const getTypeIcon = (kind: typeof services[0]["kind"]) => {
+  const getTypeIcon = (kind: typeof services[number]["kind"]) => {
     switch (kind) {
+      case "system": return faScrewdriverWrench;
       case "git": return faGitAlt;
       case "database": return faDatabase;
     }

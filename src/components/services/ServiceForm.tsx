@@ -33,7 +33,7 @@ const ServiceForm = ({
             "database",
           ]}
           optionName={option => (option === "git" ? "Custom" : "Database")}
-          value={kind}
+          value={kind as ("git" | "database")}
           onChange={setKind}
         />
       )}
@@ -64,6 +64,14 @@ const ServiceForm = ({
             "redis",
           ]}
           optionName={dbEngineName}
+        />
+      )}
+      {kind === "git" && (
+        <Input
+          type="number"
+          label="Main Port"
+          name="mainPort"
+          defaultValue={data?.mainPort?.toString()}
         />
       )}
     </>
