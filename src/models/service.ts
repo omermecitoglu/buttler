@@ -1,52 +1,35 @@
-import { createInsertSchema } from "drizzle-zod";
-import z from "zod";
+import { createInsertSchema, createSelectSchema, createUpdateSchema } from "drizzle-orm/zod";
+import { createSharedRefinements } from "drizzle-zod-shared-refinements";
 import { services } from "~/database/schema/services";
+import type z from "zod";
 
-const baseSchema = createInsertSchema(services, {
-  id: schema => schema.id.readonly().describe("Unique identifier of the service"),
-  name: schema => schema.name.describe("Name of the service"),
-  mainPort: () => z.coerce.number(),
-  createdAt: schema => schema.createdAt.readonly().describe("Creation date of the service as an ISO 8601 date string"),
-  updatedAt: schema => schema.updatedAt.readonly().describe("Modification date of the service as an ISO 8601 date string"),
-}).extend({
-  environmentVariables: z.record(z.string(), z.string()),
-  ports: z.record(z.string(), z.string()),
-  volumes: z.record(z.string(), z.string()),
-  networkIds: z.string().array(),
-  providers: z.object({
-    id: z.string(),
-    name: z.string(),
-    repo: z.string(),
-    containerId: z.string().nullable(),
-    networkIds: z.string().array(),
-    variables: z.record(z.string(), z.string()),
-  }).array(),
-  clients: z.object({
-    id: z.string(),
-    name: z.string(),
-  }).array(),
+const sharedRefinements = createSharedRefinements(services, {
+  id: schema => schema.readonly().describe("Unique identifier of the service"),
+  name: schema => schema.describe("Name of the service"),
+  createdAt: schema => schema.readonly().describe("Creation date of the service as an ISO 8601 date string"),
+  updatedAt: schema => schema.readonly().describe("Modification date of the service as an ISO 8601 date string"),
 });
 
-const ServiceSchema = baseSchema.required()
-  .describe("Represents a service running in the system");
+export const ServiceDTO = createSelectSchema(services, sharedRefinements)
+  .describe("Represents a service definition");
 
-export type ServiceDTO = z.infer<typeof ServiceSchema>;
-
-export const NewServiceSchema = baseSchema.omit({
+export const NewServiceDTO = createInsertSchema(services, sharedRefinements).omit({
   id: true,
-  environmentVariables: true,
-  ports: true,
-  volumes: true,
-  networkIds: true,
-  providers: true,
-  clients: true,
   createdAt: true,
   updatedAt: true,
 }).describe("Data Transfer Object for creating a new service");
 
-export type NewServiceDTO = z.infer<typeof NewServiceSchema>;
-
-export const ServicePatchSchema = NewServiceSchema.partial().omit({
+export const ServicePatchDTO = createUpdateSchema(services, sharedRefinements).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
 }).describe("Data Transfer Object for updating an existing service");
 
-export type ServicePatchDTO = z.infer<typeof ServicePatchSchema>;
+export type Service = z.infer<typeof ServiceDTO>;
+export type NewService = z.infer<typeof NewServiceDTO>;
+export type ServicePatch = z.infer<typeof ServicePatchDTO>;
+
+// Aliases for DTO types
+export type ServiceDTO = Service;
+export type NewServiceDTO = NewService;
+export type ServicePatchDTO = ServicePatch;
