@@ -1,0 +1,64 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "id": "c74ac561-2059-45bb-811c-be510c341681",
+  "prevIds": [
+    "00000000-0000-0000-0000-000000000000"
+  ],
+  "ddl": [
+    {
+      "name": "services",
+      "entityType": "tables"
+    },
+    {
+      "table": "services",
+      "name": "id",
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "services",
+      "name": "name",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "services",
+      "name": "created_at",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "(CURRENT_TIMESTAMP)",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "services",
+      "name": "updated_at",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "(CURRENT_TIMESTAMP)",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "services",
+      "name": "services_pk",
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "entityType": "pks"
+    }
+  ],
+  "renames": []
+}
