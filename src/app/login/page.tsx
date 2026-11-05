@@ -17,7 +17,6 @@ const Page = async () => {
   return (
     <Link
       href={`https://github.com/login/oauth/authorize?client_id=${configs.githubAppClientId}&redirect_uri=${redirectURI}`}
-      className="btn btn-primary"
     >
       Login with GitHub
     </Link>
