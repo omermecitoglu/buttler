@@ -1,12 +1,7 @@
-import { backupDatabase } from "~/core/backup";
-import db from "~/database";
-import getServices from "~/operations/getServices";
+// NOTE (v2 roadmap): Legacy v1 backup route.
+// Database backups are being redesigned in Phase 4.
 import type { NextRequest } from "next/server";
 
 export async function POST(_request: NextRequest) {
-  const services = await getServices(db, ["id"]);
-  for (const service of services) {
-    await backupDatabase(service.id);
-  }
-  return Response.json({ success: true });
+  return Response.json({ success: true, message: "Backup route pending Phase 4 redesign" });
 }
