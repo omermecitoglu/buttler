@@ -39,7 +39,7 @@
   ],
   "type": "module",
   "engines": {
-    "node": ">=19.0.0"
+    "node": ">=22.5.0"
   },
   "scripts": {
     "add:resource": "next-admin-panel-generator",
