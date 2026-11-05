@@ -1,0 +1,61 @@
+# Agent Guidelines
+
+> **Responsibility Notice:** The responsibility of this file belongs to the agent. The agent should update this file with every new piece of information it learns in the development process by incrementing the "Revision" number.
+
+**Revision:** 1
+
+## Token Budget & Collaboration
+
+1. **Tight Token Budget**:
+   - Keep actions targeted and minimal.
+   - Do not search the codebase broadly (e.g. running wide grep/find commands or scanning multiple directories) without asking.
+   - Avoid executing redundant commands or reading unnecessary files.
+
+2. **Ask the User First**:
+   - Always collaborate with the user and ask questions directly before searching for:
+     - Utility or helper functions.
+     - Environment variables or configuration values.
+     - Business logic, domain rules, or operational schedules.
+
+3. **Efficiency & Communication**:
+   - Keep tool usage focused strictly on the files directly involved in the task.
+   - Communicate clearly and concisely.
+
+## Commit Convention
+
+All commits must follow the **Conventional Commits** format:
+
+```
+<type>: <short description>
+```
+
+Common types:
+
+| Type | When to use |
+|------|-------------|
+| `feat` | Adding a new feature |
+| `fix` | Fixing a bug |
+| `docs` | Documentation changes only |
+| `refactor` | Code change that neither fixes a bug nor adds a feature |
+| `test` | Adding or updating tests |
+| `chore` | Build process, tooling, or dependency updates |
+
+### AI Co-authorship
+
+All commits made or assisted by AI agents must include a co-author trailer matching the AI model in use:
+
+- **Claude**: `Co-authored-by: Claude <noreply@anthropic.com>`
+- **Gemini**: `Co-authored-by: Gemini <gemini@google.com>`
+- **ChatGPT / OpenAI**: `Co-authored-by: ChatGPT <chatgpt@openai.com>`
+
+Example:
+
+```
+feat: add product name suggestion page
+
+Co-authored-by: Claude <noreply@anthropic.com>
+```
+
+## Project-Specific Documentation
+
+For architecture, domain context, data models, or workflows specific to this repository, refer to the guides in `./ai/*.md`.
