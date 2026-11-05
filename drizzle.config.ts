@@ -1,14 +1,14 @@
+import { homedir } from "node:os";
 import path from "node:path";
-import type { Config } from "drizzle-kit";
+import { defineConfig } from "drizzle-kit";
 
-const cwd = process.env.CURRENT_WORKING_DIRECTORY || process.cwd();
+const dbPath = process.env.BUTTLER_DB_PATH || path.resolve(homedir(), ".buttler", "database.sqlite");
 
-export default {
+export default defineConfig({
   dialect: "sqlite",
-  schema: "./src/database/schema/*.ts",
+  schema: "./src/database/schema/index.ts",
   out: "./drizzle",
   dbCredentials: {
-    url: path.resolve(cwd, "buttler.db"),
+    url: dbPath,
   },
-  casing: "snake_case",
-} satisfies Config;
+});
