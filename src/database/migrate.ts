@@ -1,13 +1,14 @@
 import path from "node:path";
-import Database from "better-sqlite3";
-import { drizzle } from "drizzle-orm/better-sqlite3";
-import { migrate } from "drizzle-orm/better-sqlite3/migrator";
+import { DatabaseSync } from "node:sqlite";
+import { drizzle } from "drizzle-orm/node-sqlite";
+import { migrate } from "drizzle-orm/node-sqlite/migrator";
+import { getDatabasePath } from "./index";
 
 function migrateAppDatabase() {
   const cwd = process.env.CURRENT_WORKING_DIRECTORY || process.cwd();
   const migrationsFolder = process.env.DRIZZLE_DIR || path.resolve(cwd, "drizzle");
-  const sqlite = new Database(path.resolve(cwd, "buttler.db"));
-  const db = drizzle(sqlite);
+  const sqlite = new DatabaseSync(getDatabasePath());
+  const db = drizzle({ client: sqlite });
 
   migrate(db, { migrationsFolder });
   sqlite.close();
