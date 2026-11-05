@@ -1,59 +1,10 @@
-import { getAllServices, getSingleService } from "~/data/services";
-import db from "~/database";
-import createService from "~/operations/createService";
-import { syncPorts } from "~/operations/syncPorts";
-import { message } from "./console";
-import { executeCommandInContainer } from "./docker";
-import { startService, stopService } from "./service";
-import { checkFile, getFilePath } from "./storage";
-
-async function findOrCreateReverseProxyServer() {
-  const allServices = await getAllServices();
-  const foundService = allServices.find(s => s.kind === "system" && s.repo === "nginx");
-  if (foundService) return foundService;
-  message("info", "the Reverse Proxy Server was not found, creating one...");
-  const createdService = await createService(db, {
-    kind: "system",
-    name: "Buttler Reverse Proxy Server",
-    repo: "nginx",
-  });
-  await syncPorts(db, createdService.id, {
-    80: "80",
-    443: "443",
-  });
-  return getSingleService(createdService.id);
-}
+// NOTE (v2 roadmap): Reverse proxy service is being redesigned in Phase 4.
+// This legacy v1 function is commented out pending the Phase 4 redesign.
 
 export async function startReverseProxyService() {
-  const service = await findOrCreateReverseProxyServer();
-  if (service.status === "idle") {
-    const sslFiles = ["ssl-certificate.pem", "ssl-certificate-key.pem", "ssl-client-certificate.crt"];
-    const checks = await Promise.all(sslFiles.map(fileName => checkFile("system/ssl", fileName)));
-    const missingFile = checks.findIndex(check => !check);
-    if (missingFile !== -1) {
-      return message("warning", `${sslFiles[missingFile]} is missing! so the Reverse Proxy Server wasn't launched`);
-    }
-
-    message("success", "Starting the Reverse Proxy Server...");
-    await startService(service, {
-      [getFilePath("system", "nginx.conf")]: "/etc/nginx/nginx.conf",
-      [getFilePath("system/ssl", "ssl-certificate.pem")]: "/etc/ssl/cert.pem",
-      [getFilePath("system/ssl", "ssl-certificate-key.pem")]: "/etc/ssl/key.pem",
-      [getFilePath("system/ssl", "ssl-client-certificate.crt")]: "/etc/ssl/cloudflare.crt",
-    });
-  }
+  // Pending Phase 4 redesign
 }
 
-export async function reloadReverseProxyService(needsColdRestart: boolean) {
-  const service = await findOrCreateReverseProxyServer();
-  if (service.status === "running" && service.containerId) {
-    if (needsColdRestart) {
-      await stopService(service.id, service.containerId);
-      await startReverseProxyService();
-    } else {
-      await executeCommandInContainer(service.containerId, ["nginx -s reload"]);
-    }
-  } else {
-    await startReverseProxyService();
-  }
+export async function reloadReverseProxyService(_needsColdRestart: boolean) {
+  // Pending Phase 4 redesign
 }
