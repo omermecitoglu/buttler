@@ -76,7 +76,7 @@
     "simple-git": "^3.30.0",
     "tar-fs": "^3.1.1",
     "uuid": "^11.1.0",
-    "zod": "^3.25.76"
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@next/eslint-plugin-next": "^16.0.10",
