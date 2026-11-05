@@ -4,7 +4,8 @@ export async function register() {
     const { default: migrate } = await import("./database/migrate");
     migrate();
 
-    const { startReverseProxyService } = await import("./core/nginx");
-    await startReverseProxyService();
+    // NOTE (v2 roadmap): Reverse proxy service startup is disabled pending Phase 4 redesign.
+    // const { startReverseProxyService } = await import("./core/nginx");
+    // await startReverseProxyService();
   }
 }
