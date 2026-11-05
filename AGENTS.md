@@ -2,7 +2,7 @@
 
 > **Responsibility Notice:** The responsibility of this file belongs to the agent. The agent should update this file with every new piece of information it learns in the development process by incrementing the "Revision" number.
 
-**Revision:** 1
+**Revision:** 2
 
 ## Token Budget & Collaboration
 
@@ -54,6 +54,20 @@ Example:
 feat: add product name suggestion page
 
 Co-authored-by: Claude <noreply@anthropic.com>
+```
+
+### Issue Linking
+
+When a commit addresses or resolves an issue, include the issue reference in the commit body (e.g., `Fixes #<issue-number>`). Do not close issues manually via API tools; let GitHub link and manage their resolution through commit descriptions.
+
+Example:
+
+```
+ci: add alpha prerelease branch to releaserc
+
+Fixes #46
+
+Co-authored-by: Gemini <gemini@google.com>
 ```
 
 ## Project-Specific Documentation
