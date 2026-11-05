@@ -1,1 +1,0 @@
-ALTER TABLE `build_images` ADD `error_code` text;
