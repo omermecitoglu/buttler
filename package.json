@@ -47,7 +47,6 @@
     "test:watch": "vitest --coverage",
     "add:model": "generate-scaffold",
     "migrate": "drizzle-kit generate",
-    "unmigrate": "drizzle-kit drop",
     "build:cli": "tsup",
     "lint": "eslint --flag unstable_native_nodejs_ts_config",
     "lint:fix": "eslint --fix --flag unstable_native_nodejs_ts_config",
