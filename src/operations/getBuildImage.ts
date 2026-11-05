@@ -1,7 +1,6 @@
+// NOTE (v2 roadmap): Deprecated legacy operation pending Phase 3 redesign.
 import type database from "~/database";
 
-export default function getBuildImage(db: typeof database, buildImageId: string) {
-  return db.query.buildImages.findFirst({
-    where: (table, { eq }) => eq(table.id, buildImageId),
-  });
+export default async function getBuildImage(_db: typeof database, _buildImageId: string) {
+  return null;
 }

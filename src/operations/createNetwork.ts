@@ -1,18 +1,13 @@
-import crypto from "node:crypto";
-import { createInsertSchema } from "drizzle-zod";
+// NOTE (v2 roadmap): Docker networks are managed directly via Dockerode in v2.
+// This legacy operation is preserved for reference until Phase 4 redesign.
 import type database from "~/database";
-import { networks } from "~/database/schema/networks";
-import type { z } from "zod";
 
-const schema = createInsertSchema(networks);
+type NetworkData = {
+  id: string,
+  serviceId: string,
+  kind: "provider" | "custom",
+};
 
-type NetworkDTO = z.infer<typeof schema>;
-
-export default async function createNetwork(db: Omit<typeof database, "$client">, serviceId: string, kind: NetworkDTO["kind"]) {
-  const [network] = await db.insert(networks).values({
-    id: crypto.randomUUID(),
-    kind,
-    serviceId,
-  }).returning({ id: networks.id });
-  return network;
+export default async function createNetwork(_db: typeof database, _data: NetworkData) {
+  return null;
 }

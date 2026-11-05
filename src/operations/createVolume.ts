@@ -1,25 +1,7 @@
-import crypto from "node:crypto";
-import { createInsertSchema } from "drizzle-zod";
+// NOTE (v2 roadmap): Volumes in v2 are managed directly via Docker as runtime state.
+// This legacy operation is preserved for reference until Phase 4 redesign.
 import type database from "~/database";
-import { volumes } from "~/database/schema/volumes";
-import type z from "zod";
 
-const baseSchema = createInsertSchema(volumes, {
-  id: schema => schema.id.readonly().describe("Unique identifier of the volume"),
-  serviceId: schema => schema.serviceId.describe("Service ID of the volume"),
-  containerPath: schema => schema.containerPath.describe("Container path of the volume"),
-});
-
-const NewVolumeSchema = baseSchema.omit({
-  id: true,
-}).describe("Data Transfer Object for creating a new volume");
-
-type NewVolumeDTO = z.infer<typeof NewVolumeSchema>;
-
-export default async function createVolume(db: Omit<typeof database, "$client">, data: NewVolumeDTO) {
-  const [volume] = await db.insert(volumes).values({
-    id: crypto.randomUUID(),
-    ...data,
-  }).returning({ id: volumes.id });
-  return volume;
+export default async function createVolume(_db: typeof database, _data: { serviceId: string, containerPath: string }) {
+  return null;
 }

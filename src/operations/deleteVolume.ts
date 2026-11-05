@@ -1,10 +1,6 @@
-import { eq } from "drizzle-orm";
+// NOTE (v2 roadmap): Deprecated legacy operation pending Phase 4 redesign.
 import type database from "~/database";
-import { volumes } from "~/database/schema/volumes";
 
-export default async function deleteVolume(db: typeof database, volumeId: string) {
-  const results = await db.delete(volumes).where(eq(volumes.id, volumeId)).returning({
-    id: volumes.id,
-  });
-  return results.shift();
+export default async function deleteVolume(_db: typeof database, _volumeId: string) {
+  return null;
 }

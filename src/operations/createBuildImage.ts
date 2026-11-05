@@ -1,14 +1,9 @@
-import crypto from "node:crypto";
+// NOTE (v2 roadmap): Build images in v2 are managed directly via Docker as runtime state.
+// This legacy operation is preserved for reference until Phase 3 build pipeline redesign.
+
 import type database from "~/database";
-import { buildImages } from "~/database/schema/build-images";
 import type { NewBuildImageDTO } from "~/models/build-image";
 
-export default async function createBuildImage(db: typeof database, data: NewBuildImageDTO) {
-  const [buildImage] = await db.insert(buildImages).values({
-    id: crypto.randomUUID(),
-    ...data,
-  }).returning({
-    id: buildImages.id,
-  });
-  return buildImage;
+export default async function createBuildImage(_db: typeof database, _data: NewBuildImageDTO) {
+  return null;
 }

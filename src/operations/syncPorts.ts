@@ -1,23 +1,6 @@
-import { and, eq, notInArray, sql } from "drizzle-orm";
+// NOTE (v2 roadmap): Ports are managed directly via Docker as runtime state in v2.
 import type database from "~/database";
-import { ports } from "~/database/schema/ports";
 
-export async function syncPorts(db: Omit<typeof database, "$client">, serviceId: string, record: Record<string, string>) {
-  const filters = [
-    eq(ports.serviceId, serviceId),
-  ];
-  if (Object.keys(record).length) {
-    filters.push(notInArray(ports.external, Object.keys(record).map(key => parseInt(key))));
-  }
-  await db.delete(ports).where(and(...filters));
-  if (Object.keys(record).length) {
-    await db.insert(ports).values(Object.keys(record).map(key => ({
-      serviceId,
-      external: parseInt(key),
-      internal: parseInt(record[key]),
-    }))).onConflictDoUpdate({
-      target: [ports.serviceId, ports.external],
-      set: { internal: sql`excluded.internal` },
-    });
-  }
+export async function syncPorts(_db: typeof database, _serviceId: string, _ports: Record<number, string>) {
+  return;
 }

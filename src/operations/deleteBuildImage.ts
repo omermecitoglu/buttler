@@ -1,11 +1,6 @@
-import { eq } from "drizzle-orm";
+// NOTE (v2 roadmap): Deprecated legacy operation pending Phase 3 redesign.
 import type database from "~/database";
-import { buildImages } from "~/database/schema/build-images";
 
-export default async function deleteBuildImage(db: Omit<typeof database, "$client">, buildImageId: string) {
-  const results = await db.delete(buildImages).where(eq(buildImages.id, buildImageId)).returning({
-    id: buildImages.id,
-    serviceId: buildImages.serviceId,
-  });
-  return results.shift();
+export default async function deleteBuildImage(_db: typeof database, _buildImageId: string) {
+  return null;
 }
