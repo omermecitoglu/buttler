@@ -1,15 +1,7 @@
 "use server";
-import { sql } from "drizzle-orm";
-import db from "~/database";
-import { globalVariables } from "~/database/schema/global-variables";
+// NOTE (v2 roadmap): Legacy v1 global settings action.
+// Global variables table was removed in v2 schema; settings will be redesigned in Phase 5.
 
-export async function setGlobalVariable(key: string, value: string) {
-  await db
-    .insert(globalVariables)
-    .values({ key, value })
-    .onConflictDoUpdate({
-      target: globalVariables.key,
-      set: { value: sql`excluded.value` },
-    });
+export async function setGlobalVariable(_key: string, _value: string) {
   return { success: true };
 }
