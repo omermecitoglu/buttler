@@ -1,12 +1,12 @@
-import { defineConfig } from "tsup";
+import { defineConfig } from "tsdown";
 
 export default defineConfig({
   outDir: "bin",
   entry: ["src/cli.ts"],
-  format: ["esm"],
+  format: "esm",
   splitting: false,
   clean: true,
-  external: ["commander"],
-  esbuildPlugins: [
-  ],
+  deps: {
+    neverBundle: ["commander"],
+  },
 });
