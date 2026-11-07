@@ -1,7 +1,11 @@
 import { type NextRequest, NextResponse } from "next/server";
+import createMiddleware from "next-intl/middleware";
 import { getPublicOrigin } from "./core/headers";
 import { getHomePath } from "./core/home";
+import { routing } from "./i18n/routing";
 import { getSession } from "./core/session";
+
+const handleI18nRouting = createMiddleware(routing);
 
 const publicPages = [
   "/privacy-policy",
@@ -34,9 +38,7 @@ export async function proxy(request: NextRequest) {
   } else if (!session.userId) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
-  const response = NextResponse.next();
-  // response.cookies.set('vercel', 'fast')
-  return response;
+  return handleI18nRouting(request);
 }
 
 export const config = {
