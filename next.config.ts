@@ -7,10 +7,7 @@ const nextConfig: NextConfig = {
   },
   allowedDevOrigins: ["*.ngrok-free.app"],
   poweredByHeader: false,
-  webpack: config => {
-    config.externals.push("dockerode");
-    return config;
-  },
+  serverExternalPackages: ["dockerode"],
 };
 
 export default nextConfig;
