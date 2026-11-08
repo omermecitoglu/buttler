@@ -3,36 +3,37 @@ import { faCircleExclamation } from "@fortawesome/free-solid-svg-icons/faCircleE
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { getPublicOrigin } from "@omer-x/next-utils";
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import Button from "~/components/ui/button";
 import Card from "~/components/ui/card";
 import { getSetting } from "~/core/settings";
 
-type LoginPageProps = {
-  searchParams: Promise<{
-    error?: string,
-  }>,
-};
+type KnownError = "github" | "access_denied" | "missing_code";
 
-const errorDescriptions: Record<string, string> = {
-  github: "GitHub authentication failed. Please try again.",
-  access_denied: "Access was denied by GitHub. Please authorize the application to proceed.",
-  missing_code: "Authorization code was missing. Please try again.",
-};
+const isKnownError = (val: unknown): val is KnownError => (
+  val === "github" || val === "access_denied" || val === "missing_code"
+);
 
-const LoginPage = async ({ searchParams }: LoginPageProps) => {
-  const [{ error }, clientId, publicOrigin] = await Promise.all([
-    searchParams,
+export default async function(page: PageProps<"/[locale]/login">) {
+  const [
+    { error },
+    clientId,
+    publicOrigin,
+    t,
+  ] = await Promise.all([
+    page.searchParams,
     getSetting("github_client_id"),
     getPublicOrigin(),
+    getTranslations("LoginPage"),
   ]);
 
   if (!clientId) {
     return (
       <Card className="max-w-md text-center">
         <div className="mb-6">
-          <h1 className="text-2xl font-bold tracking-tight text-slate-100">Setup Required</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-100">{t("setupRequired.title")}</h1>
           <p className="mt-2 text-sm leading-relaxed text-slate-400">
-            GitHub App configuration is missing. Please complete the setup to configure GitHub OAuth credentials.
+            {t("setupRequired.description")}
           </p>
         </div>
         <Button
@@ -41,7 +42,7 @@ const LoginPage = async ({ searchParams }: LoginPageProps) => {
           className="w-full justify-center"
           render={<Link href="/install" />}
         >
-          Go to Setup
+          {t("setupRequired.button")}
         </Button>
       </Card>
     );
@@ -54,15 +55,15 @@ const LoginPage = async ({ searchParams }: LoginPageProps) => {
   authUrl.searchParams.set("scope", "read:user");
 
   const errorMessage = error
-    ? (errorDescriptions[error] ?? "An error occurred during authentication. Please try again.")
+    ? (isKnownError(error) ? t(`errors.${error}`) : t("errors.default"))
     : null;
 
   return (
     <Card className="max-w-md">
       <div className="mb-6 text-center">
-        <h1 className="text-2xl font-bold tracking-tight text-slate-100">Sign in to Buttler</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-slate-100">{t("title")}</h1>
         <p className="mt-2 text-sm leading-relaxed text-slate-400">
-          Authenticate with your GitHub account to continue.
+          {t("description")}
         </p>
       </div>
       {errorMessage && (
@@ -77,10 +78,8 @@ const LoginPage = async ({ searchParams }: LoginPageProps) => {
         render={<Link href={authUrl.toString()} />}
       >
         <FontAwesomeIcon icon={faGithub} className="size-5" />
-        <span>Continue with GitHub</span>
+        <span>{t("continueWithGitHub")}</span>
       </Button>
     </Card>
   );
-};
-
-export default LoginPage;
+}
