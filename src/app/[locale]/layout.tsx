@@ -31,7 +31,7 @@ const RootLayout = async ({
   const locale = await getLocale();
   return (
     <html lang={locale}>
-      <body data-theme="dark" className="min-h-screen bg-neutral-950 text-neutral-100">
+      <body data-theme="dark" className="min-h-screen bg-slate-950 text-slate-100">
         {children}
       </body>
     </html>
