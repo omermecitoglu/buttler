@@ -12,5 +12,6 @@ export const routing = defineRouting({
   pathnames: {
     "/": "/",
     "/login": "/login",
+    "/install": "/install",
   },
 });

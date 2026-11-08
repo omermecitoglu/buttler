@@ -3,6 +3,7 @@ import createMiddleware from "next-intl/middleware";
 import { getPublicOrigin } from "./core/headers";
 import { getHomePath } from "./core/home";
 import { getSession } from "./core/session";
+import { isInstalled } from "./core/settings";
 import { routing } from "./i18n/routing";
 
 const handleI18nRouting = createMiddleware(routing);
@@ -24,10 +25,23 @@ export async function proxy(request: NextRequest) {
   const [
     session,
     publicOrigin,
+    installed,
   ] = await Promise.all([
     getSession(),
     getPublicOrigin(request.headers),
+    isInstalled(),
   ]);
+
+  if (!installed) {
+    if (!startsWith(pathname, ["/install"])) {
+      return NextResponse.redirect(new URL("/install", request.url));
+    }
+    return handleI18nRouting(request);
+  }
+
+  if (startsWith(pathname, ["/install"])) {
+    return NextResponse.redirect(new URL(getHomePath(publicOrigin), request.url));
+  }
 
   if (startsWith(pathname, publicPages)) {
     // public pages
