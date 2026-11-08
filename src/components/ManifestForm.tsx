@@ -11,6 +11,7 @@ type ManifestFormProps = {
 
 const ManifestForm = ({ publicOrigin }: ManifestFormProps) => {
   const [appName, setAppName] = useState("Buttler");
+  const [organization, setOrganization] = useState("");
 
   const manifest = {
     name: appName,
@@ -28,9 +29,13 @@ const ManifestForm = ({ publicOrigin }: ManifestFormProps) => {
     public: false,
   };
 
+  const formAction = organization.trim()
+    ? `https://github.com/organizations/${encodeURIComponent(organization.trim())}/settings/apps/new`
+    : "https://github.com/settings/apps/new";
+
   return (
     <form
-      action="https://github.com/settings/apps/new"
+      action={formAction}
       method="post"
       className="space-y-4"
     >
@@ -50,6 +55,20 @@ const ManifestForm = ({ publicOrigin }: ManifestFormProps) => {
           placeholder="Buttler"
           required
         />
+      </div>
+      <div className="space-y-1.5">
+        <Label htmlFor="organization">GitHub Organization</Label>
+        <Input
+          id="organization"
+          name="organization"
+          type="text"
+          value={organization}
+          onChange={e => setOrganization(e.target.value)}
+          placeholder="e.g. acme-corp (optional)"
+        />
+        <p className="text-xs text-slate-500">
+          Leave blank to create the app under your personal account.
+        </p>
       </div>
       <Button type="submit" size="md" className="w-full">
         Create GitHub App
