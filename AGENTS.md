@@ -1,8 +1,8 @@
 # Agent Guidelines
 
-> **Responsibility Notice:** The responsibility of this file belongs to the agent. The agent should update this file with every new piece of information it learns in the development process by incrementing the "Revision" number.
+> **Responsibility Notice:** The responsibility of this file belongs to the agent. The agent should update this file with every new piece of information it learns in the development process by incrementing the "Revision" number. Keep in mind that project-specific instructions cannot take any place in this file because it is portable and may be copied directly to other projects. Always put project-specific rules in `./ai/*.md`.
 
-**Revision:** 2
+**Revision:** 4
 
 ## Token Budget & Collaboration
 
@@ -39,6 +39,12 @@ Common types:
 | `refactor` | Code change that neither fixes a bug nor adds a feature |
 | `test` | Adding or updating tests |
 | `chore` | Build process, tooling, or dependency updates |
+
+### Atomic Commits
+
+- Keep commits granular and atomic; do not pile up many changes before committing.
+- Commit frequently as each independent unit of work or logical step is completed.
+- Never bundle unrelated changes (such as documentation, agent guidelines, new UI components, and page refactors) into a single commit.
 
 ### AI Co-authorship
 
