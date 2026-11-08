@@ -1,9 +1,9 @@
 import { redirect } from "next/navigation";
-import { getConfigs } from "~/core/config";
 import { getUser } from "~/core/github/users";
 import { getPublicOrigin } from "~/core/headers";
 import { getHomePath } from "~/core/home";
 import { getSession } from "~/core/session";
+import { getSetting } from "~/core/settings";
 
 export async function GET(request: Request) {
   const { searchParams, pathname } = new URL(request.url);
@@ -14,19 +14,21 @@ export async function GET(request: Request) {
   }
 
   const [
-    configs,
+    clientId,
+    clientSecret,
     session,
     publicOrigin,
   ] = await Promise.all([
-    getConfigs(),
+    getSetting("github_client_id"),
+    getSetting("github_client_secret"),
     getSession(),
     getPublicOrigin(request.headers),
   ]);
 
-  if (!configs.githubAppClientId) {
+  if (!clientId) {
     throw new Error("Client ID of the GitHub App is missing in the configurations!");
   }
-  if (!configs.githubAppClientSecret) {
+  if (!clientSecret) {
     throw new Error("Client secret of the GitHub App is missing in the configurations!");
   }
 
@@ -40,8 +42,8 @@ export async function GET(request: Request) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        client_id: configs.githubAppClientId,
-        client_secret: configs.githubAppClientSecret,
+        client_id: clientId,
+        client_secret: clientSecret,
         code,
         redirect_uri: originURL,
       }),

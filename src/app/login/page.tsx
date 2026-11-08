@@ -1,22 +1,30 @@
 import Link from "next/link";
-import { getConfigs } from "~/core/config";
 import { getPublicOrigin } from "~/core/headers";
+import { getSetting } from "~/core/settings";
 
 const Page = async () => {
   const [
-    configs,
+    clientId,
     publicOrigin,
   ] = await Promise.all([
-    getConfigs(),
+    getSetting("github_client_id"),
     getPublicOrigin(),
   ]);
-  const redirectURI = new URL("/auth/github", publicOrigin).toString();
-  if (!configs.githubAppClientId) {
-    throw new Error("Client ID of the GitHub App is missing in the configurations!");
+
+  if (!clientId) {
+    return (
+      <div className="flex flex-col items-center justify-center p-8 text-center">
+        <h1 className="text-xl font-bold mb-2">GitHub App Configuration Missing</h1>
+        <p className="text-neutral-400 mb-4">Please complete the setup to configure GitHub OAuth credentials.</p>
+        <Link href="/install" className="underline text-blue-400">Go to Setup</Link>
+      </div>
+    );
   }
+
+  const redirectURI = new URL("/auth/github", publicOrigin).toString();
   return (
     <Link
-      href={`https://github.com/login/oauth/authorize?client_id=${configs.githubAppClientId}&redirect_uri=${redirectURI}`}
+      href={`https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectURI}`}
     >
       Login with GitHub
     </Link>
