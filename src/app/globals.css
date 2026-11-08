@@ -1,3 +1,4 @@
 @import "tailwindcss";
+@source "../../node_modules/@omer-x/tailwind-ui-kit";
 
 @custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
