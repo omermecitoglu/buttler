@@ -17,6 +17,10 @@
   - [Known bugs](#known-bugs)
 - [Requirements](#requirements)
 - [Installation](#installation)
+- [GitHub App Setup](#github-app-setup)
+  - [Option A: GitHub App Manifest Flow (Recommended)](#option-a-github-app-manifest-flow-recommended)
+  - [Option B: Manual GitHub App Configuration](#option-b-manual-github-app-configuration)
+  - [Installation Scope](#installation-scope)
 - [Usage](#usage)
 - [Screenshots](#screenshots)
 - [Contributing](#contributing)
@@ -79,6 +83,52 @@ Install `Buttler` globally using npm:
 ```bash
 npm i -g @omer-x/buttler
 ```
+
+## GitHub App Setup
+
+Buttler integrates with GitHub via a GitHub App for secure user authentication, webhook event delivery, and repository management.
+
+You can set up the GitHub App using either the automated Manifest flow or by configuring it manually in your GitHub Developer settings.
+
+### Option A: GitHub App Manifest Flow (Recommended)
+
+The recommended setup is the streamlined 1-click manifest flow:
+
+1. Launch Buttler and navigate to the setup wizard at `http://localhost:2083/install` (or `https://<your-host>/install`).
+2. Follow the prompt to automatically register the GitHub App with pre-configured settings, URLs, and permissions.
+3. Complete the app registration on GitHub and install the app to your account or organization.
+4. Buttler will automatically receive and store the required credentials (`Client ID`, `Client Secret`, etc.).
+
+### Option B: Manual GitHub App Configuration
+
+If you prefer to create and configure the GitHub App manually:
+
+1. Go to **GitHub Settings** > **Developer settings** > **GitHub Apps** > **New GitHub App** (or your organization's settings).
+2. Configure the following **App settings**:
+   - **GitHub App name**: Choose a unique name (e.g., `Buttler-<your-name>`).
+   - **Homepage URL**: `https://<your-host>` (e.g., `http://localhost:2083`).
+   - **Authorization callback URL**: `https://<your-host>/auth/github`
+   - **Webhook URL**: `https://<your-host>/api/webhook` (or `/webhook`)
+   - **Webhook secret**: Enter a secret token (optional in local development, recommended in production).
+3. Configure the required **Permissions**:
+   - **Repository permissions**:
+     - **Contents**: `Read-only` (to clone code and inspect `Dockerfile` and repository contents)
+     - **Metadata**: `Read-only` (mandatory permission to inspect repository metadata)
+     - **Webhooks**: `Read and write` (to subscribe to and manage repository push/event webhooks)
+   - **User permissions**:
+     - **User permissions** > `read:user` (to access user profile and email identity for authentication)
+4. Generate credentials:
+   - Under **General**, note the **Client ID** and generate a **Client secret**.
+5. In Buttler:
+   - Enter your **Client ID** and **Client Secret** on the `/install` setup page (or in Settings).
+
+### Installation Scope
+
+When installing the GitHub App onto your personal account or organization:
+
+- Choose **"Only select repositories"** rather than "All repositories".
+- Selecting only the repositories you intend to deploy with Buttler adheres to the principle of least privilege, ensuring Buttler only accesses authorized codebases.
+- You can grant or revoke access to additional repositories at any time from your GitHub App installation settings.
 
 ## Usage
 
