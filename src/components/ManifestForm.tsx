@@ -23,8 +23,6 @@ const ManifestForm = ({ publicOrigin }: ManifestFormProps) => {
     default_permissions: {
       contents: "read",
       metadata: "read",
-      webhooks: "write",
-      emails: "read",
     },
     default_events: ["push"],
     public: false,
