@@ -30,6 +30,26 @@ npm install tailwindcss @omer-x/tailwind-ui-kit@alpha @base-ui/react clsx tailwi
 
 ---
 
+## Color System & Component Architecture
+
+### 1. Neutral Colors: Exclusively Tailwind `slate`
+- Tailwind's `slate` scale (`slate-50` through `slate-950`) is the **single source of truth** for all neutral elements: backgrounds, card surfaces, borders, text, placeholders, and disabled states.
+- Never use Tailwind's `gray`, `zinc`, `neutral`, or `stone` palettes, and avoid arbitrary grey hex values.
+- Build clear visual depth and hierarchy using intentional `slate` steps (e.g. `bg-slate-950` page canvas, `bg-slate-900` elevated cards, `border-slate-800` borders, `text-slate-100` headings, `text-slate-400` muted labels).
+
+### 2. Component Wrapping in `/components/ui/`
+- `@omer-x/tailwind-ui-kit` provides structural sizing, layout, and interaction logic without built-in colors.
+- Always wrap ui-kit primitives inside `src/components/ui/` (e.g. `Button`, `Input`, `Form`) and apply Tailwind styles directly onto them.
+- Do not add custom color rules to `tailwind.config` or `globals.css`—apply classes directly on components.
+- **No barrel exports**: Do not create `index.ts` re-export files in `components/ui`. Always use direct, explicit file imports (e.g. `import Button from "~/components/ui/button"`) to avoid bundler issues.
+- **Default exports only**: Use single default exports (`export default Component;`) for UI components, avoiding dual named exports.
+
+### 3. Purposeful Color Scales (Refactoring UI Principles)
+- Base primary brand colors and semantic accents (success, warning, danger, info) on cohesive 100–900 scales.
+- Prioritize visual hierarchy, perceptual color balance, and WCAG accessibility contrast across normal, hover, active, focus-visible, and disabled states.
+
+---
+
 ## Theming
 
 - Dark mode is toggled via `data-theme="dark"` on `<body>` (set at the root layout level).
@@ -82,10 +102,10 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faSave } from "@fortawesome/free-solid-svg-icons/faSave";
 
 const btnClass = cn([
-  "bg-neutral-200 text-neutral-900 border border-neutral-300",
-  "hover:bg-neutral-300",
-  "focus-visible:outline-neutral-500",
-  "disabled:bg-neutral-100 disabled:text-neutral-400",
+  "bg-slate-200 text-slate-900 border border-slate-300",
+  "hover:bg-slate-300",
+  "focus-visible:outline-slate-500",
+  "disabled:bg-slate-100 disabled:text-slate-400",
 ]);
 
 <BaseButton size="md" className={btnClass}>Save</BaseButton>
