@@ -1,24 +1,32 @@
 import "server-only";
+import crypto from "node:crypto";
 import { getIronSession } from "iron-session";
 import { cookies } from "next/headers";
-import { getConfigs } from "./config";
+import { getSetting, setSetting } from "./settings";
 
 type SessionData = {
   userId?: number,
   githubToken?: string,
 };
 
+const SESSION_COOKIE_NAME = "buttler_session";
+const SESSION_PASSWORD_SETTING_KEY = "session_password";
+
+async function getOrCreateSessionPassword(): Promise<string> {
+  const existing = await getSetting(SESSION_PASSWORD_SETTING_KEY);
+  if (existing) {
+    return existing;
+  }
+  const generated = crypto.randomBytes(32).toString("hex");
+  await setSetting(SESSION_PASSWORD_SETTING_KEY, generated);
+  return generated;
+}
+
 export async function getSession() {
-  const configs = await getConfigs();
-  if (!configs.sessionCookieName) {
-    throw new Error("Session cookie name is missing in the configurations!");
-  }
-  if (!configs.sessionPassword) {
-    throw new Error("Session password is missing in the configurations!");
-  }
+  const password = await getOrCreateSessionPassword();
   return await getIronSession<SessionData>(await cookies(), {
-    cookieName: configs.sessionCookieName,
-    password: configs.sessionPassword,
+    cookieName: SESSION_COOKIE_NAME,
+    password,
     cookieOptions: {
       secure: process.env.NODE_ENV === "production",
     },
