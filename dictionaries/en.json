@@ -36,5 +36,8 @@
       "clientSecretPlaceholder": "••••••••••••••••••••••••••••••••",
       "submit": "Complete Installation"
     }
+  },
+  "BaseLayout": {
+    "logout": "Log out"
   }
 }
