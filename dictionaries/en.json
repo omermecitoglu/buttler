@@ -17,5 +17,24 @@
       "missing_code": "Authorization code was missing. Please try again.",
       "default": "An error occurred during authentication. Please try again."
     }
+  },
+  "InstallPage": {
+    "title": "Install Buttler",
+    "description": "Set up your GitHub App in one click, or enter your credentials manually below.",
+    "orManual": "Or configure manually",
+    "manifest": {
+      "appNameLabel": "GitHub App Name",
+      "organizationLabel": "GitHub Organization",
+      "organizationPlaceholder": "e.g. acme-corp (optional)",
+      "organizationHelp": "Leave blank to create the app under your personal account.",
+      "submit": "Create GitHub App"
+    },
+    "manual": {
+      "clientIdLabel": "GitHub App Client ID",
+      "clientIdPlaceholder": "e.g. Iv1.abcdef123456",
+      "clientSecretLabel": "GitHub App Client Secret",
+      "clientSecretPlaceholder": "••••••••••••••••••••••••••••••••",
+      "submit": "Complete Installation"
+    }
   }
 }

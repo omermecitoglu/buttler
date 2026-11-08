@@ -7,9 +7,16 @@ import Label from "~/components/ui/label";
 
 type ManifestFormProps = {
   publicOrigin: string,
+  labels: {
+    appNameLabel: string,
+    organizationLabel: string,
+    organizationPlaceholder: string,
+    organizationHelp: string,
+    submit: string,
+  },
 };
 
-const ManifestForm = ({ publicOrigin }: ManifestFormProps) => {
+const ManifestForm = ({ publicOrigin, labels }: ManifestFormProps) => {
   const [appName, setAppName] = useState("Buttler");
   const [organization, setOrganization] = useState("");
 
@@ -45,7 +52,7 @@ const ManifestForm = ({ publicOrigin }: ManifestFormProps) => {
         value={JSON.stringify(manifest)}
       />
       <div className="space-y-1.5">
-        <Label htmlFor="appName">GitHub App Name</Label>
+        <Label htmlFor="appName">{labels.appNameLabel}</Label>
         <Input
           id="appName"
           name="appName"
@@ -57,21 +64,21 @@ const ManifestForm = ({ publicOrigin }: ManifestFormProps) => {
         />
       </div>
       <div className="space-y-1.5">
-        <Label htmlFor="organization">GitHub Organization</Label>
+        <Label htmlFor="organization">{labels.organizationLabel}</Label>
         <Input
           id="organization"
           name="organization"
           type="text"
           value={organization}
           onChange={e => setOrganization(e.target.value)}
-          placeholder="e.g. acme-corp (optional)"
+          placeholder={labels.organizationPlaceholder}
         />
         <p className="text-xs text-slate-500">
-          Leave blank to create the app under your personal account.
+          {labels.organizationHelp}
         </p>
       </div>
       <Button type="submit" size="md" className="w-full">
-        Create GitHub App
+        {labels.submit}
       </Button>
     </form>
   );
