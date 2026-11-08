@@ -1,7 +1,6 @@
 import { getLocale } from "next-intl/server";
 import { routing } from "~/i18n/routing";
 import type { Metadata } from "next";
-import type { ReactNode } from "react";
 import "../globals.css";
 
 export const metadata: Metadata = {
@@ -21,13 +20,7 @@ export function generateStaticParams() {
   return routing.locales.map(locale => ({ locale }));
 }
 
-type RootLayoutProps = {
-  children: ReactNode,
-};
-
-const RootLayout = async ({
-  children,
-}: RootLayoutProps) => {
+export default async function({ children }: LayoutProps<"/[locale]">) {
   const locale = await getLocale();
   return (
     <html lang={locale}>
@@ -36,6 +29,4 @@ const RootLayout = async ({
       </body>
     </html>
   );
-};
-
-export default RootLayout;
+}
