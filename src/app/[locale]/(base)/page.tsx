@@ -1,13 +1,15 @@
 import { faHandPeace } from "@fortawesome/free-solid-svg-icons/faHandPeace";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import React from "react";
+import { getTranslations } from "next-intl/server";
 
-const Page = () => (
-  <h1>
-    Buttler
-    {" "}
-    <FontAwesomeIcon icon={faHandPeace} />
-  </h1>
-);
+export default async function(_page: PageProps<"/[locale]">) {
+  const t = await getTranslations("HomePage");
 
-export default Page;
+  return (
+    <h1>
+      {t("title")}
+      {" "}
+      <FontAwesomeIcon icon={faHandPeace} />
+    </h1>
+  );
+}
