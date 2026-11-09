@@ -20,8 +20,8 @@ const mockImage = {
 };
 
 const mockDocker = {
-  getContainer: vi.fn(() => mockContainer),
-  getImage: vi.fn(() => mockImage),
+  getContainer: vi.fn((_name?: string) => mockContainer),
+  getImage: vi.fn((_name?: string) => mockImage),
   createContainer: vi.fn(),
 };
 
