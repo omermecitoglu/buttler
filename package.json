@@ -88,7 +88,7 @@
   "devDependencies": {
     "@next/eslint-plugin-next": "^16.4.5",
     "@omer-x/eslint-config": "^2.3.3",
-    "@omer-x/next-admin-panel-generator": "^1.2.2",
+    "@omer-x/next-admin-panel-generator": "^3.1.0",
     "@omer-x/next-openapi-scaffold-generator": "^0.3.0",
     "@tailwindcss/postcss": "^4.3.5",
     "@types/dockerode": "^3.3.47",
