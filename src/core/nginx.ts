@@ -7,6 +7,7 @@ import { checkFile, getFilePath, saveFile } from "./storage";
 
 export const REVERSE_PROXY_CONTAINER_NAME = "buttler-nginx";
 export const REVERSE_PROXY_IMAGE = "nginx:alpine";
+export const BUTTLER_SERVICE_LABEL = "buttler.service-id";
 
 export type ReverseProxyHealth = {
   exists: boolean,
@@ -30,7 +31,7 @@ export async function ensureBaselineProxyConfig() {
 
 export async function provisionReverseProxy(options?: { db?: typeof db }) {
   const databaseInstance = options?.db ?? db;
-  await ensureReverseProxyService(databaseInstance);
+  const service = await ensureReverseProxyService(databaseInstance);
   const confDir = await ensureBaselineProxyConfig();
 
   const container = docker.getContainer(REVERSE_PROXY_CONTAINER_NAME);
@@ -57,6 +58,9 @@ export async function provisionReverseProxy(options?: { db?: typeof db }) {
   const created = await docker.createContainer({
     name: REVERSE_PROXY_CONTAINER_NAME,
     Image: REVERSE_PROXY_IMAGE,
+    Labels: service?.id ? {
+      [BUTTLER_SERVICE_LABEL]: service.id,
+    } : undefined,
     HostConfig: {
       Binds: [
         `${confDir}:/etc/nginx/conf.d`,
