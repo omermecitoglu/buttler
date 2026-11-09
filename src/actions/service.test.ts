@@ -42,6 +42,7 @@ describe("service lifecycle server actions", () => {
       const res = await startService("srv-test");
       expect(mockStartServiceContainer).toHaveBeenCalledWith(sampleService);
       expect(mockRevalidatePath).toHaveBeenCalledWith("/");
+      expect(mockRevalidatePath).toHaveBeenCalledWith("/services");
       expect(res).toEqual({ success: true });
     });
 
@@ -58,6 +59,7 @@ describe("service lifecycle server actions", () => {
       const res = await stopService("srv-test");
       expect(mockStopServiceContainer).toHaveBeenCalledWith(sampleService);
       expect(mockRevalidatePath).toHaveBeenCalledWith("/");
+      expect(mockRevalidatePath).toHaveBeenCalledWith("/services");
       expect(res).toEqual({ success: true });
     });
 
@@ -73,6 +75,7 @@ describe("service lifecycle server actions", () => {
       const res = await restartService("srv-test");
       expect(mockRestartServiceContainer).toHaveBeenCalledWith(sampleService);
       expect(mockRevalidatePath).toHaveBeenCalledWith("/");
+      expect(mockRevalidatePath).toHaveBeenCalledWith("/services");
       expect(res).toEqual({ success: true });
     });
 

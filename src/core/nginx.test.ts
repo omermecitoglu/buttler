@@ -54,6 +54,11 @@ vi.mock("./storage", () => ({
 describe("Reverse proxy system service management", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockEnsureReverseProxyService.mockResolvedValue({
+      id: "srv-proxy",
+      name: "Reverse Proxy Server",
+      type: "system",
+    });
   });
 
   describe("ensureBaselineProxyConfig", () => {

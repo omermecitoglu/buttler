@@ -11,6 +11,7 @@ export async function startService(serviceId: string) {
   }
   await startServiceContainer(service);
   revalidatePath("/");
+  revalidatePath("/services");
   return { success: true };
 }
 
@@ -21,6 +22,7 @@ export async function stopService(serviceId: string) {
   }
   await stopServiceContainer(service);
   revalidatePath("/");
+  revalidatePath("/services");
   return { success: true };
 }
 
@@ -31,6 +33,7 @@ export async function restartService(serviceId: string) {
   }
   await restartServiceContainer(service);
   revalidatePath("/");
+  revalidatePath("/services");
   return { success: true };
 }
 

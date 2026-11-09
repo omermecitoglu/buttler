@@ -58,9 +58,9 @@ export async function provisionReverseProxy(options?: { db?: typeof db }) {
   const created = await docker.createContainer({
     name: REVERSE_PROXY_CONTAINER_NAME,
     Image: REVERSE_PROXY_IMAGE,
-    Labels: service?.id ? {
+    Labels: {
       [BUTTLER_SERVICE_LABEL]: service.id,
-    } : undefined,
+    },
     HostConfig: {
       Binds: [
         `${confDir}:/etc/nginx/conf.d`,

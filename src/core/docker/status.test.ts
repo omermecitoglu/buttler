@@ -1,5 +1,4 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type Docker from "dockerode";
 import {
   BUTTLER_SERVICE_LABEL,
   createServiceRuntimeState,
@@ -17,6 +16,7 @@ import {
   startServiceContainer,
   stopServiceContainer,
 } from "./status";
+import type Docker from "dockerode";
 
 const mockContainer = {
   start: vi.fn(),
