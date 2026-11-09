@@ -1,4 +1,39 @@
 "use server";
+import { revalidatePath } from "next/cache";
+import { restartServiceContainer, startServiceContainer, stopServiceContainer } from "~/core/docker/status";
+import db from "~/database";
+import getService from "~/operations/getService";
+
+export async function startService(serviceId: string) {
+  const service = await getService(db, serviceId);
+  if (!service) {
+    throw new Error(`Service not found: ${serviceId}`);
+  }
+  await startServiceContainer(service);
+  revalidatePath("/");
+  return { success: true };
+}
+
+export async function stopService(serviceId: string) {
+  const service = await getService(db, serviceId);
+  if (!service) {
+    throw new Error(`Service not found: ${serviceId}`);
+  }
+  await stopServiceContainer(service);
+  revalidatePath("/");
+  return { success: true };
+}
+
+export async function restartService(serviceId: string) {
+  const service = await getService(db, serviceId);
+  if (!service) {
+    throw new Error(`Service not found: ${serviceId}`);
+  }
+  await restartServiceContainer(service);
+  revalidatePath("/");
+  return { success: true };
+}
+
 // NOTE (v2 roadmap): Legacy v1 service server actions.
 // Services and operations are being redesigned from scratch in Phase 3.
 
