@@ -6,6 +6,9 @@ import type z from "zod";
 const sharedRefinements = createSharedRefinements(services, {
   id: schema => schema.readonly().describe("Unique identifier of the service"),
   name: schema => schema.describe("Name of the service"),
+  type: schema => schema.describe("Type of the service (github, dockerhub, system)"),
+  repository: schema => schema.describe("GitHub repository or DockerHub image reference"),
+  branch: schema => schema.describe("Git branch or Docker image tag"),
   createdAt: schema => schema.readonly().describe("Creation date of the service as an ISO 8601 date string"),
   updatedAt: schema => schema.readonly().describe("Modification date of the service as an ISO 8601 date string"),
 });
