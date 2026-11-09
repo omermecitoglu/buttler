@@ -128,7 +128,7 @@ describe("Docker status aggregator", () => {
             custom: { IPAddress: "172.18.0.3" },
           },
         },
-      } as Docker.ContainerInfo);
+      } as unknown as Docker.ContainerInfo);
       expect(ips).toEqual(["172.17.0.2", "172.18.0.3"]);
     });
   });
