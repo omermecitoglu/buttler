@@ -1,8 +1,8 @@
-import { faRightFromBracket } from "@fortawesome/free-solid-svg-icons/faRightFromBracket";
+import { faServer } from "@fortawesome/free-solid-svg-icons/faServer";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { getLocale, getTranslations } from "next-intl/server";
-import { logout } from "~/actions/session";
-import Button from "~/components/ui/button";
+import LogoutButton from "~/components/LogoutButton";
+import { Link } from "~/i18n/navigation";
 import type { AppLocale } from "~/i18n/routing";
 
 export default async function({ children }: LayoutProps<"/[locale]">) {
@@ -20,25 +20,21 @@ export default async function({ children }: LayoutProps<"/[locale]">) {
       <aside className="flex w-60 shrink-0 flex-col">
         {/* Logo / branding */}
         <div className="flex h-16 shrink-0 items-center px-4">
-          <span className="text-lg font-semibold tracking-tight">Buttler</span>
+          <span className="text-lg font-semibold tracking-tight text-slate-100">Buttler</span>
         </div>
         {/* Nav links placeholder */}
         <nav className="flex flex-1 flex-col gap-1 px-2 py-2">
-          {/* nav items will go here */}
+          <Link
+            href="/services"
+            className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-slate-300 transition-colors hover:bg-slate-800 hover:text-white"
+          >
+            <FontAwesomeIcon icon={faServer} className="size-4 text-slate-400" />
+            <span>{t("nav.services")}</span>
+          </Link>
         </nav>
         {/* Avatar / user section placeholder */}
         <div className="flex h-16 shrink-0 items-center gap-3 px-4">
-          <form action={logout.bind(null, locale)} className="w-full">
-            <Button
-              type="submit"
-              variant="ghost"
-              size="sm"
-              className="w-full justify-start gap-2.5 text-slate-400 hover:bg-slate-900 hover:text-rose-400"
-            >
-              <FontAwesomeIcon icon={faRightFromBracket} className="size-4" />
-              <span>{t("logout")}</span>
-            </Button>
-          </form>
+          <LogoutButton locale={locale} label={t("logout")} />
         </div>
       </aside>
       {/* Main content area */}

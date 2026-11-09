@@ -38,6 +38,60 @@
     }
   },
   "BaseLayout": {
-    "logout": "Log out"
+    "logout": "Log out",
+    "nav": {
+      "services": "Services"
+    }
+  },
+  "DashboardPage": {
+    "title": "Services",
+    "subtitle": "Manage and monitor your running services and containers in real time.",
+    "addService": "Add service",
+    "refresh": "Refresh",
+    "refreshing": "Refreshing...",
+    "emptyState": {
+      "title": "No services configured",
+      "description": "Deploy your first service from GitHub or Docker Hub to get started.",
+      "action": "Add service"
+    },
+    "service": {
+      "source": "Source",
+      "ports": "Ports",
+      "ipAddress": "IP Address",
+      "uptime": "Uptime",
+      "none": "None",
+      "notAvailable": "N/A",
+      "actions": {
+        "start": "Start",
+        "stop": "Stop",
+        "restart": "Restart",
+        "logs": "Logs",
+        "details": "Details",
+        "starting": "Starting...",
+        "stopping": "Stopping...",
+        "restarting": "Restarting..."
+      },
+      "status": {
+        "running": "Running",
+        "stopped": "Stopped",
+        "exited": "Exited",
+        "building": "Building",
+        "restarting": "Restarting"
+      },
+      "types": {
+        "github": "GitHub",
+        "dockerhub": "Docker Hub",
+        "system": "System"
+      }
+    },
+    "logsModal": {
+      "title": "Container Logs",
+      "close": "Close",
+      "copy": "Copy",
+      "copied": "Copied!",
+      "loading": "Fetching logs...",
+      "empty": "No logs recorded yet for this container.",
+      "error": "Failed to load container logs."
+    }
   }
 }

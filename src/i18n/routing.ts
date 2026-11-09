@@ -11,6 +11,9 @@ export const routing = defineRouting({
   localeDetection: false,
   pathnames: {
     "/": "/",
+    "/services": "/services",
+    "/services/new": "/services/new",
+    "/services/[serviceId]": "/services/[serviceId]",
     "/login": "/login",
     "/install": "/install",
   },
