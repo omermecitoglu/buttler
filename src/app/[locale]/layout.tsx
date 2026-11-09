@@ -1,3 +1,4 @@
+import { NextIntlClientProvider } from "next-intl";
 import { getLocale } from "next-intl/server";
 import { routing } from "~/i18n/routing";
 import type { Metadata } from "next";
@@ -25,7 +26,9 @@ export default async function({ children }: LayoutProps<"/[locale]">) {
   return (
     <html lang={locale}>
       <body data-theme="dark" className="min-h-screen bg-slate-950 text-slate-100">
-        {children}
+        <NextIntlClientProvider messages={{}}>
+          {children}
+        </NextIntlClientProvider>
       </body>
     </html>
   );

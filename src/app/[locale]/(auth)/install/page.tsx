@@ -1,4 +1,3 @@
-import { getPublicOrigin } from "@omer-x/next-utils";
 import { getTranslations } from "next-intl/server";
 import { installApp } from "~/actions/install";
 import ManifestForm from "~/components/ManifestForm";
@@ -8,10 +7,7 @@ import Input from "~/components/ui/input";
 import Label from "~/components/ui/label";
 
 export default async function(_page: PageProps<"/[locale]/install">) {
-  const [publicOrigin, t] = await Promise.all([
-    getPublicOrigin(),
-    getTranslations("InstallPage"),
-  ]);
+  const t = await getTranslations("InstallPage");
 
   return (
     <Card className="max-w-md">
@@ -22,7 +18,6 @@ export default async function(_page: PageProps<"/[locale]/install">) {
         </p>
       </div>
       <ManifestForm
-        publicOrigin={publicOrigin}
         labels={{
           appNameLabel: t("manifest.appNameLabel"),
           organizationLabel: t("manifest.organizationLabel"),

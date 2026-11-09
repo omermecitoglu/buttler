@@ -1,7 +1,7 @@
 import { generateKeyPairSync } from "node:crypto";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import * as client from "./client";
 import { generateAppJwt, getAuthenticatedCloneUrl, getInstallationAccessToken } from "./app";
+import * as client from "./client";
 
 function makeRsaPrivateKey() {
   const { privateKey } = generateKeyPairSync("rsa", {
@@ -146,17 +146,13 @@ describe("getInstallationAccessToken", () => {
   });
 
   it("should propagate errors thrown by githubFetch", async () => {
-    vi.spyOn(client, "githubFetch").mockRejectedValueOnce(
-      new Error("GitHub authentication failed"),
-    );
+    vi.spyOn(client, "githubFetch").mockRejectedValueOnce(new Error("GitHub authentication failed"));
 
-    await expect(
-      getInstallationAccessToken({
-        appId: "1",
-        privateKey: makeRsaPrivateKey(),
-        installationId: "2",
-      }),
-    ).rejects.toThrow("GitHub authentication failed");
+    await expect(getInstallationAccessToken({
+      appId: "1",
+      privateKey: makeRsaPrivateKey(),
+      installationId: "2",
+    })).rejects.toThrow("GitHub authentication failed");
   });
 });
 

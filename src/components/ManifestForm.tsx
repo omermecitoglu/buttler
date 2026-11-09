@@ -1,12 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Button from "~/components/ui/button";
 import Input from "~/components/ui/input";
 import Label from "~/components/ui/label";
 
 type ManifestFormProps = {
-  publicOrigin: string,
+  publicOrigin?: string,
   labels: {
     appNameLabel: string,
     organizationLabel: string,
@@ -17,17 +17,24 @@ type ManifestFormProps = {
 };
 
 const ManifestForm = ({ publicOrigin, labels }: ManifestFormProps) => {
+  const [origin, setOrigin] = useState(publicOrigin ?? "");
   const [appName, setAppName] = useState("Buttler");
   const [organization, setOrganization] = useState("");
 
+  useEffect(() => {
+    if (!origin && typeof window !== "undefined") {
+      setOrigin(window.location.origin);
+    }
+  }, [origin]);
+
   const manifest = {
     name: appName,
-    url: publicOrigin,
+    url: origin,
     hook_attributes: {
-      url: `${publicOrigin}/webhook`,
+      url: `${origin}/webhook`,
     },
-    redirect_url: `${publicOrigin}/auth/github-install`,
-    callback_urls: [`${publicOrigin}/auth/github`],
+    redirect_url: `${origin}/auth/github-install`,
+    callback_urls: [`${origin}/auth/github`],
     default_permissions: {
       contents: "read",
       metadata: "read",

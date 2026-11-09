@@ -31,8 +31,7 @@ export function generateAppJwt(appId: string | number, privateKey: string): stri
     iss: appId.toString(),
   };
 
-  const encodeBase64Url = (obj: object) =>
-    Buffer.from(JSON.stringify(obj)).toString("base64url");
+  const encodeBase64Url = (obj: object) => Buffer.from(JSON.stringify(obj)).toString("base64url");
 
   const unsignedToken = `${encodeBase64Url(header)}.${encodeBase64Url(payload)}`;
   const signature = crypto
@@ -49,9 +48,7 @@ type RawInstallationAccessTokenResponse = {
   repository_selection?: "all" | "selected",
 };
 
-export async function getInstallationAccessToken(
-  options: GetInstallationAccessTokenOptions,
-): Promise<InstallationAccessToken> {
+export async function getInstallationAccessToken(options: GetInstallationAccessTokenOptions): Promise<InstallationAccessToken> {
   const { appId, privateKey, installationId, repositories, repositoryIds, permissions } = options;
   const jwt = generateAppJwt(appId, privateKey);
 
