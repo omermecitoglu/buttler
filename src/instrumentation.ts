@@ -4,8 +4,10 @@ export async function register() {
     const { default: migrate } = await import("./database/migrate");
     migrate();
 
-    // NOTE (v2 roadmap): Reverse proxy service startup is disabled pending Phase 4 redesign.
-    // const { startReverseProxyService } = await import("./core/nginx");
-    // await startReverseProxyService();
+    const { provisionReverseProxy } = await import("./core/nginx");
+    await provisionReverseProxy().catch(error => {
+      // eslint-disable-next-line no-console
+      console.error("Failed to provision reverse proxy service at startup:", error);
+    });
   }
 }

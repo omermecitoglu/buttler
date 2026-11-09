@@ -3,7 +3,7 @@ import Docker from "dockerode";
 import tar from "tar-fs";
 // import { deleteRepo } from "./git";
 
-const docker = new Docker();
+export const docker = new Docker();
 
 type FixedReadableStream = NodeJS.ReadableStream & { destroy: (reason: unknown) => Promise<void> };
 
@@ -63,8 +63,9 @@ async function cancelBuild(serviceId: string, imageId: string) {
 */
 
 export function pullImage(imageName: string) {
+  const fullImage = imageName.includes(":") ? imageName : `${imageName}:latest`;
   return new Promise<unknown>((resolve, reject) => {
-    docker.pull(`${imageName}:latest`, (pullError: Error | null, stream: NodeJS.ReadableStream) => {
+    docker.pull(fullImage, (pullError: Error | null, stream: NodeJS.ReadableStream) => {
       if (pullError) return reject(pullError);
       docker.modem.followProgress(stream, (modemError, res) => {
         if (modemError) return reject(modemError);
