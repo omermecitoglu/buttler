@@ -2,12 +2,13 @@ import { faGithub } from "@fortawesome/free-brands-svg-icons/faGithub";
 import { faCircleExclamation } from "@fortawesome/free-solid-svg-icons/faCircleExclamation";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { getPublicOrigin } from "@omer-x/next-utils";
-import Link from "next/link";
+import ExternalLink from "next/link";
 import { getTranslations } from "next-intl/server";
 import { Suspense } from "react";
 import Button from "~/components/ui/button";
 import Card from "~/components/ui/card";
 import { getSetting } from "~/core/settings";
+import { Link } from "~/i18n/navigation";
 
 type KnownError = "github" | "access_denied" | "missing_code";
 
@@ -52,7 +53,8 @@ async function GitHubLoginButton({
     <Button
       size="lg"
       className="w-full justify-center gap-2.5"
-      render={<Link href={authUrl.toString()} />}
+      render={<ExternalLink href={authUrl.toString()} />}
+      nativeButton={false}
     >
       <FontAwesomeIcon icon={faGithub} className="size-5" />
       <span>{label}</span>
@@ -83,6 +85,7 @@ export default async function(page: PageProps<"/[locale]/login">) {
           size="md"
           className="w-full justify-center"
           render={<Link href="/install" />}
+          nativeButton={false}
         >
           {t("setupRequired.button")}
         </Button>
