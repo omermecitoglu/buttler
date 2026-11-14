@@ -67,8 +67,8 @@ export async function provisionReverseProxy(options?: { db?: typeof db }) {
         `${confDir}:/etc/nginx/conf.d`,
       ],
       PortBindings: {
-        "80/tcp": [{ HostPort: "80" }],
-        "443/tcp": [{ HostPort: "443" }],
+        "80/tcp": [{ HostPort: process.env.NODE_ENV === "development" ? "8080" : "80" }],
+        "443/tcp": [{ HostPort: process.env.NODE_ENV === "development" ? "8443" : "443" }],
       },
       RestartPolicy: {
         Name: "always",
