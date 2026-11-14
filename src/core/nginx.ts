@@ -59,6 +59,7 @@ export async function provisionReverseProxy(options?: { db?: typeof db }) {
     name: REVERSE_PROXY_CONTAINER_NAME,
     Image: REVERSE_PROXY_IMAGE,
     Labels: {
+      "com.docker.compose.project": "buttler",
       [BUTTLER_SERVICE_LABEL]: service.id,
     },
     HostConfig: {

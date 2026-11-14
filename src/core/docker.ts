@@ -84,6 +84,11 @@ export async function removeImage(imageId: string) {
   }
 }
 
+export type CreateContainerOptions = {
+  readOnlyFiles?: Record<string, string>,
+  labels?: Record<string, string>,
+};
+
 export async function createContainer(
   serviceName: string,
   imageId: string,
@@ -91,13 +96,15 @@ export async function createContainer(
   ports: Record<string, string>,
   volumes: Record<string, string>,
   networkIds: string[],
-  options: {
-    readOnlyFiles?: Record<string, string>,
-  } = {},
+  options: CreateContainerOptions = {},
 ) {
   const container = await docker.createContainer({
     name: serviceName,
     Image: imageId,
+    Labels: {
+      "com.docker.compose.project": "buttler",
+      ...options.labels,
+    },
     Env: Object.entries(env).map(([key, value]) => `${key}=${value}`),
     HostConfig: {
       Binds: [

@@ -123,6 +123,10 @@ describe("Reverse proxy system service management", () => {
       expect(mockDocker.createContainer).toHaveBeenCalledWith(expect.objectContaining({
         name: REVERSE_PROXY_CONTAINER_NAME,
         Image: REVERSE_PROXY_IMAGE,
+        Labels: {
+          "com.docker.compose.project": "buttler",
+          "buttler.service-id": "srv-proxy",
+        },
         HostConfig: expect.objectContaining({
           PortBindings: {
             "80/tcp": [{ HostPort: "80" }],
