@@ -2,7 +2,7 @@
 
 > **Responsibility Notice:** The responsibility of this file belongs to the agent. The agent should update this file with every new piece of information it learns in the development process by incrementing the "Revision" number. Keep in mind that project-specific instructions cannot take any place in this file because it is portable and may be copied directly to other projects. Always put project-specific rules in `./ai/*.md`.
 
-**Revision:** 4
+**Revision:** 5
 
 ## Token Budget & Collaboration
 
@@ -20,6 +20,19 @@
 3. **Efficiency & Communication**:
    - Keep tool usage focused strictly on the files directly involved in the task.
    - Communicate clearly and concisely.
+
+## Pull Request & Scope Management
+
+1. **Pull Request Default**:
+   - Unless the overseer explicitly states otherwise, the agent must prepare file changes for a pull request.
+   - Code will be reviewed by a GitHub bot and the overseer on GitHub.
+
+2. **Out-of-Scope Blockers**:
+   - If the agent notices that an important change in the codebase is needed for the purpose of the relevant task, but is not part of that task:
+     1. Stop working on the task immediately.
+     2. Push the unfinished job as a PR.
+     3. Create a new issue for the blocker/problem.
+     4. Comment on both the task's issue and the PR stating that the work has a blocker, linking to the newly created issue.
 
 ## Commit Convention
 
