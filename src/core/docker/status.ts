@@ -219,7 +219,7 @@ export async function findServiceContainer(service: ServiceRef): Promise<Docker.
   return null;
 }
 
-async function isImagePresentLocally(tag: string): Promise<boolean> {
+export async function isImagePresentLocally(tag: string): Promise<boolean> {
   const fullTag = tag.includes(":") ? tag : `${tag}:latest`;
   try {
     const img = docker.getImage(fullTag);

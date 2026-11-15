@@ -2,7 +2,13 @@
 import { defineFormAction, displayMessage } from "@omer-x/next-form-actions";
 import { revalidatePath, updateTag } from "next/cache";
 import z from "zod";
-import { restartServiceContainer, startServiceContainer, stopServiceContainer } from "~/core/docker/status";
+import {
+  isImagePresentLocally,
+  markServicePulling,
+  restartServiceContainer,
+  startServiceContainer,
+  stopServiceContainer,
+} from "~/core/docker/status";
 import db from "~/database";
 import { redirect } from "~/i18n/navigation";
 import type { AppLocale } from "~/i18n/routing";
@@ -78,6 +84,29 @@ export async function startService(serviceId: string) {
   const service = await getService(db, serviceId);
   if (!service) {
     throw new Error(`Service not found: ${serviceId}`);
+  }
+  if (service.type === "dockerhub") {
+    const rawImage = service.repository ?? "";
+    const imageTag = rawImage
+      ? (service.branch ? `${rawImage}:${service.branch}` : (rawImage.includes(":") ? rawImage : `${rawImage}:latest`))
+      : "";
+    if (imageTag) {
+      const hasImage = await isImagePresentLocally(imageTag);
+      if (!hasImage) {
+        markServicePulling(service.id, true);
+        void (async () => {
+          try {
+            await startServiceContainer(service);
+          } catch (err) {
+            // eslint-disable-next-line no-console
+            console.error(`Failed to pull and start service ${service.id}:`, err);
+          }
+        })();
+        revalidatePath("/");
+        revalidatePath("/services");
+        return { success: true };
+      }
+    }
   }
   await startServiceContainer(service);
   revalidatePath("/");
