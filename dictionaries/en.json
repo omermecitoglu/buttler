@@ -68,6 +68,8 @@
         "logs": "Logs",
         "details": "Details",
         "starting": "Starting...",
+        "pulling": "Pulling...",
+        "building": "Building...",
         "stopping": "Stopping...",
         "restarting": "Restarting..."
       },
