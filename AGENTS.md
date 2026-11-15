@@ -2,7 +2,7 @@
 
 > **Responsibility Notice:** The responsibility of this file belongs to the agent. The agent should update this file with every new piece of information it learns in the development process by incrementing the "Revision" number. Keep in mind that project-specific instructions cannot take any place in this file because it is portable and may be copied directly to other projects. Always put project-specific rules in `./ai/*.md`.
 
-**Revision:** 5
+**Revision:** 6
 
 ## Token Budget & Collaboration
 
@@ -16,6 +16,7 @@
      - Utility or helper functions.
      - Environment variables or configuration values.
      - Business logic, domain rules, or operational schedules.
+   - Never run experimental, exploratory, or ad-hoc scripts/commands (such as `node -e` or `tsx -e` to probe library behaviors, driver APIs, or runtime execution). Ask the user directly whenever clarity or technical details are needed.
 
 3. **Efficiency & Communication**:
    - Keep tool usage focused strictly on the files directly involved in the task.
