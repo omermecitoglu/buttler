@@ -93,5 +93,67 @@
       "empty": "No logs recorded yet for this container.",
       "error": "Failed to load container logs."
     }
+  },
+  "NewServicePage": {
+    "title": "Create a new service",
+    "subtitle": "Configure and deploy a container service from GitHub or Docker Hub.",
+    "back": "Back to services",
+    "sourceSection": {
+      "title": "Service Source",
+      "description": "Choose where to deploy your container from.",
+      "github": "GitHub",
+      "dockerhub": "Docker Hub"
+    },
+    "generalSection": {
+      "title": "General Settings",
+      "nameLabel": "Service Name",
+      "namePlaceholder": "e.g. My Web App",
+      "nameHelp": "Unique name used to identify this service."
+    },
+    "portsSection": {
+      "title": "Port Mappings",
+      "description": "Map host ports to container ports for network access.",
+      "addButton": "Add Port",
+      "removeButton": "Remove port",
+      "hostPortLabel": "Host Port",
+      "hostPortPlaceholder": "Host port (e.g. 8080)",
+      "containerPortLabel": "Container Port",
+      "containerPortPlaceholder": "Container port (e.g. 80)",
+      "emptyMessage": "No port mappings configured."
+    },
+    "envSection": {
+      "title": "Environment Variables",
+      "description": "Define configuration environment variables and secrets.",
+      "addButton": "Add Variable",
+      "removeButton": "Remove variable",
+      "keyLabel": "Key",
+      "keyPlaceholder": "e.g. DATABASE_URL",
+      "valueLabel": "Value",
+      "valuePlaceholder": "Value",
+      "emptyMessage": "No environment variables configured."
+    },
+    "volumesSection": {
+      "title": "Storage Mounts",
+      "description": "Attach persistent Docker volumes to persist data across restarts.",
+      "addButton": "Add Mount",
+      "removeButton": "Remove storage mount",
+      "containerPathLabel": "Container Path",
+      "containerPathPlaceholder": "e.g. /var/lib/mysql",
+      "volumeNameLabel": "Volume Name",
+      "volumeNamePlaceholder": "e.g. db-data",
+      "emptyMessage": "No storage mounts configured."
+    },
+    "submit": "Create Service",
+    "submitting": "Creating service...",
+    "messages": {
+      "create_failed": "Failed to create service. Please try again.",
+      "service_name_required": "Service name is required.",
+      "repository_required": "Please select a repository or enter an image name.",
+      "branch_required": "Please select a deployment branch or image tag.",
+      "invalid_ports": "One or more port mappings are invalid.",
+      "invalid_environment_variables": "One or more environment variables are invalid.",
+      "invalid_volumes": "One or more storage mounts are invalid.",
+      "volume_name_required": "Volume name is required for all storage mounts."
+    }
   }
 }
