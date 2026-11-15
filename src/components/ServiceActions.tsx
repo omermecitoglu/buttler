@@ -69,6 +69,21 @@ const ServiceActions = ({
   const isRunning = status === "running";
   const isBuilding = status === "building";
   const isPulling = status === "pulling";
+  const isStartBusy = pendingAction === "start" || isPulling || isBuilding;
+
+  const startButtonLabel = isPulling
+    ? t("pulling")
+    : isBuilding
+      ? t("building")
+      : pendingAction === "start"
+        ? t("starting")
+        : t("start");
+
+  const startIconColor = isPulling
+    ? "text-cyan-400"
+    : isBuilding
+      ? "text-sky-400"
+      : "text-emerald-400";
 
   return (
     <>
@@ -111,10 +126,10 @@ const ServiceActions = ({
             className="gap-1.5"
           >
             <FontAwesomeIcon
-              icon={pendingAction === "start" ? faSpinner : faPlay}
-              className={pendingAction === "start" ? "size-3 animate-spin text-emerald-400" : "size-3 text-emerald-400"}
+              icon={isStartBusy ? faSpinner : faPlay}
+              className={isStartBusy ? `size-3 animate-spin ${startIconColor}` : "size-3 text-emerald-400"}
             />
-            <span>{pendingAction === "start" ? t("starting") : t("start")}</span>
+            <span>{startButtonLabel}</span>
           </Button>
         )}
         {containerId && (

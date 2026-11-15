@@ -6,6 +6,8 @@ const mockCreateService = vi.fn();
 const mockStartServiceContainer = vi.fn();
 const mockStopServiceContainer = vi.fn();
 const mockRestartServiceContainer = vi.fn();
+const mockIsImagePresentLocally = vi.fn();
+const mockMarkServicePulling = vi.fn();
 const mockRevalidatePath = vi.fn();
 const mockUpdateTag = vi.fn();
 const mockRedirect = vi.fn();
@@ -26,6 +28,8 @@ vi.mock("~/core/docker/status", () => ({
   startServiceContainer: (...args: unknown[]) => mockStartServiceContainer(...args),
   stopServiceContainer: (...args: unknown[]) => mockStopServiceContainer(...args),
   restartServiceContainer: (...args: unknown[]) => mockRestartServiceContainer(...args),
+  isImagePresentLocally: (...args: unknown[]) => mockIsImagePresentLocally(...args),
+  markServicePulling: (...args: unknown[]) => mockMarkServicePulling(...args),
 }));
 
 vi.mock("next/cache", () => ({
@@ -49,10 +53,29 @@ describe("service lifecycle server actions", () => {
   };
 
   describe("startService", () => {
-    it("starts container and revalidates path", async () => {
-      mockGetService.mockResolvedValue(sampleService);
+    it("starts container directly if image is already present", async () => {
+      mockGetService.mockResolvedValue({
+        ...sampleService,
+        repository: "redis",
+        branch: "alpine",
+      });
+      mockIsImagePresentLocally.mockResolvedValue(true);
       const res = await startService("srv-test");
-      expect(mockStartServiceContainer).toHaveBeenCalledWith(sampleService);
+      expect(mockStartServiceContainer).toHaveBeenCalled();
+      expect(mockRevalidatePath).toHaveBeenCalledWith("/");
+      expect(mockRevalidatePath).toHaveBeenCalledWith("/services");
+      expect(res).toEqual({ success: true });
+    });
+
+    it("marks service pulling and starts background task if image is not present", async () => {
+      mockGetService.mockResolvedValue({
+        ...sampleService,
+        repository: "postgres",
+        branch: "15",
+      });
+      mockIsImagePresentLocally.mockResolvedValue(false);
+      const res = await startService("srv-test");
+      expect(mockMarkServicePulling).toHaveBeenCalledWith("srv-test", true);
       expect(mockRevalidatePath).toHaveBeenCalledWith("/");
       expect(mockRevalidatePath).toHaveBeenCalledWith("/services");
       expect(res).toEqual({ success: true });
