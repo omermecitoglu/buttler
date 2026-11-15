@@ -37,6 +37,9 @@ export default async function({ children }: LayoutProps<"/[locale]">) {
         <NextIntlClientProvider
           messages={pick(
             messages,
+            "BaseLayout",
+            "DashboardPage",
+            "InstallPage",
             "NewServicePage",
           )}
         >

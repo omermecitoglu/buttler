@@ -2,7 +2,7 @@
 
 > **Responsibility Notice:** The responsibility of this file belongs to the agent. The agent should update this file with every new piece of information it learns in the development process by incrementing the "Revision" number. Keep in mind that project-specific instructions cannot take any place in this file because it is portable and may be copied directly to other projects. Always put project-specific rules in `./ai/*.md`.
 
-**Revision:** 6
+**Revision:** 7
 
 ## Token Budget & Collaboration
 
@@ -34,6 +34,29 @@
      2. Push the unfinished job as a PR.
      3. Create a new issue for the blocker/problem.
      4. Comment on both the task's issue and the PR stating that the work has a blocker, linking to the newly created issue.
+
+## Code Style & Formatting
+
+### Multi-line Array Destructuring
+
+When destructuring arrays across multiple lines (e.g. from `Promise.all([ ... ])`), format the destructuring target across multiple lines with each identifier on its own line and a trailing comma:
+
+```ts
+// Preferred
+const [
+  locale,
+  t,
+] = await Promise.all([
+  getLocale(),
+  getTranslations("NewServicePage"),
+]);
+
+// Avoid
+const [locale, t] = await Promise.all([
+  getLocale(),
+  getTranslations("NewServicePage"),
+]);
+```
 
 ## Commit Convention
 

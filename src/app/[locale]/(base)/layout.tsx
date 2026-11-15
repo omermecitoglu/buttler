@@ -1,18 +1,11 @@
 import { faServer } from "@fortawesome/free-solid-svg-icons/faServer";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { getLocale, getTranslations } from "next-intl/server";
+import { getTranslations } from "next-intl/server";
 import LogoutButton from "~/components/LogoutButton";
 import { Link } from "~/i18n/navigation";
-import type { AppLocale } from "~/i18n/routing";
 
 export default async function({ children }: LayoutProps<"/[locale]">) {
-  const [
-    locale,
-    t,
-  ] = await Promise.all([
-    getLocale() as Promise<AppLocale>,
-    getTranslations("BaseLayout"),
-  ]);
+  const t = await getTranslations("BaseLayout");
 
   return (
     <div className="flex h-screen">
@@ -34,7 +27,7 @@ export default async function({ children }: LayoutProps<"/[locale]">) {
         </nav>
         {/* Avatar / user section placeholder */}
         <div className="flex h-16 shrink-0 items-center gap-3 px-4">
-          <LogoutButton locale={locale} label={t("logout")} />
+          <LogoutButton />
         </div>
       </aside>
       {/* Main content area */}
