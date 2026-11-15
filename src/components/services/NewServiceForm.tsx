@@ -6,20 +6,18 @@ import { faArrowLeft } from "@fortawesome/free-solid-svg-icons/faArrowLeft";
 import { faPlus } from "@fortawesome/free-solid-svg-icons/faPlus";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { cn } from "@omer-x/tailwind-ui-kit/utils";
+import { useTranslations } from "next-intl";
 import { useId, useState } from "react";
 import DockerHubSourcePicker from "~/components/services/DockerHubSourcePicker";
 import EnvironmentVariablesRepeater, {
   type EnvironmentVariableItem,
-  type EnvironmentVariablesRepeaterLabels,
 } from "~/components/services/EnvironmentVariablesRepeater";
 import GitHubSourcePicker from "~/components/services/GitHubSourcePicker";
 import PortMappingsRepeater, {
   type PortMappingItem,
-  type PortMappingsRepeaterLabels,
 } from "~/components/services/PortMappingsRepeater";
 import VolumeMountsRepeater, {
   type VolumeMountItem,
-  type VolumeMountsRepeaterLabels,
 } from "~/components/services/VolumeMountsRepeater";
 import Button from "~/components/ui/button";
 import Card from "~/components/ui/card";
@@ -28,39 +26,15 @@ import Input from "~/components/ui/input";
 import Label from "~/components/ui/label";
 import { Link } from "~/i18n/navigation";
 
-export type NewServiceFormLabels = {
-  sourceSection: {
-    title: string,
-    description: string,
-    github: string,
-    dockerhub: string,
-  },
-  generalSection: {
-    title: string,
-    nameLabel: string,
-    namePlaceholder: string,
-    nameHelp: string,
-  },
-  portsSection: PortMappingsRepeaterLabels,
-  envSection: EnvironmentVariablesRepeaterLabels,
-  volumesSection: VolumeMountsRepeaterLabels,
-  submit: string,
-  submitting: string,
-  back: string,
-  messages: Record<string, string>,
-};
-
 export type NewServiceFormProps = {
   action: (initialState: unknown, formData: FormData) => Promise<Record<string, string>>,
-  labels: NewServiceFormLabels,
 };
 
 type ServiceSourceType = "github" | "dockerhub";
 
-const NewServiceForm = ({
-  action,
-  labels,
-}: NewServiceFormProps) => {
+const NewServiceForm = ({ action }: NewServiceFormProps) => {
+  const t = useTranslations("NewServicePage");
+
   const [sourceType, setSourceType] = useState<ServiceSourceType>("github");
   const [repository, setRepository] = useState<string>("");
   const [branch, setBranch] = useState<string>("");
@@ -97,10 +71,57 @@ const NewServiceForm = ({
       containerPath: v.containerPath.trim(),
     }));
 
+  const portsLabels = {
+    title: t("portsSection.title"),
+    description: t("portsSection.description"),
+    addButton: t("portsSection.addButton"),
+    removeButton: t("portsSection.removeButton"),
+    hostPortLabel: t("portsSection.hostPortLabel"),
+    hostPortPlaceholder: t("portsSection.hostPortPlaceholder"),
+    containerPortLabel: t("portsSection.containerPortLabel"),
+    containerPortPlaceholder: t("portsSection.containerPortPlaceholder"),
+    emptyMessage: t("portsSection.emptyMessage"),
+  };
+
+  const envLabels = {
+    title: t("envSection.title"),
+    description: t("envSection.description"),
+    addButton: t("envSection.addButton"),
+    removeButton: t("envSection.removeButton"),
+    keyLabel: t("envSection.keyLabel"),
+    keyPlaceholder: t("envSection.keyPlaceholder"),
+    valueLabel: t("envSection.valueLabel"),
+    valuePlaceholder: t("envSection.valuePlaceholder"),
+    emptyMessage: t("envSection.emptyMessage"),
+  };
+
+  const volumesLabels = {
+    title: t("volumesSection.title"),
+    description: t("volumesSection.description"),
+    addButton: t("volumesSection.addButton"),
+    removeButton: t("volumesSection.removeButton"),
+    containerPathLabel: t("volumesSection.containerPathLabel"),
+    containerPathPlaceholder: t("volumesSection.containerPathPlaceholder"),
+    volumeNameLabel: t("volumesSection.volumeNameLabel"),
+    volumeNamePlaceholder: t("volumesSection.volumeNamePlaceholder"),
+    emptyMessage: t("volumesSection.emptyMessage"),
+  };
+
+  const messages = {
+    create_failed: t("messages.create_failed"),
+    service_name_required: t("messages.service_name_required"),
+    repository_required: t("messages.repository_required"),
+    branch_required: t("messages.branch_required"),
+    invalid_ports: t("messages.invalid_ports"),
+    invalid_environment_variables: t("messages.invalid_environment_variables"),
+    invalid_volumes: t("messages.invalid_volumes"),
+    volume_name_required: t("messages.volume_name_required"),
+  };
+
   return (
     <Form
       action={action}
-      messages={labels.messages}
+      messages={messages}
       className="flex flex-col gap-8 w-full max-w-4xl"
     >
       <input type="hidden" name="type" value={sourceType} />
@@ -112,8 +133,8 @@ const NewServiceForm = ({
       {/* Source Selection Card */}
       <Card className="flex flex-col gap-6 p-6">
         <div>
-          <h2 className="text-base font-semibold text-slate-100">{labels.sourceSection.title}</h2>
-          <p className="mt-1 text-xs text-slate-400">{labels.sourceSection.description}</p>
+          <h2 className="text-base font-semibold text-slate-100">{t("sourceSection.title")}</h2>
+          <p className="mt-1 text-xs text-slate-400">{t("sourceSection.description")}</p>
         </div>
         {/* Source Toggle */}
         <div className="grid grid-cols-2 gap-3 max-w-md">
@@ -128,7 +149,7 @@ const NewServiceForm = ({
             )}
           >
             <FontAwesomeIcon icon={faGithub} className="size-4" />
-            <span>{labels.sourceSection.github}</span>
+            <span>{t("sourceSection.github")}</span>
           </button>
           <button
             type="button"
@@ -141,7 +162,7 @@ const NewServiceForm = ({
             )}
           >
             <FontAwesomeIcon icon={faDocker} className="size-4" />
-            <span>{labels.sourceSection.dockerhub}</span>
+            <span>{t("sourceSection.dockerhub")}</span>
           </button>
         </div>
         {/* Source Pickers */}
@@ -161,7 +182,7 @@ const NewServiceForm = ({
               selectedImage={repository}
               selectedTag={branch}
               onSelectImage={img => setRepository(img)}
-              onSelectTag={t => setBranch(t)}
+              onSelectTag={tag => setBranch(tag)}
             />
           )}
         </div>
@@ -169,12 +190,12 @@ const NewServiceForm = ({
       {/* General Settings Card */}
       <Card className="flex flex-col gap-4 p-6">
         <div>
-          <h2 className="text-base font-semibold text-slate-100">{labels.generalSection.title}</h2>
-          <p className="mt-1 text-xs text-slate-400">{labels.generalSection.nameHelp}</p>
+          <h2 className="text-base font-semibold text-slate-100">{t("generalSection.title")}</h2>
+          <p className="mt-1 text-xs text-slate-400">{t("generalSection.nameHelp")}</p>
         </div>
         <div className="space-y-1.5 max-w-lg">
           <Label htmlFor={nameInputId}>
-            {labels.generalSection.nameLabel}
+            {t("generalSection.nameLabel")}
             {" "}
             <span className="text-rose-400">*</span>
           </Label>
@@ -182,7 +203,7 @@ const NewServiceForm = ({
             id={nameInputId}
             name="name"
             required
-            placeholder={labels.generalSection.namePlaceholder}
+            placeholder={t("generalSection.namePlaceholder")}
           />
         </div>
       </Card>
@@ -190,31 +211,31 @@ const NewServiceForm = ({
       <PortMappingsRepeater
         items={ports}
         onChange={setPorts}
-        labels={labels.portsSection}
+        labels={portsLabels}
       />
       {/* Environment Variables Section */}
       <EnvironmentVariablesRepeater
         items={envVars}
         onChange={setEnvVars}
-        labels={labels.envSection}
+        labels={envLabels}
       />
       {/* Volume Mounts Section */}
       <VolumeMountsRepeater
         items={volumes}
         onChange={setVolumes}
-        labels={labels.volumesSection}
+        labels={volumesLabels}
       />
       {/* Form Action Buttons */}
       <div className="flex items-center justify-between pt-4 border-t border-slate-800">
         <Link href="/services">
           <Button type="button" variant="ghost" size="sm" className="gap-2 text-slate-400 hover:text-slate-200">
             <FontAwesomeIcon icon={faArrowLeft} className="size-3" />
-            <span>{labels.back}</span>
+            <span>{t("back")}</span>
           </Button>
         </Link>
         <Button type="submit" variant="primary" size="md" className="gap-2">
           <FontAwesomeIcon icon={faPlus} className="size-3.5" />
-          <span>{labels.submit}</span>
+          <span>{t("submit")}</span>
         </Button>
       </div>
     </Form>
