@@ -24,3 +24,9 @@
 
 - Generate migration: `npm run migrate` (`drizzle-kit generate`)
 - Run migrations programmatically: `npm run build:migration` (`scripts/migrate.ts` calling `src/database/migrate.ts`)
+
+## Operations Layer (`src/operations`)
+
+- The purpose of the `src/operations/` directory is to keep database operation functions isolated and abstract from the rest of the application.
+- If Drizzle is ever replaced with another ORM or database layer in the future, only `src/database/schema` and `src/operations/` need to be refactored.
+- Server actions, API routes, and background tasks should invoke these operations rather than performing direct ad-hoc database queries.

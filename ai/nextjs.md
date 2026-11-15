@@ -17,6 +17,11 @@ const nextConfig: NextConfig = {
 
 - All form-based server actions must use `@omer-x/next-form-actions`.
 
+### Action File Naming Conventions
+
+- Server action files in `src/actions/` are named by domain entity: `src/actions/[entity].ts` (e.g. `service.ts` for service actions, `session.ts` for session actions, `user.ts` for user actions).
+- Think of `actions/xxxx.ts` as "xxxx actions".
+
 ## Data Fetching
 
 - Do not use server actions for fetching data; use API route handlers (`src/app/api/...`).
