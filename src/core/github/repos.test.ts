@@ -1,6 +1,12 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import * as client from "./client";
-import { getRepos, getRepositories, getUserRepositories } from "./repos";
+import {
+  getInstallationRepositories,
+  getRepos,
+  getRepositories,
+  getRepositoryBranches,
+  getUserRepositories,
+} from "./repos";
 
 const mockRawRepo1 = {
   id: 101,
@@ -148,5 +154,61 @@ describe("getRepositories", () => {
   it("should export getUserRepositories and getRepos aliases", () => {
     expect(getUserRepositories).toBe(getRepositories);
     expect(getRepos).toBe(getRepositories);
+  });
+});
+
+describe("getRepositoryBranches", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("should fetch branches for a repository", async () => {
+    const fetchSpy = vi.spyOn(client, "githubFetch").mockResolvedValueOnce({
+      status: 200,
+      headers: new Headers(),
+      data: [
+        { name: "main", protected: true, commit: { sha: "abc1234", url: "https://..." } },
+        { name: "develop", protected: false, commit: { sha: "def5678", url: "https://..." } },
+      ],
+    });
+
+    const branches = await getRepositoryBranches("fake-token", "omermecitoglu", "buttler");
+
+    expect(fetchSpy).toHaveBeenCalledWith(
+      "/repos/omermecitoglu/buttler/branches?per_page=100&page=1",
+      "fake-token",
+    );
+    expect(branches).toEqual([
+      { name: "main", protected: true, sha: "abc1234" },
+      { name: "develop", protected: false, sha: "def5678" },
+    ]);
+  });
+});
+
+describe("getInstallationRepositories", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("should fetch repositories granted to installation", async () => {
+    const fetchSpy = vi.spyOn(client, "githubFetch").mockResolvedValueOnce({
+      status: 200,
+      headers: new Headers(),
+      data: {
+        total_count: 1,
+        repository_selection: "selected",
+        repositories: [mockRawRepo1],
+      },
+    });
+
+    const result = await getInstallationRepositories("fake-token");
+
+    expect(fetchSpy).toHaveBeenCalledWith(
+      "/installation/repositories?per_page=100&page=1",
+      "fake-token",
+    );
+    expect(result.totalCount).toBe(1);
+    expect(result.repositorySelection).toBe("selected");
+    expect(result.repositories[0].fullName).toBe("omermecitoglu/buttler");
   });
 });
