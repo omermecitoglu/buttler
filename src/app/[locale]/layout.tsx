@@ -1,5 +1,6 @@
+import { pick } from "@omer/object";
 import { NextIntlClientProvider } from "next-intl";
-import { getLocale } from "next-intl/server";
+import { getLocale, getMessages } from "next-intl/server";
 import { routing } from "~/i18n/routing";
 import type { Metadata } from "next";
 import "../globals.css";
@@ -22,11 +23,23 @@ export function generateStaticParams() {
 }
 
 export default async function({ children }: LayoutProps<"/[locale]">) {
-  const locale = await getLocale();
+  const [
+    locale,
+    messages,
+  ] = await Promise.all([
+    getLocale(),
+    getMessages(),
+  ]);
+
   return (
     <html lang={locale}>
       <body data-theme="dark" className="min-h-screen bg-slate-950 text-slate-100">
-        <NextIntlClientProvider messages={{}}>
+        <NextIntlClientProvider
+          messages={pick(
+            messages,
+            "NewServicePage",
+          )}
+        >
           {children}
         </NextIntlClientProvider>
       </body>
