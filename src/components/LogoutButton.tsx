@@ -5,11 +5,10 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useLocale, useTranslations } from "next-intl";
 import { logout } from "~/actions/session";
 import Button from "~/components/ui/button";
-import type { AppLocale } from "~/i18n/routing";
 
 const LogoutButton = () => {
   const t = useTranslations("BaseLayout");
-  const locale = useLocale() as AppLocale;
+  const locale = useLocale();
 
   return (
     <form action={() => logout(locale)} className="w-full">
