@@ -17,3 +17,8 @@ const nextConfig: NextConfig = {
 
 - All form-based server actions must use `@omer-x/next-form-actions`.
 
+## Data Fetching
+
+- Do not use server actions for fetching data; use API route handlers (`src/app/api/...`).
+
+
