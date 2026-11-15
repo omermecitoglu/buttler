@@ -118,7 +118,7 @@ describe("GET /api/sources/github/repos", () => {
       forks_count: 0,
     } satisfies reposCore.GitHubRepository;
 
-    vi.spyOn(reposCore, "getRepositories").mockResolvedValueOnce([mockRepo]);
+    vi.spyOn(reposCore, "getUserInstallationRepositories").mockResolvedValueOnce([mockRepo]);
 
     const res = await GET();
     const json = await res.json();
