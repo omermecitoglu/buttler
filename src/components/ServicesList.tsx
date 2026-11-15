@@ -2,6 +2,7 @@ import { connection } from "next/server";
 import { getTranslations } from "next-intl/server";
 import EmptyServicesState from "~/components/EmptyServicesState";
 import ServiceCard from "~/components/ServiceCard";
+import ServicesPoller from "~/components/ServicesPoller";
 import { getServicesWithLiveStatus } from "~/data/services";
 
 const ServicesList = async () => {
@@ -48,16 +49,23 @@ const ServicesList = async () => {
     );
   }
 
+  const isAnyServiceBusy = services.some(s => s.runtime.status === "pulling" ||
+    s.runtime.status === "building" ||
+    s.runtime.status === "restarting");
+
   return (
-    <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-      {services.map(service => (
-        <ServiceCard
-          key={service.id}
-          service={service}
-          labels={cardLabels}
-        />
-      ))}
-    </div>
+    <>
+      {isAnyServiceBusy && <ServicesPoller />}
+      <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+        {services.map(service => (
+          <ServiceCard
+            key={service.id}
+            service={service}
+            labels={cardLabels}
+          />
+        ))}
+      </div>
+    </>
   );
 };
 
