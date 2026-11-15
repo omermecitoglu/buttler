@@ -27,6 +27,10 @@ const statusStyles: Record<ContainerRuntimeStatus, { badge: string, dot: string 
     badge: "border-sky-500/20 bg-sky-500/10 text-sky-400",
     dot: "bg-sky-400",
   },
+  pulling: {
+    badge: "border-cyan-500/20 bg-cyan-500/10 text-cyan-400",
+    dot: "bg-cyan-400",
+  },
   restarting: {
     badge: "border-amber-500/20 bg-amber-500/10 text-amber-400",
     dot: "bg-amber-400",
@@ -44,7 +48,7 @@ const StatusBadge = ({ status, label, className }: StatusBadgeProps) => {
         className,
       ])}
     >
-      {status === "building" ? (
+      {status === "building" || status === "pulling" ? (
         <FontAwesomeIcon icon={faSpinner} className="size-2.5 animate-spin" />
       ) : status === "restarting" ? (
         <FontAwesomeIcon icon={faRotate} className="size-2.5 animate-spin" />

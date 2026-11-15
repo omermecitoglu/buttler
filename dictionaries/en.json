@@ -76,6 +76,7 @@
         "stopped": "Stopped",
         "exited": "Exited",
         "building": "Building",
+        "pulling": "Pulling image",
         "restarting": "Restarting"
       },
       "types": {
