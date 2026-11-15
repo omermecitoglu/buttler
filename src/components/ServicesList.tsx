@@ -26,6 +26,7 @@ const ServicesList = async () => {
       stopped: t("service.status.stopped"),
       exited: t("service.status.exited"),
       building: t("service.status.building"),
+      pulling: t("service.status.pulling"),
       restarting: t("service.status.restarting"),
     },
     types: {

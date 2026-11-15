@@ -68,6 +68,7 @@ const ServiceActions = ({
 
   const isRunning = status === "running";
   const isBuilding = status === "building";
+  const isPulling = status === "pulling";
 
   return (
     <>
@@ -105,7 +106,7 @@ const ServiceActions = ({
           <Button
             size="xs"
             variant="secondary"
-            disabled={isPending || isBuilding}
+            disabled={isPending || isBuilding || isPulling}
             onClick={handleStart}
             className="gap-1.5"
           >
