@@ -3,7 +3,7 @@ import type Docker from "dockerode";
 
 export const BUTTLER_SERVICE_LABEL = "buttler.service-id";
 
-export type ContainerRuntimeStatus = "running" | "stopped" | "exited" | "building" | "restarting";
+export type ContainerRuntimeStatus = "running" | "stopped" | "exited" | "building" | "pulling" | "restarting";
 
 export type ContainerPortBinding = {
   external?: number,
@@ -24,6 +24,7 @@ export type ServiceRuntimeState = {
 };
 
 const activeBuildServices = new Set<string>();
+const activePullServices = new Set<string>();
 
 export function markServiceBuilding(serviceId: string, isBuilding: boolean) {
   if (isBuilding) {
@@ -35,6 +36,18 @@ export function markServiceBuilding(serviceId: string, isBuilding: boolean) {
 
 export function isServiceBuilding(serviceId: string): boolean {
   return activeBuildServices.has(serviceId);
+}
+
+export function markServicePulling(serviceId: string, isPulling: boolean) {
+  if (isPulling) {
+    activePullServices.add(serviceId);
+  } else {
+    activePullServices.delete(serviceId);
+  }
+}
+
+export function isServicePulling(serviceId: string): boolean {
+  return activePullServices.has(serviceId);
 }
 
 export function parseContainerRuntimeStatus(container?: Docker.ContainerInfo): ContainerRuntimeStatus {
@@ -88,6 +101,10 @@ export function matchContainerForService(
     if (reverseProxy) return reverseProxy;
   }
 
+  const expectedName = `buttler-service-${service.id}`;
+  const byServiceIdName = containers.find(c => c.Names.some(n => n === `/${expectedName}` || n === expectedName));
+  if (byServiceIdName) return byServiceIdName;
+
   if (service.name) {
     const sanitizedName = service.name.toLowerCase().replace(/[^a-z0-9_-]/g, "-");
     const byName = containers.find(c => c.Names.some(n => n === `/${service.name}` ||
@@ -103,6 +120,19 @@ export function createServiceRuntimeState(
   serviceId: string,
   container?: Docker.ContainerInfo,
 ): ServiceRuntimeState {
+  if (isServicePulling(serviceId)) {
+    return {
+      containerId: container?.Id ?? null,
+      containerName: container?.Names[0]?.replace(/^\//, "") ?? null,
+      status: "pulling",
+      state: "pulling",
+      uptime: null,
+      startedAt: null,
+      ipAddresses: extractContainerIpAddresses(container),
+      ports: extractContainerPorts(container),
+    };
+  }
+
   if (isServiceBuilding(serviceId)) {
     return {
       containerId: container?.Id ?? null,
@@ -145,6 +175,11 @@ export type ServiceRef = {
   id: string,
   name?: string,
   type?: string,
+  repository?: string | null,
+  branch?: string | null,
+  ports?: { external: number, internal: number }[],
+  environmentVariables?: { key: string, value: string }[],
+  volumes?: { name: string, containerPath: string }[],
 };
 
 export async function getServicesRuntimeStates(services: ServiceRef[]): Promise<Record<string, ServiceRuntimeState>> {
@@ -184,50 +219,163 @@ export async function findServiceContainer(service: ServiceRef): Promise<Docker.
   return null;
 }
 
-export async function startServiceContainer(service: { id: string, name?: string, type?: string }): Promise<void> {
+async function isImagePresentLocally(tag: string): Promise<boolean> {
+  const fullTag = tag.includes(":") ? tag : `${tag}:latest`;
+  try {
+    const img = docker.getImage(fullTag);
+    await img.inspect();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export async function startServiceContainer(service: ServiceRef): Promise<void> {
   if (service.type === "system" && service.name === "Reverse Proxy Server") {
     const { provisionReverseProxy } = await import("~/core/nginx");
     await provisionReverseProxy();
     return;
   }
+
+  if (service.type === "github") {
+    throw new Error("GitHub build pipeline is not yet implemented");
+  }
+
+  if (service.type !== "dockerhub") {
+    const container = await findServiceContainer(service);
+    if (!container) {
+      throw new Error(`No container found for service ${service.id}`);
+    }
+    try {
+      await container.start();
+    } catch (err: unknown) {
+      const error = err as { statusCode?: number };
+      if (error.statusCode !== 304) {
+        throw err;
+      }
+    }
+    return;
+  }
+
+  const rawImage = service.repository ?? "";
+  const imageTag = rawImage
+    ? (service.branch ? `${rawImage}:${service.branch}` : (rawImage.includes(":") ? rawImage : `${rawImage}:latest`))
+    : "";
+
+  if (!imageTag) {
+    throw new Error(`No Docker Hub image specified for service ${service.id}`);
+  }
+
+  const hasImage = await isImagePresentLocally(imageTag);
+  if (!hasImage) {
+    markServicePulling(service.id, true);
+    try {
+      const { pullImage } = await import("~/core/docker");
+      await pullImage(imageTag);
+    } finally {
+      markServicePulling(service.id, false);
+    }
+  }
+
+  const existingContainer = await findServiceContainer(service);
+  if (existingContainer) {
+    try {
+      await existingContainer.stop({ t: 2 });
+    } catch {
+      // ignore
+    }
+    try {
+      await existingContainer.remove({ force: true });
+    } catch {
+      // ignore
+    }
+  }
+
+  const containerName = `buttler-service-${service.id}`;
+  try {
+    const byName = docker.getContainer(containerName);
+    await byName.remove({ force: true });
+  } catch {
+    // ignore
+  }
+
+  if (service.volumes && service.volumes.length > 0) {
+    for (const vol of service.volumes) {
+      try {
+        await docker.createVolume({ Name: vol.name });
+      } catch {
+        // ignore
+      }
+    }
+  }
+
+  const portBindings: Record<string, { HostPort: string }[]> = {};
+  const exposedPorts: Record<string, object> = {};
+  for (const p of service.ports ?? []) {
+    portBindings[`${p.internal}/tcp`] = [{ HostPort: String(p.external) }];
+    exposedPorts[`${p.internal}/tcp`] = {};
+  }
+
+  const env = (service.environmentVariables ?? []).map(e => `${e.key}=${e.value}`);
+  const binds = (service.volumes ?? []).map(v => `${v.name}:${v.containerPath}`);
+
+  const container = await docker.createContainer({
+    name: containerName,
+    Image: imageTag,
+    Labels: {
+      [BUTTLER_SERVICE_LABEL]: service.id,
+      "com.docker.compose.project": "buttler",
+    },
+    Env: env,
+    HostConfig: {
+      Binds: binds,
+      PortBindings: portBindings,
+      RestartPolicy: {
+        Name: "always",
+      },
+    },
+    ExposedPorts: exposedPorts,
+    Tty: true,
+  });
+
+  await container.start();
+}
+
+export async function stopServiceContainer(service: ServiceRef): Promise<void> {
   const container = await findServiceContainer(service);
   if (!container) {
-    throw new Error(`No container found for service ${service.id}`);
+    try {
+      const byName = docker.getContainer(`buttler-service-${service.id}`);
+      await byName.remove({ force: true });
+    } catch {
+      // ignore
+    }
+    return;
   }
   try {
-    await container.start();
+    await container.stop({ t: 10 });
   } catch (err: unknown) {
     const error = err as { statusCode?: number };
-    if (error.statusCode !== 304) {
+    if (error.statusCode !== 304 && error.statusCode !== 404) {
+      // ignore
+    }
+  }
+  try {
+    await container.remove({ force: true });
+  } catch (err: unknown) {
+    const error = err as { statusCode?: number };
+    if (error.statusCode !== 404) {
       throw err;
     }
   }
 }
 
-export async function stopServiceContainer(service: { id: string, name?: string, type?: string }): Promise<void> {
-  const container = await findServiceContainer(service);
-  if (!container) {
-    throw new Error(`No container found for service ${service.id}`);
+export async function restartServiceContainer(service: ServiceRef): Promise<void> {
+  if (service.type === "system" && service.name === "Reverse Proxy Server") {
+    const { provisionReverseProxy } = await import("~/core/nginx");
+    await provisionReverseProxy();
+    return;
   }
-  try {
-    await container.stop();
-  } catch (err: unknown) {
-    const error = err as { statusCode?: number };
-    if (error.statusCode !== 304) {
-      throw err;
-    }
-  }
-}
-
-export async function restartServiceContainer(service: { id: string, name?: string, type?: string }): Promise<void> {
-  const container = await findServiceContainer(service);
-  if (!container) {
-    if (service.type === "system" && service.name === "Reverse Proxy Server") {
-      const { provisionReverseProxy } = await import("~/core/nginx");
-      await provisionReverseProxy();
-      return;
-    }
-    throw new Error(`No container found for service ${service.id}`);
-  }
-  await container.restart();
+  await stopServiceContainer(service);
+  await startServiceContainer(service);
 }
