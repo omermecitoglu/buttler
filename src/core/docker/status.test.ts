@@ -9,7 +9,9 @@ import {
   getServiceRuntimeState,
   getServicesRuntimeStates,
   isServiceBuilding,
+  isServicePulling,
   markServiceBuilding,
+  markServicePulling,
   matchContainerForService,
   parseContainerRuntimeStatus,
   restartServiceContainer,
@@ -22,20 +24,33 @@ const mockContainer = {
   start: vi.fn(),
   stop: vi.fn(),
   restart: vi.fn(),
+  remove: vi.fn(),
+};
+
+const mockImage = {
+  inspect: vi.fn(),
 };
 
 const mockDocker = {
   listContainers: vi.fn(),
   getContainer: vi.fn((_id: string) => mockContainer),
+  createContainer: vi.fn().mockResolvedValue(mockContainer),
+  createVolume: vi.fn().mockResolvedValue({}),
+  getImage: vi.fn((_name: string) => mockImage),
 };
 
+const mockPullImage = vi.fn();
 const mockProvisionReverseProxy = vi.fn();
 
 vi.mock("~/core/docker", () => ({
   docker: {
     listContainers: (...args: unknown[]) => mockDocker.listContainers(...args),
     getContainer: (...args: unknown[]) => mockDocker.getContainer(...args as [string]),
+    createContainer: (...args: unknown[]) => mockDocker.createContainer(...args),
+    createVolume: (...args: unknown[]) => mockDocker.createVolume(...args),
+    getImage: (...args: unknown[]) => mockDocker.getImage(...args as [string]),
   },
+  pullImage: (...args: unknown[]) => mockPullImage(...args),
 }));
 
 vi.mock("~/core/nginx", () => ({
@@ -46,6 +61,9 @@ describe("Docker status aggregator", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     markServiceBuilding("srv-building", false);
+    markServiceBuilding("srv-b", false);
+    markServicePulling("srv-pulling", false);
+    markServicePulling("srv-p", false);
   });
 
   describe("Building tracker", () => {
@@ -55,6 +73,16 @@ describe("Docker status aggregator", () => {
       expect(isServiceBuilding("srv-1")).toBe(true);
       markServiceBuilding("srv-1", false);
       expect(isServiceBuilding("srv-1")).toBe(false);
+    });
+  });
+
+  describe("Pulling tracker", () => {
+    it("tracks pulling status accurately", () => {
+      expect(isServicePulling("srv-1")).toBe(false);
+      markServicePulling("srv-1", true);
+      expect(isServicePulling("srv-1")).toBe(true);
+      markServicePulling("srv-1", false);
+      expect(isServicePulling("srv-1")).toBe(false);
     });
   });
 
@@ -178,6 +206,14 @@ describe("Docker status aggregator", () => {
   });
 
   describe("createServiceRuntimeState", () => {
+    it("creates state for pulling service", () => {
+      markServicePulling("srv-p", true);
+      const state = createServiceRuntimeState("srv-p", { Id: "c-p", Names: ["/pull"] } as Docker.ContainerInfo);
+      expect(state.status).toBe("pulling");
+      expect(state.containerId).toBe("c-p");
+      expect(state.containerName).toBe("pull");
+    });
+
     it("creates state for building service", () => {
       markServiceBuilding("srv-b", true);
       const state = createServiceRuntimeState("srv-b", { Id: "c-b", Names: ["/build"] } as Docker.ContainerInfo);
@@ -274,11 +310,11 @@ describe("Docker status aggregator", () => {
       expect(found).toBeNull();
     });
 
-    it("startServiceContainer starts found container", async () => {
+    it("startServiceContainer starts found container for custom non-dockerhub service", async () => {
       mockDocker.listContainers.mockResolvedValue([
         { Id: "c-start", Labels: { [BUTTLER_SERVICE_LABEL]: "srv-s" } },
       ]);
-      await startServiceContainer({ id: "srv-s" });
+      await startServiceContainer({ id: "srv-s", type: "custom" });
       expect(mockContainer.start).toHaveBeenCalled();
     });
 
@@ -288,57 +324,93 @@ describe("Docker status aggregator", () => {
       expect(mockProvisionReverseProxy).toHaveBeenCalled();
     });
 
-    it("startServiceContainer ignores 304 already started", async () => {
-      mockDocker.listContainers.mockResolvedValue([
-        { Id: "c-start", Labels: { [BUTTLER_SERVICE_LABEL]: "srv-s" } },
-      ]);
-      mockContainer.start.mockRejectedValue({ statusCode: 304 });
-      await expect(startServiceContainer({ id: "srv-s" })).resolves.not.toThrow();
-    });
-
-    it("startServiceContainer throws if container not found", async () => {
+    it("startServiceContainer creates and starts container for dockerhub service", async () => {
       mockDocker.listContainers.mockResolvedValue([]);
-      await expect(startServiceContainer({ id: "srv-none" })).rejects.toThrow("No container found for service srv-none");
+      mockImage.inspect.mockResolvedValue({});
+      await startServiceContainer({
+        id: "srv-dh",
+        type: "dockerhub",
+        repository: "redis",
+        branch: "alpine",
+        ports: [{ external: 6379, internal: 6379 }],
+        environmentVariables: [{ key: "A", value: "B" }],
+        volumes: [{ name: "vol1", containerPath: "/data" }],
+      });
+      expect(mockDocker.createVolume).toHaveBeenCalledWith({ Name: "vol1" });
+      expect(mockDocker.createContainer).toHaveBeenCalledWith(expect.objectContaining({
+        name: "buttler-service-srv-dh",
+        Image: "redis:alpine",
+        Labels: expect.objectContaining({
+          [BUTTLER_SERVICE_LABEL]: "srv-dh",
+        }),
+      }));
+      expect(mockContainer.start).toHaveBeenCalled();
     });
 
-    it("stopServiceContainer stops found container", async () => {
+    it("startServiceContainer pulls image if not present locally", async () => {
+      mockDocker.listContainers.mockResolvedValue([]);
+      mockImage.inspect.mockRejectedValueOnce({ statusCode: 404 });
+      mockPullImage.mockResolvedValue({});
+      await startServiceContainer({
+        id: "srv-pull",
+        type: "dockerhub",
+        repository: "postgres",
+        branch: "15",
+      });
+      expect(mockPullImage).toHaveBeenCalledWith("postgres:15");
+      expect(mockContainer.start).toHaveBeenCalled();
+    });
+
+    it("startServiceContainer throws if no image specified for dockerhub service", async () => {
+      await expect(startServiceContainer({ id: "srv-empty", type: "dockerhub", repository: "" }))
+        .rejects.toThrow("No Docker Hub image specified for service srv-empty");
+    });
+
+    it("startServiceContainer throws for github service", async () => {
+      await expect(startServiceContainer({ id: "srv-gh", type: "github" }))
+        .rejects.toThrow("GitHub build pipeline is not yet implemented");
+    });
+
+    it("startServiceContainer throws if non-dockerhub container not found", async () => {
+      mockDocker.listContainers.mockResolvedValue([]);
+      await expect(startServiceContainer({ id: "srv-none", type: "custom" }))
+        .rejects.toThrow("No container found for service srv-none");
+    });
+
+    it("stopServiceContainer stops and removes found container", async () => {
       mockDocker.listContainers.mockResolvedValue([
         { Id: "c-stop", Labels: { [BUTTLER_SERVICE_LABEL]: "srv-stop" } },
       ]);
       await stopServiceContainer({ id: "srv-stop" });
-      expect(mockContainer.stop).toHaveBeenCalled();
+      expect(mockContainer.stop).toHaveBeenCalledWith({ t: 10 });
+      expect(mockContainer.remove).toHaveBeenCalledWith({ force: true });
     });
 
-    it("stopServiceContainer ignores 304 already stopped", async () => {
-      mockDocker.listContainers.mockResolvedValue([
-        { Id: "c-stop", Labels: { [BUTTLER_SERVICE_LABEL]: "srv-stop" } },
-      ]);
-      mockContainer.stop.mockRejectedValue({ statusCode: 304 });
-      await expect(stopServiceContainer({ id: "srv-stop" })).resolves.not.toThrow();
-    });
-
-    it("stopServiceContainer throws if container not found", async () => {
+    it("stopServiceContainer is a no-op if container not found", async () => {
       mockDocker.listContainers.mockResolvedValue([]);
-      await expect(stopServiceContainer({ id: "srv-none" })).rejects.toThrow("No container found for service srv-none");
+      await expect(stopServiceContainer({ id: "srv-none" })).resolves.not.toThrow();
     });
 
-    it("restartServiceContainer restarts found container", async () => {
-      mockDocker.listContainers.mockResolvedValue([
-        { Id: "c-restart", Labels: { [BUTTLER_SERVICE_LABEL]: "srv-r" } },
-      ]);
-      await restartServiceContainer({ id: "srv-r" });
-      expect(mockContainer.restart).toHaveBeenCalled();
-    });
-
-    it("restartServiceContainer provisions reverse proxy if not found and system service", async () => {
+    it("restartServiceContainer provisions reverse proxy if system service", async () => {
       mockDocker.listContainers.mockResolvedValue([]);
       await restartServiceContainer({ id: "srv-proxy", type: "system", name: "Reverse Proxy Server" });
       expect(mockProvisionReverseProxy).toHaveBeenCalled();
     });
 
-    it("restartServiceContainer throws if not found and normal service", async () => {
-      mockDocker.listContainers.mockResolvedValue([]);
-      await expect(restartServiceContainer({ id: "srv-none" })).rejects.toThrow("No container found for service srv-none");
+    it("restartServiceContainer restarts container by stopping and starting", async () => {
+      mockDocker.listContainers.mockResolvedValue([
+        { Id: "c-restart", Labels: { [BUTTLER_SERVICE_LABEL]: "srv-r" } },
+      ]);
+      mockImage.inspect.mockResolvedValue({});
+      await restartServiceContainer({
+        id: "srv-r",
+        type: "dockerhub",
+        repository: "redis",
+      });
+      expect(mockContainer.stop).toHaveBeenCalled();
+      expect(mockContainer.remove).toHaveBeenCalled();
+      expect(mockDocker.createContainer).toHaveBeenCalled();
+      expect(mockContainer.start).toHaveBeenCalled();
     });
   });
 });
