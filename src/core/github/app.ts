@@ -173,29 +173,33 @@ export async function getAllAppInstallationTokens(): Promise<AppInstallationToke
     return [];
   }
 
-  const jwt = generateAppJwt(appId, privateKey);
-  const installations = await getAppInstallations(jwt);
+  try {
+    const jwt = generateAppJwt(appId, privateKey);
+    const installations = await getAppInstallations(jwt);
 
-  const results: AppInstallationTokenInfo[] = [];
-  for (const inst of installations) {
-    try {
-      const { token } = await getInstallationAccessToken({
-        appId,
-        privateKey,
-        installationId: inst.id,
-      });
-      results.push({
-        installationId: inst.id,
-        accountLogin: inst.account.login,
-        accountType: inst.account.type,
-        token,
-      });
-    } catch {
-      // Continue if an individual installation fails
+    const results: AppInstallationTokenInfo[] = [];
+    for (const inst of installations) {
+      try {
+        const { token } = await getInstallationAccessToken({
+          appId,
+          privateKey,
+          installationId: inst.id,
+        });
+        results.push({
+          installationId: inst.id,
+          accountLogin: inst.account.login,
+          accountType: inst.account.type,
+          token,
+        });
+      } catch {
+        // Continue if an individual installation fails
+      }
     }
-  }
 
-  return results;
+    return results;
+  } catch {
+    return [];
+  }
 }
 
 export async function getInstallationTokenForOwner(owner: string): Promise<string | null> {
