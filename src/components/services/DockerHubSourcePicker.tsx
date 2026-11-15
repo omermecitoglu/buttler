@@ -143,7 +143,7 @@ const DockerHubSourcePicker = ({
         </div>
         <Input
           id="docker-image-input"
-          placeholder="e.g. redis, library/nginx, bitnami/postgresql"
+          placeholder="e.g. redis, nginx, postgres"
           value={image}
           onChange={handleImageChange}
           disabled={disabled}
