@@ -88,3 +88,121 @@ export async function getInstallationAccessToken(options: GetInstallationAccessT
 export function getAuthenticatedCloneUrl(repoUrl: string, token: string): string {
   return repoUrl.replace(/^https:\/\/(?:[^@]+@)?/, `https://x-access-token:${token}@`);
 }
+
+export type GitHubAppInstallation = {
+  id: number,
+  account: {
+    login: string,
+    id: number,
+    avatarUrl?: string,
+    type: string,
+  },
+  appId: number,
+  targetType: string,
+  repositorySelection: "all" | "selected",
+};
+
+export async function getAppInstallations(jwt: string): Promise<GitHubAppInstallation[]> {
+  const response = await githubFetch<{
+    id: number,
+    account: {
+      login: string,
+      id: number,
+      avatar_url?: string,
+      type: string,
+    },
+    app_id: number,
+    target_type: string,
+    repository_selection: "all" | "selected",
+  }[]>("/app/installations", jwt);
+
+  return response.data.map(item => ({
+    id: item.id,
+    account: {
+      login: item.account.login,
+      id: item.account.id,
+      avatarUrl: item.account.avatar_url,
+      type: item.account.type,
+    },
+    appId: item.app_id,
+    targetType: item.target_type,
+    repositorySelection: item.repository_selection,
+  }));
+}
+
+export async function getAppInstallationToken(installationId?: string | number): Promise<string | null> {
+  const { getSetting, setSetting } = await import("~/core/settings");
+  const appId = await getSetting("github_app_id");
+  const privateKey = await getSetting("github_private_key");
+  if (!appId || !privateKey) {
+    return null;
+  }
+
+  let targetId = installationId ? String(installationId) : await getSetting("github_installation_id");
+  if (!targetId) {
+    const jwt = generateAppJwt(appId, privateKey);
+    const installations = await getAppInstallations(jwt);
+    if (!installations.length) {
+      return null;
+    }
+    targetId = String(installations[0].id);
+    await setSetting("github_installation_id", targetId);
+  }
+
+  const { token } = await getInstallationAccessToken({
+    appId,
+    privateKey,
+    installationId: targetId,
+  });
+
+  return token;
+}
+
+export type AppInstallationTokenInfo = {
+  installationId: number,
+  accountLogin: string,
+  accountType: string,
+  token: string,
+};
+
+export async function getAllAppInstallationTokens(): Promise<AppInstallationTokenInfo[]> {
+  const { getSetting } = await import("~/core/settings");
+  const appId = await getSetting("github_app_id");
+  const privateKey = await getSetting("github_private_key");
+  if (!appId || !privateKey) {
+    return [];
+  }
+
+  const jwt = generateAppJwt(appId, privateKey);
+  const installations = await getAppInstallations(jwt);
+
+  const results: AppInstallationTokenInfo[] = [];
+  for (const inst of installations) {
+    try {
+      const { token } = await getInstallationAccessToken({
+        appId,
+        privateKey,
+        installationId: inst.id,
+      });
+      results.push({
+        installationId: inst.id,
+        accountLogin: inst.account.login,
+        accountType: inst.account.type,
+        token,
+      });
+    } catch {
+      // Continue if an individual installation fails
+    }
+  }
+
+  return results;
+}
+
+export async function getInstallationTokenForOwner(owner: string): Promise<string | null> {
+  const tokens = await getAllAppInstallationTokens();
+  const matched = tokens.find(t => t.accountLogin.toLowerCase() === owner.toLowerCase());
+  if (matched) {
+    return matched.token;
+  }
+  return tokens[0]?.token ?? null;
+}

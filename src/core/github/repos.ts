@@ -221,3 +221,83 @@ export async function getRepositories(
 
 export const getUserRepositories = getRepositories;
 export const getRepos = getRepositories;
+
+export type GitHubBranch = {
+  name: string,
+  protected: boolean,
+  sha?: string,
+};
+
+export type GetRepositoryBranchesOptions = {
+  perPage?: number,
+  per_page?: number,
+  page?: number,
+  protected?: boolean,
+};
+
+export async function getRepositoryBranches(
+  token: string,
+  owner: string,
+  repo: string,
+  options: GetRepositoryBranchesOptions = {},
+): Promise<GitHubBranch[]> {
+  const perPage = options.perPage ?? options.per_page ?? 100;
+  const page = options.page ?? 1;
+  const searchParams = new URLSearchParams();
+  searchParams.set("per_page", String(perPage));
+  searchParams.set("page", String(page));
+  if (options.protected !== undefined) {
+    searchParams.set("protected", String(options.protected));
+  }
+
+  const { data } = await githubFetch<{
+    name: string,
+    protected: boolean,
+    commit?: { sha: string, url: string },
+  }[]>(`/repos/${owner}/${repo}/branches?${searchParams.toString()}`, token);
+
+  return data.map(branch => ({
+    name: branch.name,
+    protected: branch.protected,
+    sha: branch.commit?.sha,
+  }));
+}
+
+export type InstallationRepositoriesResponse = {
+  totalCount: number,
+  total_count: number,
+  repositorySelection?: "all" | "selected",
+  repository_selection?: "all" | "selected",
+  repositories: GitHubRepository[],
+};
+
+export type GetInstallationRepositoriesOptions = {
+  perPage?: number,
+  per_page?: number,
+  page?: number,
+};
+
+export async function getInstallationRepositories(
+  token: string,
+  options: GetInstallationRepositoriesOptions = {},
+): Promise<InstallationRepositoriesResponse> {
+  const perPage = options.perPage ?? options.per_page ?? 100;
+  const page = options.page ?? 1;
+  const searchParams = new URLSearchParams();
+  searchParams.set("per_page", String(perPage));
+  searchParams.set("page", String(page));
+
+  const { data } = await githubFetch<{
+    total_count: number,
+    repository_selection?: "all" | "selected",
+    repositories: GitHubRepositoryApiResponse[],
+  }>(`/installation/repositories?${searchParams.toString()}`, token);
+
+  return {
+    totalCount: data.total_count,
+    total_count: data.total_count,
+    repositorySelection: data.repository_selection,
+    repository_selection: data.repository_selection,
+    repositories: data.repositories.map(formatRepository),
+  };
+}
