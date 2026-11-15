@@ -1,6 +1,5 @@
 import "server-only";
 import { cacheTag } from "next/cache";
-import { serviceCT, serviceIdsCT } from "~/core/cache";
 import { type ServiceRuntimeState, getServiceRuntimeState, getServicesRuntimeStates } from "~/core/docker/status";
 import db from "~/database";
 import type { ServiceDTO } from "~/models/service";
@@ -13,7 +12,7 @@ export type ServiceWithRuntime = Awaited<ReturnType<typeof getServices>>[number]
 
 export async function getAllServices() {
   "use cache";
-  cacheTag(serviceIdsCT());
+  cacheTag("getAllServices()");
   return await getServices(db);
 }
 
@@ -28,7 +27,8 @@ export async function getServicesWithLiveStatus(): Promise<ServiceWithRuntime[]>
 
 export async function getSingleService(serviceId: ServiceDTO["id"]) {
   "use cache";
-  cacheTag(serviceCT(serviceId));
+  cacheTag(`getSingleService(${serviceId})`);
+  cacheTag("getSingleService(...)");
   const item = await getService(db, serviceId);
   if (!item) throw new Error(`Service not found (${serviceId})`);
   return item;
