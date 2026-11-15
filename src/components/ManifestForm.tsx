@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import Button from "~/components/ui/button";
 import Input from "~/components/ui/input";
@@ -7,16 +8,10 @@ import Label from "~/components/ui/label";
 
 type ManifestFormProps = {
   publicOrigin?: string,
-  labels: {
-    appNameLabel: string,
-    organizationLabel: string,
-    organizationPlaceholder: string,
-    organizationHelp: string,
-    submit: string,
-  },
 };
 
-const ManifestForm = ({ publicOrigin, labels }: ManifestFormProps) => {
+const ManifestForm = ({ publicOrigin }: ManifestFormProps) => {
+  const t = useTranslations("InstallPage.manifest");
   const [origin, setOrigin] = useState(publicOrigin ?? "");
   const [appName, setAppName] = useState("Buttler");
   const [organization, setOrganization] = useState("");
@@ -59,7 +54,7 @@ const ManifestForm = ({ publicOrigin, labels }: ManifestFormProps) => {
         value={JSON.stringify(manifest)}
       />
       <div className="space-y-1.5">
-        <Label htmlFor="appName">{labels.appNameLabel}</Label>
+        <Label htmlFor="appName">{t("appNameLabel")}</Label>
         <Input
           id="appName"
           name="appName"
@@ -71,21 +66,21 @@ const ManifestForm = ({ publicOrigin, labels }: ManifestFormProps) => {
         />
       </div>
       <div className="space-y-1.5">
-        <Label htmlFor="organization">{labels.organizationLabel}</Label>
+        <Label htmlFor="organization">{t("organizationLabel")}</Label>
         <Input
           id="organization"
           name="organization"
           type="text"
           value={organization}
           onChange={e => setOrganization(e.target.value)}
-          placeholder={labels.organizationPlaceholder}
+          placeholder={t("organizationPlaceholder")}
         />
         <p className="text-xs text-slate-500">
-          {labels.organizationHelp}
+          {t("organizationHelp")}
         </p>
       </div>
       <Button type="submit" size="md" className="w-full">
-        {labels.submit}
+        {t("submit")}
       </Button>
     </form>
   );

@@ -21,16 +21,6 @@ const ServicesList = async () => {
     uptime: t("service.uptime"),
     none: t("service.none"),
     notAvailable: t("service.notAvailable"),
-    actions: {
-      start: t("service.actions.start"),
-      stop: t("service.actions.stop"),
-      restart: t("service.actions.restart"),
-      logs: t("service.actions.logs"),
-      details: t("service.actions.details"),
-      starting: t("service.actions.starting"),
-      stopping: t("service.actions.stopping"),
-      restarting: t("service.actions.restarting"),
-    },
     status: {
       running: t("service.status.running"),
       stopped: t("service.status.stopped"),
@@ -43,16 +33,6 @@ const ServicesList = async () => {
       dockerhub: t("service.types.dockerhub"),
       system: t("service.types.system"),
     },
-  };
-
-  const logsLabels = {
-    title: t("logsModal.title"),
-    close: t("logsModal.close"),
-    copy: t("logsModal.copy"),
-    copied: t("logsModal.copied"),
-    loading: t("logsModal.loading"),
-    empty: t("logsModal.empty"),
-    error: t("logsModal.error"),
   };
 
   if (services.length === 0) {
@@ -74,7 +54,6 @@ const ServicesList = async () => {
           key={service.id}
           service={service}
           labels={cardLabels}
-          logsLabels={logsLabels}
         />
       ))}
     </div>

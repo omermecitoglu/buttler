@@ -7,31 +7,19 @@ import { faRotateRight } from "@fortawesome/free-solid-svg-icons/faRotateRight";
 import { faSpinner } from "@fortawesome/free-solid-svg-icons/faSpinner";
 import { faStop } from "@fortawesome/free-solid-svg-icons/faStop";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 import { restartService, startService, stopService } from "~/actions/service";
-import LogsModal, { type LogsModalLabels } from "~/components/LogsModal";
+import LogsModal from "~/components/LogsModal";
 import Button from "~/components/ui/button";
 import type { ContainerRuntimeStatus } from "~/core/docker/status";
 import { Link } from "~/i18n/navigation";
-
-export type ServiceActionLabels = {
-  start: string,
-  stop: string,
-  restart: string,
-  logs: string,
-  details: string,
-  starting: string,
-  stopping: string,
-  restarting: string,
-};
 
 export type ServiceActionsProps = {
   serviceId: string,
   serviceName: string,
   status: ContainerRuntimeStatus,
   containerId: string | null,
-  labels: ServiceActionLabels,
-  logsLabels: LogsModalLabels,
 };
 
 const ServiceActions = ({
@@ -39,9 +27,8 @@ const ServiceActions = ({
   serviceName,
   status,
   containerId,
-  labels,
-  logsLabels,
 }: ServiceActionsProps) => {
+  const t = useTranslations("DashboardPage.service.actions");
   const [isPending, startTransition] = useTransition();
   const [pendingAction, setPendingAction] = useState<"start" | "stop" | "restart" | null>(null);
   const [logsOpen, setLogsOpen] = useState(false);
@@ -98,7 +85,7 @@ const ServiceActions = ({
                 icon={pendingAction === "stop" ? faSpinner : faStop}
                 className={pendingAction === "stop" ? "size-3 animate-spin text-rose-400" : "size-3 text-rose-400"}
               />
-              <span>{pendingAction === "stop" ? labels.stopping : labels.stop}</span>
+              <span>{pendingAction === "stop" ? t("stopping") : t("stop")}</span>
             </Button>
             <Button
               size="xs"
@@ -111,7 +98,7 @@ const ServiceActions = ({
                 icon={pendingAction === "restart" ? faSpinner : faRotateRight}
                 className={pendingAction === "restart" ? "size-3 animate-spin text-slate-400" : "size-3 text-slate-400"}
               />
-              <span>{pendingAction === "restart" ? labels.restarting : labels.restart}</span>
+              <span>{pendingAction === "restart" ? t("restarting") : t("restart")}</span>
             </Button>
           </>
         ) : (
@@ -126,7 +113,7 @@ const ServiceActions = ({
               icon={pendingAction === "start" ? faSpinner : faPlay}
               className={pendingAction === "start" ? "size-3 animate-spin text-emerald-400" : "size-3 text-emerald-400"}
             />
-            <span>{pendingAction === "start" ? labels.starting : labels.start}</span>
+            <span>{pendingAction === "start" ? t("starting") : t("start")}</span>
           </Button>
         )}
         {containerId && (
@@ -137,14 +124,14 @@ const ServiceActions = ({
             className="gap-1.5 text-slate-400 hover:text-slate-200"
           >
             <FontAwesomeIcon icon={faFileLines} className="size-3 text-slate-500" />
-            <span>{labels.logs}</span>
+            <span>{t("logs")}</span>
           </Button>
         )}
         <Link
           href={{ pathname: "/services/[serviceId]", params: { serviceId } }}
           className="ml-auto inline-flex items-center gap-1 text-xs font-medium text-slate-400 transition-colors hover:text-slate-100"
         >
-          <span>{labels.details}</span>
+          <span>{t("details")}</span>
           <FontAwesomeIcon icon={faArrowRight} className="size-2.5" />
         </Link>
       </div>
@@ -153,7 +140,6 @@ const ServiceActions = ({
         onOpenChange={setLogsOpen}
         containerId={containerId}
         serviceName={serviceName}
-        labels={logsLabels}
       />
     </>
   );

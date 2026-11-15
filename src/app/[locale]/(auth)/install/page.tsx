@@ -17,15 +17,7 @@ export default async function(_page: PageProps<"/[locale]/install">) {
           {t("description")}
         </p>
       </div>
-      <ManifestForm
-        labels={{
-          appNameLabel: t("manifest.appNameLabel"),
-          organizationLabel: t("manifest.organizationLabel"),
-          organizationPlaceholder: t("manifest.organizationPlaceholder"),
-          organizationHelp: t("manifest.organizationHelp"),
-          submit: t("manifest.submit"),
-        }}
-      />
+      <ManifestForm />
       <div className="relative my-6">
         <div className="absolute inset-0 flex items-center">
           <div className="w-full border-t border-slate-800" />

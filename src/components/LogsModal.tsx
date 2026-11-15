@@ -9,25 +9,15 @@ import { faXmark } from "@fortawesome/free-solid-svg-icons/faXmark";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { AnimatedPopup, DialogBackdrop, DialogTitle } from "@omer-x/tailwind-ui-kit/dialog";
 import { cn } from "@omer-x/tailwind-ui-kit/utils";
+import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import Button from "~/components/ui/button";
-
-export type LogsModalLabels = {
-  title: string,
-  close: string,
-  copy: string,
-  copied: string,
-  loading: string,
-  empty: string,
-  error: string,
-};
 
 export type LogsModalProps = {
   open: boolean,
   onOpenChange: (open: boolean) => void,
   containerId: string | null,
   serviceName: string,
-  labels: LogsModalLabels,
 };
 
 const LogsModal = ({
@@ -35,8 +25,8 @@ const LogsModal = ({
   onOpenChange,
   containerId,
   serviceName,
-  labels,
 }: LogsModalProps) => {
+  const t = useTranslations("DashboardPage.logsModal");
   const [logs, setLogs] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -64,9 +54,9 @@ const LogsModal = ({
           setLoading(false);
         }
       })
-      .catch(err => {
+      .catch((err: unknown) => {
         if (active) {
-          setError(err instanceof Error ? err.message : labels.error);
+          setError(err instanceof Error ? err.message : "Failed to load logs");
           setLoading(false);
         }
       });
@@ -74,19 +64,27 @@ const LogsModal = ({
     return () => {
       active = false;
     };
-  }, [open, containerId, labels.error]);
+  }, [open, containerId]);
 
   const handleCopy = async () => {
     if (!logs) return;
-    await navigator.clipboard.writeText(logs);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    try {
+      await navigator.clipboard.writeText(logs);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Ignore clipboard error
+    }
   };
 
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
-        <Dialog.Backdrop render={<DialogBackdrop />} />
+        <Dialog.Backdrop
+          render={(
+            <DialogBackdrop className="fixed inset-0 bg-black/60 backdrop-blur-xs" />
+          )}
+        />
         <Dialog.Popup
           render={(
             <AnimatedPopup
@@ -103,7 +101,7 @@ const LogsModal = ({
               <DialogTitle className="text-base font-semibold text-slate-100">
                 {serviceName}
                 {" — "}
-                <span className="font-normal text-slate-400">{labels.title}</span>
+                <span className="font-normal text-slate-400">{t("title")}</span>
               </DialogTitle>
             </div>
             <div className="flex items-center gap-2">
@@ -115,14 +113,14 @@ const LogsModal = ({
                   className="gap-1.5"
                 >
                   <FontAwesomeIcon icon={copied ? faCheck : faCopy} className="size-3 text-slate-400" />
-                  <span>{copied ? labels.copied : labels.copy}</span>
+                  <span>{copied ? t("copied") : t("copy")}</span>
                 </Button>
               )}
               <Button
                 size="xs"
                 variant="ghost"
                 onClick={() => onOpenChange(false)}
-                aria-label={labels.close}
+                aria-label={t("close")}
                 className="size-7 p-0"
               >
                 <FontAwesomeIcon icon={faXmark} className="size-3.5" />
@@ -133,7 +131,7 @@ const LogsModal = ({
             {loading && (
               <div className="flex h-72 items-center justify-center gap-2 text-sm text-slate-400">
                 <FontAwesomeIcon icon={faSpinner} className="size-4 animate-spin text-slate-400" />
-                <span>{labels.loading}</span>
+                <span>{t("loading")}</span>
               </div>
             )}
             {!loading && error && (
@@ -143,7 +141,7 @@ const LogsModal = ({
             )}
             {!loading && !error && !logs && (
               <div className="flex h-72 items-center justify-center text-sm text-slate-500">
-                <span>{labels.empty}</span>
+                <span>{t("empty")}</span>
               </div>
             )}
             {!loading && !error && logs && (

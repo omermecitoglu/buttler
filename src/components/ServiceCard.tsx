@@ -1,13 +1,12 @@
 import { faNetworkWired } from "@fortawesome/free-solid-svg-icons/faNetworkWired";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import ServiceActions, { type ServiceActionLabels } from "~/components/ServiceActions";
+import ServiceActions from "~/components/ServiceActions";
 import ServiceTypeBadge from "~/components/ServiceTypeBadge";
 import StatusBadge from "~/components/StatusBadge";
 import Card from "~/components/ui/card";
 import type { ContainerRuntimeStatus } from "~/core/docker/status";
 import type { ServiceWithRuntime } from "~/data/services";
 import { Link } from "~/i18n/navigation";
-import type { LogsModalLabels } from "./LogsModal";
 
 export type ServiceCardProps = {
   service: ServiceWithRuntime,
@@ -18,17 +17,14 @@ export type ServiceCardProps = {
     uptime: string,
     none: string,
     notAvailable: string,
-    actions: ServiceActionLabels,
     status: Record<ContainerRuntimeStatus, string>,
     types: Record<"github" | "dockerhub" | "system", string>,
   },
-  logsLabels: LogsModalLabels,
 };
 
 const ServiceCard = ({
   service,
   labels,
-  logsLabels,
 }: ServiceCardProps) => {
   const sourceText = service.repository
     ? `${service.repository}${service.branch ? `:${service.branch}` : ""}`
@@ -110,8 +106,6 @@ const ServiceCard = ({
           serviceName={service.name}
           status={service.runtime.status}
           containerId={service.runtime.containerId}
-          labels={labels.actions}
-          logsLabels={logsLabels}
         />
       </div>
     </Card>
