@@ -12,3 +12,8 @@ const nextConfig: NextConfig = {
   // ...
 };
 ```
+
+## Form Server Actions
+
+- All form-based server actions must use `@omer-x/next-form-actions`.
+
