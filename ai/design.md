@@ -43,7 +43,7 @@ npm install tailwindcss @omer-x/tailwind-ui-kit@alpha @base-ui/react clsx tailwi
 - Do not add custom color rules to `tailwind.config` or `globals.css`—apply classes directly on components.
 - **No barrel exports**: Do not create `index.ts` re-export files in `components/ui`. Always use direct, explicit file imports (e.g. `import Button from "~/components/ui/button"`) to avoid bundler issues.
 - **Default exports only**: Use single default exports (`export default Component;`) for UI components, avoiding dual named exports.
-- **Component Naming & Location**: Component names are always PascalCase, including the file names (e.g. `ManifestForm.tsx`). Never put components inside route folders in `src/app/`; place custom components in `src/components/`.
+- **Component Naming & Location**: Component names are always PascalCase, including the file names (e.g. `GitHubSourcePicker.tsx`). Never put components directly in the root of `src/components/` or inside route folders in `src/app/`. Organize components by purpose in subdirectories: `src/components/{purpose}/{ComponentName}.tsx` (e.g. `src/components/services/GitHubSourcePicker.tsx`). Primitives remain in `src/components/ui/`.
 
 ### 3. Purposeful Color Scales (Refactoring UI Principles)
 - Base primary brand colors and semantic accents (success, warning, danger, info) on cohesive 100–900 scales.
