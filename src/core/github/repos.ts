@@ -301,3 +301,28 @@ export async function getInstallationRepositories(
     repositories: data.repositories.map(formatRepository),
   };
 }
+
+export async function getUserInstallationRepositories(userToken: string): Promise<GitHubRepository[]> {
+  const { data: installationsData } = await githubFetch<{
+    total_count: number,
+    installations: { id: number, app_id?: number }[],
+  }>("/user/installations", userToken);
+
+  const repos: GitHubRepository[] = [];
+  for (const inst of installationsData.installations) {
+    try {
+      const { data: reposData } = await githubFetch<{
+        total_count: number,
+        repositories: GitHubRepositoryApiResponse[],
+      }>(`/user/installations/${inst.id}/repositories?per_page=100`, userToken);
+
+      for (const r of reposData.repositories) {
+        repos.push(formatRepository(r));
+      }
+    } catch {
+      // Continue with other installations if one fails
+    }
+  }
+
+  return repos;
+}
