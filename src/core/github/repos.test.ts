@@ -5,7 +5,6 @@ import {
   getRepos,
   getRepositories,
   getRepositoryBranches,
-  getUserInstallationRepositories,
   getUserRepositories,
 } from "./repos";
 
@@ -211,36 +210,5 @@ describe("getInstallationRepositories", () => {
     expect(result.totalCount).toBe(1);
     expect(result.repositorySelection).toBe("selected");
     expect(result.repositories[0].fullName).toBe("omermecitoglu/buttler");
-  });
-});
-
-describe("getUserInstallationRepositories", () => {
-  afterEach(() => {
-    vi.restoreAllMocks();
-  });
-
-  it("should fetch repositories only from user's app installations", async () => {
-    vi.spyOn(client, "githubFetch")
-      .mockResolvedValueOnce({
-        status: 200,
-        headers: new Headers(),
-        data: {
-          total_count: 1,
-          installations: [{ id: 456, app_id: 123 }],
-        },
-      })
-      .mockResolvedValueOnce({
-        status: 200,
-        headers: new Headers(),
-        data: {
-          total_count: 1,
-          repositories: [mockRawRepo1],
-        },
-      });
-
-    const repos = await getUserInstallationRepositories("fake-user-token");
-
-    expect(repos).toHaveLength(1);
-    expect(repos[0].fullName).toBe("omermecitoglu/buttler");
   });
 });
