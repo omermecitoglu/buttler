@@ -1,6 +1,5 @@
 import { getInstallationTokenForOwner } from "~/core/github/app";
 import { getRepositoryBranches } from "~/core/github/repos";
-import { getSession } from "~/core/session";
 import type { NextRequest } from "next/server";
 
 export async function GET(request: NextRequest) {
@@ -15,11 +14,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    let token = await getInstallationTokenForOwner(owner);
-    if (!token) {
-      const session = await getSession();
-      token = session.githubToken ?? null;
-    }
+    const token = await getInstallationTokenForOwner(owner);
 
     if (!token) {
       return Response.json({ error: "GitHub token unavailable.", branches: [] }, { status: 400 });
