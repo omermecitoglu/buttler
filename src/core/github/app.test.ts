@@ -1,6 +1,6 @@
 import { generateKeyPairSync } from "node:crypto";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { generateAppJwt, getAuthenticatedCloneUrl, getInstallationAccessToken } from "./app";
+import { generateAppJwt, getAuthenticatedCloneUrl, getGitHubAppMetadata, getInstallationAccessToken } from "./app";
 import * as client from "./client";
 
 function makeRsaPrivateKey() {
@@ -179,5 +179,88 @@ describe("getAuthenticatedCloneUrl", () => {
       "ghs_abc",
     );
     expect(result).toBe("https://x-access-token:ghs_abc@github.com/owner/repo");
+  });
+});
+
+describe("getGitHubAppMetadata", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("should return null if appId or privateKey is not configured", async () => {
+    vi.doMock("~/core/settings", () => ({
+      getSetting: vi.fn().mockResolvedValue(null),
+      setSetting: vi.fn().mockResolvedValue(undefined),
+    }));
+
+    const result = await getGitHubAppMetadata();
+    expect(result).toBeNull();
+  });
+
+  it("should return cached metadata if github_app_slug is configured", async () => {
+    vi.doMock("~/core/settings", () => ({
+      getSetting: vi.fn((key: string) => {
+        if (key === "github_app_id") return Promise.resolve("12345");
+        if (key === "github_private_key") return Promise.resolve(makeRsaPrivateKey());
+        if (key === "github_app_slug") return Promise.resolve("my-buttler-app");
+        return Promise.resolve(null);
+      }),
+      setSetting: vi.fn().mockResolvedValue(undefined),
+    }));
+
+    const result = await getGitHubAppMetadata();
+    expect(result).toEqual({
+      id: 12345,
+      slug: "my-buttler-app",
+      htmlUrl: "https://github.com/apps/my-buttler-app",
+      installationUrl: "https://github.com/apps/my-buttler-app/installations/new",
+    });
+  });
+
+  it("should fetch metadata from GitHub and save slug when not cached", async () => {
+    const setSettingMock = vi.fn().mockResolvedValue(undefined);
+    vi.doMock("~/core/settings", () => ({
+      getSetting: vi.fn((key: string) => {
+        if (key === "github_app_id") return Promise.resolve("12345");
+        if (key === "github_private_key") return Promise.resolve(makeRsaPrivateKey());
+        return Promise.resolve(null);
+      }),
+      setSetting: setSettingMock,
+    }));
+
+    vi.spyOn(client, "githubFetch").mockResolvedValueOnce({
+      status: 200,
+      headers: new Headers(),
+      data: {
+        id: 12345,
+        slug: "fetched-buttler-app",
+        html_url: "https://github.com/apps/fetched-buttler-app",
+      },
+    });
+
+    const result = await getGitHubAppMetadata();
+    expect(result).toEqual({
+      id: 12345,
+      slug: "fetched-buttler-app",
+      htmlUrl: "https://github.com/apps/fetched-buttler-app",
+      installationUrl: "https://github.com/apps/fetched-buttler-app/installations/new",
+    });
+    expect(setSettingMock).toHaveBeenCalledWith("github_app_slug", "fetched-buttler-app");
+  });
+
+  it("should return null if GitHub API fetch fails", async () => {
+    vi.doMock("~/core/settings", () => ({
+      getSetting: vi.fn((key: string) => {
+        if (key === "github_app_id") return Promise.resolve("12345");
+        if (key === "github_private_key") return Promise.resolve(makeRsaPrivateKey());
+        return Promise.resolve(null);
+      }),
+      setSetting: vi.fn().mockResolvedValue(undefined),
+    }));
+
+    vi.spyOn(client, "githubFetch").mockRejectedValueOnce(new Error("API failure"));
+
+    const result = await getGitHubAppMetadata();
+    expect(result).toBeNull();
   });
 });
