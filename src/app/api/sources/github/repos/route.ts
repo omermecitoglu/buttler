@@ -1,4 +1,4 @@
-import { getAllAppInstallationTokens } from "~/core/github/app";
+import { getAllAppInstallationTokens, getGitHubAppMetadata } from "~/core/github/app";
 import { getInstallationRepositories } from "~/core/github/repos";
 
 export type SourceRepository = {
@@ -12,10 +12,24 @@ export type SourceRepository = {
 
 export async function GET() {
   try {
-    const installationTokens = await getAllAppInstallationTokens();
+    const [
+      installationTokens,
+      appMetadata,
+    ] = await Promise.all([
+      getAllAppInstallationTokens(),
+      getGitHubAppMetadata(),
+    ]);
+
+    const installationUrl = appMetadata?.installationUrl ?? null;
+    const manageUrl = "https://github.com/settings/installations";
 
     if (installationTokens.length === 0) {
-      return Response.json({ error: "GitHub App is not connected.", repositories: [] }, { status: 400 });
+      return Response.json({
+        isConnected: false,
+        installationUrl,
+        manageUrl,
+        repositories: [],
+      });
     }
 
     const allRepos: SourceRepository[] = [];
@@ -40,7 +54,12 @@ export async function GET() {
 
     allRepos.sort((a, b) => a.fullName.localeCompare(b.fullName));
 
-    return Response.json({ repositories: allRepos });
+    return Response.json({
+      isConnected: true,
+      installationUrl,
+      manageUrl,
+      repositories: allRepos,
+    });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to fetch repositories.";
     return Response.json({ error: message, repositories: [] }, { status: 500 });

@@ -5,6 +5,7 @@ type ManifestConversionResponse = {
   id: number,
   client_id: string,
   client_secret: string,
+  slug?: string,
   pem?: string,
   webhook_secret?: string,
 };
@@ -35,6 +36,7 @@ export async function GET(request: Request) {
       setSetting("github_app_id", String(data.id)),
       setSetting("github_client_id", data.client_id),
       setSetting("github_client_secret", data.client_secret),
+      ...(data.slug ? [setSetting("github_app_slug", data.slug)] : []),
       ...(data.pem ? [setSetting("github_private_key", data.pem)] : []),
       ...(data.webhook_secret ? [setSetting("github_webhook_secret", data.webhook_secret)] : []),
       setSetting("installed", "true"),

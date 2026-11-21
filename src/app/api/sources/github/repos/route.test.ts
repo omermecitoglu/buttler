@@ -11,6 +11,12 @@ describe("GET /api/sources/github/repos", () => {
     vi.spyOn(appCore, "getAllAppInstallationTokens").mockResolvedValueOnce([
       { installationId: 1, accountLogin: "acme", accountType: "Organization", token: "tok_1" },
     ]);
+    vi.spyOn(appCore, "getGitHubAppMetadata").mockResolvedValueOnce({
+      id: 1,
+      slug: "buttler",
+      htmlUrl: "https://github.com/apps/buttler",
+      installationUrl: "https://github.com/apps/buttler/installations/new",
+    });
 
     const mockRepo = {
       id: 101,
@@ -64,17 +70,28 @@ describe("GET /api/sources/github/repos", () => {
     const res = await GET();
     const json = await res.json();
     expect(res.status).toBe(200);
+    expect(json.isConnected).toBe(true);
+    expect(json.installationUrl).toBe("https://github.com/apps/buttler/installations/new");
+    expect(json.manageUrl).toBe("https://github.com/settings/installations");
     expect(json.repositories).toHaveLength(1);
     expect(json.repositories[0].fullName).toBe("acme/frontend");
   });
 
-  it("should return 400 when app is not connected or has no installations", async () => {
+  it("should return isConnected: false when app has no installations", async () => {
     vi.spyOn(appCore, "getAllAppInstallationTokens").mockResolvedValueOnce([]);
+    vi.spyOn(appCore, "getGitHubAppMetadata").mockResolvedValueOnce({
+      id: 1,
+      slug: "buttler",
+      htmlUrl: "https://github.com/apps/buttler",
+      installationUrl: "https://github.com/apps/buttler/installations/new",
+    });
 
     const res = await GET();
     const json = await res.json();
-    expect(res.status).toBe(400);
-    expect(json.error).toBe("GitHub App is not connected.");
+    expect(res.status).toBe(200);
+    expect(json.isConnected).toBe(false);
+    expect(json.installationUrl).toBe("https://github.com/apps/buttler/installations/new");
+    expect(json.manageUrl).toBe("https://github.com/settings/installations");
     expect(json.repositories).toEqual([]);
   });
 

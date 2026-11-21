@@ -210,3 +210,53 @@ export async function getInstallationTokenForOwner(owner: string): Promise<strin
   }
   return tokens[0]?.token ?? null;
 }
+
+export type GitHubAppMetadata = {
+  id: number,
+  slug: string,
+  htmlUrl: string,
+  installationUrl: string,
+};
+
+export async function getGitHubAppMetadata(): Promise<GitHubAppMetadata | null> {
+  const { getSetting, setSetting } = await import("~/core/settings");
+  const appId = await getSetting("github_app_id");
+  const privateKey = await getSetting("github_private_key");
+  if (!appId || !privateKey) {
+    return null;
+  }
+
+  const cachedSlug = await getSetting("github_app_slug");
+  if (cachedSlug) {
+    const htmlUrl = `https://github.com/apps/${cachedSlug}`;
+    return {
+      id: Number(appId),
+      slug: cachedSlug,
+      htmlUrl,
+      installationUrl: `${htmlUrl}/installations/new`,
+    };
+  }
+
+  try {
+    const jwt = generateAppJwt(appId, privateKey);
+    const response = await githubFetch<{
+      id: number,
+      slug: string,
+      html_url: string,
+    }>("/app", jwt);
+
+    const { id, slug, html_url: htmlUrl } = response.data;
+    if (slug) {
+      await setSetting("github_app_slug", slug);
+    }
+    const finalHtmlUrl = htmlUrl || `https://github.com/apps/${slug}`;
+    return {
+      id,
+      slug,
+      htmlUrl: finalHtmlUrl,
+      installationUrl: `${finalHtmlUrl}/installations/new`,
+    };
+  } catch {
+    return null;
+  }
+}

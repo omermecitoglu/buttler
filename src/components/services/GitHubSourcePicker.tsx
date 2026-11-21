@@ -1,10 +1,15 @@
 "use client";
 import { faGithub } from "@fortawesome/free-brands-svg-icons/faGithub";
+import { faArrowUpRightFromSquare } from "@fortawesome/free-solid-svg-icons/faArrowUpRightFromSquare";
+import { faArrowsRotate } from "@fortawesome/free-solid-svg-icons/faArrowsRotate";
+import { faCircleExclamation } from "@fortawesome/free-solid-svg-icons/faCircleExclamation";
 import { faCodeBranch } from "@fortawesome/free-solid-svg-icons/faCodeBranch";
 import { faSpinner } from "@fortawesome/free-solid-svg-icons/faSpinner";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { cn } from "@omer-x/tailwind-ui-kit/utils";
-import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
+import { useCallback, useEffect, useState } from "react";
+import Button from "~/components/ui/button";
 import Label from "~/components/ui/label";
 
 export type GitHubRepoItem = {
@@ -40,6 +45,8 @@ const GitHubSourcePicker = ({
   disabled = false,
   className,
 }: GitHubSourcePickerProps) => {
+  const t = useTranslations("NewServicePage.githubSource");
+
   const [repositories, setRepositories] = useState<GitHubRepoItem[]>([]);
   const [branches, setBranches] = useState<string[]>([]);
   const [currentRepo, setCurrentRepo] = useState<string>(controlledRepo ?? "");
@@ -47,39 +54,48 @@ const GitHubSourcePicker = ({
   const [isLoadingRepos, setIsLoadingRepos] = useState<boolean>(true);
   const [isLoadingBranches, setIsLoadingBranches] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isConnected, setIsConnected] = useState<boolean>(true);
+  const [installationUrl, setInstallationUrl] = useState<string | null>(null);
+  const [manageUrl, setManageUrl] = useState<string | null>(null);
 
-  // Fetch installed repositories on mount
-  useEffect(() => {
-    let isCancelled = false;
-    async function loadRepositories() {
-      setIsLoadingRepos(true);
-      setErrorMessage(null);
-      try {
-        const response = await fetch("/api/sources/github/repos");
-        if (!response.ok) {
-          const data = await response.json().catch(() => ({}));
-          throw new Error(data.error || "Failed to load repositories.");
-        }
-        const data = await response.json();
-        if (!isCancelled) {
-          setRepositories(data.repositories || []);
-        }
-      } catch (err) {
-        if (!isCancelled) {
-          setErrorMessage(err instanceof Error ? err.message : "Failed to load repositories.");
-        }
-      } finally {
-        if (!isCancelled) {
-          setIsLoadingRepos(false);
-        }
+  const loadRepositories = useCallback(async () => {
+    setIsLoadingRepos(true);
+    setErrorMessage(null);
+    try {
+      const response = await fetch("/api/sources/github/repos");
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error || "Failed to load repositories.");
       }
+      const data = await response.json();
+      setIsConnected(data.isConnected ?? true);
+      setInstallationUrl(data.installationUrl ?? null);
+      setManageUrl(data.manageUrl ?? null);
+      setRepositories(data.repositories || []);
+    } catch (err) {
+      setErrorMessage(err instanceof Error ? err.message : "Failed to load repositories.");
+    } finally {
+      setIsLoadingRepos(false);
     }
-
-    loadRepositories();
-    return () => {
-      isCancelled = true;
-    };
   }, []);
+
+  // Fetch repositories on mount
+  useEffect(() => {
+    void loadRepositories();
+  }, [loadRepositories]);
+
+  // Refetch repositories when returning to window focus if disconnected
+  useEffect(() => {
+    const handleFocus = () => {
+      if (!isConnected) {
+        void loadRepositories();
+      }
+    };
+    window.addEventListener("focus", handleFocus);
+    return () => {
+      window.removeEventListener("focus", handleFocus);
+    };
+  }, [isConnected, loadRepositories]);
 
   // Update currentRepo when controlled prop changes
   useEffect(() => {
@@ -165,56 +181,119 @@ const GitHubSourcePicker = ({
         <div className="flex items-center justify-between">
           <Label htmlFor="github-repo-select" className="flex items-center gap-1.5">
             <FontAwesomeIcon icon={faGithub} className="text-slate-400" />
-            GitHub Repository
+            {t("repoLabel")}
           </Label>
           {isLoadingRepos && (
             <span className="flex items-center gap-1 text-xs text-slate-400">
               <FontAwesomeIcon icon={faSpinner} spin className="text-xs" />
-              Loading repositories...
+              {t("loadingRepos")}
             </span>
           )}
         </div>
         {errorMessage ? (
-          <div className="rounded-md border border-rose-800/60 bg-rose-950/40 px-3 py-2 text-xs text-rose-300">
-            {errorMessage}
+          <div className="flex items-center justify-between rounded-md border border-rose-800/60 bg-rose-950/40 px-3 py-2 text-xs text-rose-300">
+            <span>{errorMessage}</span>
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              onClick={loadRepositories}
+              className="text-xs text-rose-300 hover:text-rose-100"
+            >
+              <FontAwesomeIcon icon={faArrowsRotate} className="size-3" />
+            </Button>
+          </div>
+        ) : !isConnected ? (
+          <div className="rounded-lg border border-amber-800/60 bg-amber-950/20 p-4 space-y-3">
+            <div className="flex items-start gap-3">
+              <FontAwesomeIcon icon={faCircleExclamation} className="size-5 text-amber-400 mt-0.5 shrink-0" />
+              <div className="space-y-1">
+                <h3 className="text-sm font-medium text-amber-200">
+                  {t("notConnected.title")}
+                </h3>
+                <p className="text-xs text-amber-300/80 leading-relaxed">
+                  {t("notConnected.description")}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 pt-1">
+              {installationUrl && (
+                <a
+                  href={installationUrl}
+                  target="_blank"
+                  rel="noreferrer noopener"
+                >
+                  <Button type="button" size="sm" variant="primary" className="gap-1.5 text-xs">
+                    <FontAwesomeIcon icon={faArrowUpRightFromSquare} className="size-3" />
+                    <span>{t("notConnected.installButton")}</span>
+                  </Button>
+                </a>
+              )}
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                onClick={loadRepositories}
+                disabled={isLoadingRepos}
+                className="gap-1.5 text-xs"
+              >
+                <FontAwesomeIcon icon={faArrowsRotate} spin={isLoadingRepos} className="size-3" />
+                <span>{t("notConnected.refreshButton")}</span>
+              </Button>
+            </div>
           </div>
         ) : (
-          <select
-            id="github-repo-select"
-            value={currentRepo}
-            onChange={handleRepoChange}
-            disabled={disabled || isLoadingRepos || repositories.length === 0}
-            className={selectClassName}
-          >
-            <option value="" disabled>
-              {isLoadingRepos
-                ? "Loading available repositories..."
-                : repositories.length === 0
-                  ? "No repositories accessible to GitHub App"
-                  : "Select a repository..."}
-            </option>
-            {repositories.map(repo => (
-              <option key={repo.id} value={repo.fullName}>
-                {repo.fullName}
-                {" "}
-                {repo.private ? "(Private)" : ""}
+          <>
+            <select
+              id="github-repo-select"
+              value={currentRepo}
+              onChange={handleRepoChange}
+              disabled={disabled || isLoadingRepos || repositories.length === 0}
+              className={selectClassName}
+            >
+              <option value="" disabled>
+                {isLoadingRepos
+                  ? t("loadingReposPlaceholder")
+                  : repositories.length === 0
+                    ? t("noRepos")
+                    : t("selectRepo")}
               </option>
-            ))}
-          </select>
+              {repositories.map(repo => (
+                <option key={repo.id} value={repo.fullName}>
+                  {repo.fullName}
+                  {" "}
+                  {repo.private ? `(${t("privateBadge")})` : ""}
+                </option>
+              ))}
+            </select>
+            {manageUrl && (
+              <div className="flex items-center justify-end pt-1">
+                <a
+                  href={manageUrl}
+                  target="_blank"
+                  rel="noreferrer noopener"
+                  className="inline-flex items-center gap-1.5 text-xs text-slate-400 hover:text-slate-200 transition-colors"
+                >
+                  <span>{t("manageAccess")}</span>
+                  <FontAwesomeIcon icon={faArrowUpRightFromSquare} className="size-2.5" />
+                </a>
+              </div>
+            )}
+          </>
         )}
       </div>
       {/* Branch Selection (Shown when repository is selected) */}
-      {currentRepo && (
+      {currentRepo && isConnected && (
         <div className="space-y-1.5">
           <div className="flex items-center justify-between">
             <Label htmlFor="github-branch-select" className="flex items-center gap-1.5">
               <FontAwesomeIcon icon={faCodeBranch} className="text-slate-400" />
-              Deployment Branch
+              {t("branchLabel")}
             </Label>
             {isLoadingBranches && (
               <span className="flex items-center gap-1 text-xs text-slate-400">
                 <FontAwesomeIcon icon={faSpinner} spin className="text-xs" />
-                Loading branches...
+                {t("loadingBranches")}
               </span>
             )}
           </div>
@@ -226,7 +305,7 @@ const GitHubSourcePicker = ({
             className={selectClassName}
           >
             <option value="" disabled>
-              {isLoadingBranches ? "Loading branches..." : "Select a branch..."}
+              {isLoadingBranches ? t("loadingBranches") : t("selectBranch")}
             </option>
             {branches.map(branch => (
               <option key={branch} value={branch}>
