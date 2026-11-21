@@ -107,6 +107,24 @@
       "github": "GitHub",
       "dockerhub": "Docker Hub"
     },
+    "githubSource": {
+      "repoLabel": "GitHub Repository",
+      "branchLabel": "Deployment Branch",
+      "loadingRepos": "Loading repositories...",
+      "loadingBranches": "Loading branches...",
+      "selectRepo": "Select a repository...",
+      "selectBranch": "Select a branch...",
+      "noRepos": "No repositories accessible to GitHub App",
+      "loadingReposPlaceholder": "Loading available repositories...",
+      "notConnected": {
+        "title": "GitHub App not connected",
+        "description": "The GitHub App is not installed on any account or organization. Connect or install the app to deploy repositories.",
+        "installButton": "Install GitHub App",
+        "refreshButton": "Refresh"
+      },
+      "manageAccess": "Can't find your repository? Configure repository access on GitHub",
+      "privateBadge": "Private"
+    },
     "generalSection": {
       "title": "General Settings",
       "nameLabel": "Service Name",
