@@ -260,4 +260,3 @@ export async function getGitHubAppMetadata(): Promise<GitHubAppMetadata | null> 
     return null;
   }
 }
-
