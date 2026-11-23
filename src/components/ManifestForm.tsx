@@ -15,6 +15,7 @@ const ManifestForm = ({ publicOrigin }: ManifestFormProps) => {
   const [origin, setOrigin] = useState(publicOrigin ?? "");
   const [appName, setAppName] = useState("Buttler");
   const [organization, setOrganization] = useState("");
+  const [isPublic, setIsPublic] = useState(false);
 
   useEffect(() => {
     if (!origin && typeof window !== "undefined") {
@@ -37,7 +38,7 @@ const ManifestForm = ({ publicOrigin }: ManifestFormProps) => {
       metadata: "read",
     },
     default_events: ["push"],
-    public: false,
+    public: isPublic,
   };
 
   const formAction = organization.trim()
@@ -79,6 +80,21 @@ const ManifestForm = ({ publicOrigin }: ManifestFormProps) => {
         />
         <p className="text-xs text-slate-500">
           {t("organizationHelp")}
+        </p>
+      </div>
+      <div className="space-y-1.5">
+        <div className="flex items-center gap-2">
+          <input
+            id="isPublic"
+            type="checkbox"
+            checked={isPublic}
+            onChange={e => setIsPublic(e.target.checked)}
+            className="size-4 rounded border-slate-700 bg-slate-900 accent-slate-400"
+          />
+          <Label htmlFor="isPublic">{t("publicLabel")}</Label>
+        </div>
+        <p className="text-xs text-slate-500">
+          {t("publicHelp")}
         </p>
       </div>
       <Button type="submit" size="md" className="w-full">
