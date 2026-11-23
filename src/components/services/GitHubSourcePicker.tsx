@@ -79,8 +79,16 @@ const GitHubSourcePicker = ({
     }
   }, []);
 
-  // Fetch repositories on mount
+  // Fetch repositories on mount. GitHub redirects back here with
+  // installation_id/setup_action after an install or access update; the
+  // repositories are already fresh, so just strip the params from the URL.
   useEffect(() => {
+    const url = new URL(window.location.href);
+    if (url.searchParams.has("installation_id")) {
+      url.searchParams.delete("installation_id");
+      url.searchParams.delete("setup_action");
+      window.history.replaceState(window.history.state, "", url);
+    }
     void loadRepositories();
   }, [loadRepositories]);
 
@@ -205,9 +213,7 @@ const GitHubSourcePicker = ({
             </div>
             <div className="flex items-center gap-2 pt-1">
               {installationUrl && (
-                <a
-                  href={installationUrl}
-                >
+                <a href={installationUrl}>
                   <Button type="button" size="sm" variant="primary" className="gap-1.5 text-xs">
                     <FontAwesomeIcon icon={faArrowUpRightFromSquare} className="size-3" />
                     <span>{t("notConnected.installButton")}</span>
