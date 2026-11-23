@@ -2,7 +2,7 @@
 
 import { cn } from "@omer-x/tailwind-ui-kit/utils";
 import { useTranslations } from "next-intl";
-import { type ChangeEvent, useActionState, useState } from "react";
+import { type ChangeEvent, useActionState, useEffect, useState } from "react";
 import { type InstallState, installApp } from "~/actions/install";
 import Button from "~/components/ui/button";
 import Input from "~/components/ui/input";
@@ -10,13 +10,26 @@ import Label from "~/components/ui/label";
 
 const initialState: InstallState = {};
 
-const ManualInstallForm = () => {
+type ManualInstallFormProps = {
+  publicOrigin?: string,
+};
+
+const ManualInstallForm = ({ publicOrigin }: ManualInstallFormProps) => {
   const t = useTranslations("InstallPage.manual");
+  const [origin, setOrigin] = useState(publicOrigin ?? "");
   const [state, formAction, pending] = useActionState(installApp, initialState);
   const [appId, setAppId] = useState("");
   const [privateKey, setPrivateKey] = useState("");
   const [clientSecret, setClientSecret] = useState("");
   const [webhookSecret, setWebhookSecret] = useState("");
+
+  useEffect(() => {
+    if (!origin && typeof window !== "undefined") {
+      setOrigin(window.location.origin);
+    }
+  }, [origin]);
+
+  const setupUrl = `${origin}/services/new`;
 
   const handlePrivateKeyFile = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -27,6 +40,22 @@ const ManualInstallForm = () => {
 
   return (
     <form action={formAction} className="space-y-4">
+      <div className="space-y-1.5 rounded-md border border-slate-800 bg-slate-900/60 p-3">
+        <p className="text-xs leading-relaxed text-slate-400">
+          {t.rich("setupUrlHint", {
+            strong: chunks => <strong className="font-medium text-slate-200">{chunks}</strong>,
+          })}
+        </p>
+        <Input
+          id="setupUrl"
+          type="text"
+          value={setupUrl}
+          readOnly
+          onFocus={e => e.target.select()}
+          aria-label={t("setupUrlLabel")}
+          className="font-mono text-xs"
+        />
+      </div>
       <div className="space-y-1.5">
         <Label htmlFor="appId">{t("appIdLabel")}</Label>
         <Input

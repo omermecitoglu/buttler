@@ -32,6 +32,8 @@
       "submit": "Create GitHub App"
     },
     "manual": {
+      "setupUrlHint": "In your GitHub App settings (General → Post installation), set <strong>Setup URL</strong> to the address below and enable <strong>Redirect on update</strong>. Otherwise GitHub won't send you back to Buttler after installation.",
+      "setupUrlLabel": "Setup URL",
       "appIdLabel": "GitHub App ID",
       "appIdPlaceholder": "e.g. 123456",
       "privateKeyLabel": "Private Key",
