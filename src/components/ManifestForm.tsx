@@ -30,6 +30,7 @@ const ManifestForm = ({ publicOrigin }: ManifestFormProps) => {
     },
     redirect_url: `${origin}/auth/github-install`,
     setup_url: `${origin}/services/new`,
+    setup_on_update: true,
     callback_urls: [`${origin}/auth/github`],
     default_permissions: {
       contents: "read",
