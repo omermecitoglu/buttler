@@ -1,6 +1,6 @@
 import { generateKeyPairSync } from "node:crypto";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { generateAppJwt, getAuthenticatedCloneUrl, getGitHubAppMetadata, getInstallationAccessToken } from "./app";
+import { generateAppJwt, getAuthenticatedCloneUrl, getGitHubApp, getGitHubAppMetadata, getInstallationAccessToken } from "./app";
 import * as client from "./client";
 
 function makeRsaPrivateKey() {
@@ -262,5 +262,40 @@ describe("getGitHubAppMetadata", () => {
 
     const result = await getGitHubAppMetadata();
     expect(result).toBeNull();
+  });
+});
+
+describe("getGitHubApp", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("should call /app with an app JWT and map the response", async () => {
+    vi.spyOn(client, "githubFetch").mockResolvedValueOnce({
+      status: 200,
+      headers: new Headers(),
+      data: {
+        id: 123,
+        slug: "my-buttler",
+        client_id: "Iv1.abc",
+        html_url: "https://github.com/apps/my-buttler",
+      },
+    });
+
+    const result = await getGitHubApp("123", makeRsaPrivateKey());
+
+    expect(client.githubFetch).toHaveBeenCalledWith("/app", expect.any(String));
+    expect(result).toEqual({
+      id: 123,
+      slug: "my-buttler",
+      clientId: "Iv1.abc",
+      htmlUrl: "https://github.com/apps/my-buttler",
+    });
+  });
+
+  it("should propagate errors thrown by githubFetch", async () => {
+    vi.spyOn(client, "githubFetch").mockRejectedValueOnce(new Error("Bad credentials"));
+
+    await expect(getGitHubApp("1", makeRsaPrivateKey())).rejects.toThrow("Bad credentials");
   });
 });

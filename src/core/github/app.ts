@@ -260,3 +260,28 @@ export async function getGitHubAppMetadata(): Promise<GitHubAppMetadata | null> 
     return null;
   }
 }
+
+export type GitHubAppInfo = {
+  id: number,
+  slug: string,
+  clientId: string,
+  htmlUrl: string,
+};
+
+export async function getGitHubApp(appId: string | number, privateKey: string): Promise<GitHubAppInfo> {
+  const jwt = generateAppJwt(appId, privateKey);
+  const response = await githubFetch<{
+    id: number,
+    slug: string,
+    client_id: string,
+    html_url: string,
+  }>("/app", jwt);
+
+  const { id, slug, client_id: clientId, html_url: htmlUrl } = response.data;
+  return {
+    id,
+    slug,
+    clientId,
+    htmlUrl,
+  };
+}
