@@ -84,19 +84,6 @@ const GitHubSourcePicker = ({
     void loadRepositories();
   }, [loadRepositories]);
 
-  // Refetch repositories when returning to window focus if disconnected
-  useEffect(() => {
-    const handleFocus = () => {
-      if (!isConnected) {
-        void loadRepositories();
-      }
-    };
-    window.addEventListener("focus", handleFocus);
-    return () => {
-      window.removeEventListener("focus", handleFocus);
-    };
-  }, [isConnected, loadRepositories]);
-
   // Update currentRepo when controlled prop changes
   useEffect(() => {
     if (controlledRepo !== undefined) {
@@ -220,8 +207,6 @@ const GitHubSourcePicker = ({
               {installationUrl && (
                 <a
                   href={installationUrl}
-                  target="_blank"
-                  rel="noreferrer noopener"
                 >
                   <Button type="button" size="sm" variant="primary" className="gap-1.5 text-xs">
                     <FontAwesomeIcon icon={faArrowUpRightFromSquare} className="size-3" />
@@ -270,8 +255,6 @@ const GitHubSourcePicker = ({
               <div className="flex items-center justify-end pt-1">
                 <a
                   href={manageUrl}
-                  target="_blank"
-                  rel="noreferrer noopener"
                   className="inline-flex items-center gap-1.5 text-xs text-slate-400 hover:text-slate-200 transition-colors"
                 >
                   <span>{t("manageAccess")}</span>
