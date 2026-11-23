@@ -1,10 +1,7 @@
 import { getTranslations } from "next-intl/server";
-import { installApp } from "~/actions/install";
 import ManifestForm from "~/components/ManifestForm";
-import Button from "~/components/ui/button";
+import ManualInstallForm from "~/components/ManualInstallForm";
 import Card from "~/components/ui/card";
-import Input from "~/components/ui/input";
-import Label from "~/components/ui/label";
 
 export default async function(_page: PageProps<"/[locale]/install">) {
   const t = await getTranslations("InstallPage");
@@ -26,31 +23,7 @@ export default async function(_page: PageProps<"/[locale]/install">) {
           <span className="bg-slate-900 px-2 font-medium text-slate-500">{t("orManual")}</span>
         </div>
       </div>
-      <form action={installApp} className="space-y-4">
-        <div className="space-y-1.5">
-          <Label htmlFor="clientId">{t("manual.clientIdLabel")}</Label>
-          <Input
-            id="clientId"
-            name="clientId"
-            type="text"
-            placeholder={t("manual.clientIdPlaceholder")}
-          />
-        </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="clientSecret">{t("manual.clientSecretLabel")}</Label>
-          <Input
-            id="clientSecret"
-            name="clientSecret"
-            type="password"
-            placeholder={t("manual.clientSecretPlaceholder")}
-          />
-        </div>
-        <div className="pt-2">
-          <Button type="submit" variant="secondary" size="md" className="w-full">
-            {t("manual.submit")}
-          </Button>
-        </div>
-      </form>
+      <ManualInstallForm />
     </Card>
   );
 }
