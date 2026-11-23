@@ -27,6 +27,8 @@
       "organizationLabel": "GitHub Organization",
       "organizationPlaceholder": "e.g. acme-corp (optional)",
       "organizationHelp": "Leave blank to create the app under your personal account.",
+      "publicLabel": "Make the app public",
+      "publicHelp": "Public apps can be installed on any GitHub account or organization. Private apps can only be installed on the account that owns them.",
       "submit": "Create GitHub App"
     },
     "manual": {
