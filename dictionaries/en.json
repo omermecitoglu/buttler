@@ -30,11 +30,27 @@
       "submit": "Create GitHub App"
     },
     "manual": {
-      "clientIdLabel": "GitHub App Client ID",
-      "clientIdPlaceholder": "e.g. Iv1.abcdef123456",
+      "appIdLabel": "GitHub App ID",
+      "appIdPlaceholder": "e.g. 123456",
+      "privateKeyLabel": "Private Key",
+      "privateKeyPlaceholder": "-----BEGIN RSA PRIVATE KEY-----",
+      "privateKeyFileLabel": "Upload private key (.pem)",
+      "privateKeyHelp": "Paste the PEM contents or upload the .pem file generated in your GitHub App settings.",
       "clientSecretLabel": "GitHub App Client Secret",
       "clientSecretPlaceholder": "••••••••••••••••••••••••••••••••",
-      "submit": "Complete Installation"
+      "webhookSecretLabel": "Webhook Secret (optional)",
+      "webhookSecretPlaceholder": "Leave blank if webhooks are not configured",
+      "submit": "Complete Installation",
+      "submitting": "Verifying credentials…",
+      "errors": {
+        "invalidAppId": "App ID must be a number.",
+        "missingPrivateKey": "Please paste or upload the private key.",
+        "invalidPrivateKey": "The private key is not a valid PEM.",
+        "missingClientSecret": "Please enter the client secret.",
+        "invalidCredentials": "GitHub rejected the App ID and private key. Check that they belong to the same app.",
+        "appIdMismatch": "The private key belongs to a different GitHub App.",
+        "githubUnreachable": "Could not reach GitHub to verify the credentials. Please try again."
+      }
     }
   },
   "BaseLayout": {
