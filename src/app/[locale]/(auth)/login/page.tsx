@@ -3,6 +3,7 @@ import { faCircleExclamation } from "@fortawesome/free-solid-svg-icons/faCircleE
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { getPublicOrigin } from "@omer-x/next-utils";
 import ExternalLink from "next/link";
+import { connection } from "next/server";
 import { getTranslations } from "next-intl/server";
 import { Suspense } from "react";
 import Button from "~/components/ui/button";
@@ -16,11 +17,11 @@ const isKnownError = (val: unknown): val is KnownError => (
   val === "github" || val === "access_denied" || val === "not_allowed" || val === "missing_code"
 );
 
-async function LoginErrorMessage({
-  searchParams,
-}: {
+type LoginErrorMessageProps = {
   searchParams: Promise<{ error?: string }>,
-}) {
+};
+
+async function LoginErrorMessage({ searchParams }: LoginErrorMessageProps) {
   const { error } = await searchParams;
   const t = await getTranslations("LoginPage");
   if (!error) return null;
@@ -62,7 +63,9 @@ async function GitHubLoginButton({
   );
 }
 
-export default async function(page: PageProps<"/[locale]/login">) {
+async function LoginCard({ searchParams }: LoginErrorMessageProps) {
+  // The client ID is not known until the installation, which comes after the build
+  await connection();
   const [
     clientId,
     t,
@@ -102,11 +105,19 @@ export default async function(page: PageProps<"/[locale]/login">) {
         </p>
       </div>
       <Suspense fallback={null}>
-        <LoginErrorMessage searchParams={page.searchParams} />
+        <LoginErrorMessage searchParams={searchParams} />
       </Suspense>
       <Suspense fallback={<div className="h-12 w-full animate-pulse rounded-lg bg-slate-800" />}>
         <GitHubLoginButton clientId={clientId} label={t("continueWithGitHub")} />
       </Suspense>
     </Card>
+  );
+}
+
+export default function({ searchParams }: PageProps<"/[locale]/login">) {
+  return (
+    <Suspense fallback={<Card className="h-64 max-w-md animate-pulse" />}>
+      <LoginCard searchParams={searchParams} />
+    </Suspense>
   );
 }
