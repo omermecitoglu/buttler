@@ -94,12 +94,37 @@
         "start": "Start",
         "stop": "Stop",
         "restart": "Restart",
+        "rebuild": "Rebuild",
+        "redeploy": "Redeploy",
         "details": "Details",
         "starting": "Starting...",
         "pulling": "Pulling...",
         "building": "Building...",
         "stopping": "Stopping...",
-        "restarting": "Restarting..."
+        "restarting": "Restarting...",
+        "toasts": {
+          "pending": {
+            "start": "Starting the service...",
+            "stop": "Stopping the service...",
+            "restart": "Restarting the service...",
+            "rebuild": "Requesting a build...",
+            "redeploy": "Requesting a redeploy..."
+          },
+          "done": {
+            "started": "Service started",
+            "stopped": "Service stopped",
+            "restarted": "Service restarted",
+            "building": "Build started",
+            "pulling": "Pulling the image"
+          },
+          "failed": {
+            "start": "The service could not be started",
+            "stop": "The service could not be stopped",
+            "restart": "The service could not be restarted",
+            "rebuild": "The build could not be started",
+            "redeploy": "The service could not be redeployed"
+          }
+        }
       },
       "status": {
         "running": "Running",

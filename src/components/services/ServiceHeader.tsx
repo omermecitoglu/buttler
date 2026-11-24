@@ -47,7 +47,7 @@ const ServiceHeader = async ({ params }: ServiceHeaderProps) => {
           <StatusBadge status={status} label={t(`status.${status}`)} />
         </div>
       </div>
-      <ServiceActions serviceId={service.id} status={status} />
+      <ServiceActions serviceId={service.id} type={service.type} status={status} />
     </div>
   );
 };
