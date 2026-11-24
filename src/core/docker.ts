@@ -165,7 +165,7 @@ export async function createContainer(
       },
     },
     ExposedPorts: Object.fromEntries(Object.values(ports).map(port => [`${port}/tcp`, {}] as const)),
-    Tty: true,
+    Tty: false,
   });
   await Promise.all(networkIds.map(networkId => connectContainerToNetwork(container.id, networkId)));
   await container.start();

@@ -39,3 +39,4 @@ Logs are read live from Docker and never stored.
 - `/api/services/[id]/logs/stream` sends them as server-sent events. A message is a batch of lines, and its ID is the timestamp of the last line, so a reconnecting browser only receives the newer lines.
 - The stream ends with an `end` event when the container stops, or a `failure` event when the logs can't be read.
 - Docker only separates stdout and stderr for the containers without a TTY. The output of a container with a TTY is treated as stdout.
+- Buttler creates its containers without a TTY. The ones that were created with a TTY keep it until they are recreated.

@@ -375,6 +375,7 @@ describe("Docker status aggregator", () => {
         Labels: expect.objectContaining({
           [BUTTLER_SERVICE_LABEL]: "srv-dh",
         }),
+        Tty: false,
       }));
       expect(mockContainer.start).toHaveBeenCalled();
     });
