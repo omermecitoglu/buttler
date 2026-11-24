@@ -9,6 +9,7 @@ import createService from "./createService";
 import deleteDomain from "./deleteDomain";
 import deleteService from "./deleteService";
 import getService from "./getService";
+import getServicesWithDomains from "./getServicesWithDomains";
 
 const client = new DatabaseSync(":memory:");
 const db = drizzle({ client, relations });
@@ -36,6 +37,15 @@ describe("domain operations", () => {
       { hostname: "app.example.com", port: 3000 },
       { hostname: "www.example.com", port: 80 },
     ]);
+  });
+
+  it("should list each service with domains once", async () => {
+    const id = create("app");
+    create("other");
+    expect(await getServicesWithDomains(db)).toEqual([]);
+    await createDomain(db, { hostname: "www.example.com", serviceId: id, port: 80 });
+    await createDomain(db, { hostname: "app.example.com", serviceId: id, port: 80 });
+    expect(await getServicesWithDomains(db)).toEqual([id]);
   });
 
   it("should not add a hostname that is already taken", async () => {
