@@ -26,4 +26,6 @@ const nextConfig: NextConfig = {
 
 - Do not use server actions for fetching data; use API route handlers (`src/app/api/...`).
 
+## In-Memory State
 
+- Pages (with their server actions) and route handlers are bundled separately, so module-level variables are not shared between them. Use `getSharedState` (`src/core/shared-state.ts`) for in-memory state.

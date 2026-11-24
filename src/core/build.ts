@@ -15,10 +15,11 @@ import { getBuildArgs, getBuildSecrets } from "~/core/environment-variables";
 import { cloneRepo, deleteRepo, parseRepository } from "~/core/git";
 import { getInstallationTokenForOwner } from "~/core/github/app";
 import { createRedactor } from "~/core/redact";
+import { getSharedState } from "~/core/shared-state";
 import { getFilePath } from "~/core/storage";
 
-const runningBuilds = new Map<string, Promise<void>>();
-const queuedBuilds = new Map<string, Promise<void>>();
+const runningBuilds = getSharedState("running-builds", () => new Map<string, Promise<void>>());
+const queuedBuilds = getSharedState("queued-builds", () => new Map<string, Promise<void>>());
 
 export function getBuildLogPath(serviceId: string) {
   return getFilePath("logs/builds", `${serviceId}.log`);
