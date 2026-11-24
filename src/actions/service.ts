@@ -4,9 +4,11 @@ import { refresh, updateTag } from "next/cache";
 import { after } from "next/server";
 import z from "zod";
 import { requireUser } from "~/core/auth";
-import { findLatestImage, startBuilding } from "~/core/build";
+import { deleteBuildLog, findLatestImage, startBuilding } from "~/core/build";
+import { removeServiceContainers, removeServiceImages, removeVolumes } from "~/core/docker/removal";
 import {
   type ServiceRef,
+  getServiceRuntimeState,
   isImagePresentLocally,
   isServiceBuilding,
   isServicePulling,
@@ -22,9 +24,12 @@ import db from "~/database";
 import { redirect } from "~/i18n/navigation";
 import type { AppLocale } from "~/i18n/routing";
 import createService from "~/operations/createService";
+import deleteService from "~/operations/deleteService";
 import getDeployableService from "~/operations/getDeployableService";
 import getService from "~/operations/getService";
+import getSharedVolumes from "~/operations/getSharedVolumes";
 import updateService, { MissingSecretValueError } from "~/operations/updateService";
+import { adminMiddleware } from "./middlewares/admin";
 import { userMiddleware } from "./middlewares/user";
 
 function jsonField<T extends z.ZodType>(errorMessage: string, schema: T) {
@@ -126,6 +131,55 @@ export const updateServiceAction = defineFormAction({
     updateTag("getAllServices()");
     updateTag(`getSingleService(${serviceId})`);
     return {};
+  },
+});
+
+/** A build or a pull would deploy the service again after it's deleted */
+function isServiceBeingDeployed(serviceId: string) {
+  return isServiceBuilding(serviceId) || isServicePulling(serviceId);
+}
+
+/** The service itself is deleted last, so a deletion that fails can be tried again. Returns false if it's kept. */
+async function removeService({ id, volumes }: { id: string, volumes: { name: string }[] }, deleteVolumes: boolean) {
+  await removeServiceContainers(id);
+  await removeServiceImages(id);
+  if (deleteVolumes) {
+    const sharedVolumes = await getSharedVolumes(db, id);
+    await removeVolumes(volumes.map(volume => volume.name).filter(name => !sharedVolumes.includes(name)));
+  }
+  // A push may have started a build in the meantime
+  if (isServiceBeingDeployed(id)) return false;
+  await deleteService(db, id);
+  return true;
+}
+
+export const deleteServiceAction = defineFormAction({
+  middlewares: [adminMiddleware],
+  schema: z.object({
+    // Unchecked boxes are not submitted
+    deleteVolumes: z.literal("on").optional(),
+  }),
+  action: input => async (serviceId: string, locale: AppLocale): Promise<Record<string, string>> => {
+    const service = await getService(db, serviceId);
+    if (!service || service.type === "system") return displayMessage("error", "delete_failed");
+    const { status } = await getServiceRuntimeState(service);
+    if (status === "building" || status === "pulling") return displayMessage("error", "service_busy");
+    const isRemoved = await removeService(service, input.deleteVolumes === "on").catch((error: unknown) => {
+      // eslint-disable-next-line no-console
+      console.error(`Failed to delete service ${serviceId}:`, error);
+      return displayMessage("error", "delete_failed");
+    });
+    if (!isRemoved) return displayMessage("error", "service_busy");
+    try {
+      await deleteBuildLog(serviceId);
+    } catch (error) {
+      // The service is already gone, a leftover log must not look like a failure
+      // eslint-disable-next-line no-console
+      console.error(`Failed to delete the build log of service ${serviceId}:`, error);
+    }
+    updateTag("getAllServices()");
+    updateTag(`getSingleService(${serviceId})`);
+    return redirect({ locale, href: "/services" });
   },
 });
 
@@ -234,11 +288,6 @@ export async function create(_formData: FormData) {
 export async function update(_id: string, _: unknown, _formData: FormData): Promise<Record<string, string>> {
   await requireUser();
   return {};
-}
-
-export async function destroy(_id: string, _: FormData) {
-  await requireUser();
-  // Deprecated in v2
 }
 
 export async function start(_serviceId: string, _: FormData) {
