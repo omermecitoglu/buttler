@@ -1,18 +1,17 @@
 import Image from "next/image";
-import { connection } from "next/server";
 import { getTranslations } from "next-intl/server";
-import { getSession } from "~/core/session";
+import { getCurrentUser } from "~/core/auth";
 
 const CurrentUser = async () => {
-  await connection();
   const [
-    { user },
+    currentUser,
     t,
   ] = await Promise.all([
-    getSession(),
+    getCurrentUser(),
     getTranslations("BaseLayout"),
   ]);
 
+  const user = currentUser?.profile;
   if (!user) return null;
 
   return (
