@@ -1,3 +1,4 @@
+export * from "./domains";
 export * from "./environment-variables";
 export * from "./ports";
 export * from "./services";
