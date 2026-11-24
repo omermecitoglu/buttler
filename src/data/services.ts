@@ -1,5 +1,6 @@
 import "server-only";
 import { cacheTag } from "next/cache";
+import { type ServiceImage, listServiceImages } from "~/core/docker/builds";
 import { type ServiceRuntimeState, getServiceRuntimeState, getServicesRuntimeStates } from "~/core/docker/status";
 import db from "~/database";
 import type { ServiceDTO } from "~/models/service";
@@ -8,7 +9,19 @@ import getServices from "~/operations/getServices";
 
 export type ServiceWithRuntime = Awaited<ReturnType<typeof getServices>>[number] & {
   runtime: ServiceRuntimeState,
+  /** The image that is currently deployed, if it's built by Buttler */
+  deployedImage: ServiceImage | null,
 };
+
+async function getServiceImages() {
+  try {
+    return await listServiceImages();
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error("Failed to query Docker images:", error);
+    return [];
+  }
+}
 
 export async function getAllServices() {
   "use cache";
@@ -18,10 +31,17 @@ export async function getAllServices() {
 
 export async function getServicesWithLiveStatus(): Promise<ServiceWithRuntime[]> {
   const serviceList = await getAllServices();
-  const runtimeMap = await getServicesRuntimeStates(serviceList);
+  const [
+    runtimeMap,
+    images,
+  ] = await Promise.all([
+    getServicesRuntimeStates(serviceList),
+    getServiceImages(),
+  ]);
   return serviceList.map(service => ({
     ...service,
     runtime: runtimeMap[service.id],
+    deployedImage: images.find(image => image.id === runtimeMap[service.id].imageId) ?? null,
   }));
 }
 
@@ -36,10 +56,17 @@ export async function getSingleService(serviceId: ServiceDTO["id"]) {
 
 export async function getServiceWithLiveStatus(serviceId: ServiceDTO["id"]) {
   const item = await getSingleService(serviceId);
-  const runtime = await getServiceRuntimeState(item);
+  const [
+    runtime,
+    images,
+  ] = await Promise.all([
+    getServiceRuntimeState(item),
+    getServiceImages(),
+  ]);
   return {
     ...item,
     runtime,
+    deployedImage: images.find(image => image.id === runtime.imageId) ?? null,
   };
 }
 

@@ -79,6 +79,8 @@
       "ports": "Ports",
       "ipAddress": "IP Address",
       "uptime": "Uptime",
+      "deployedBuild": "Deployed build",
+      "builtAt": "Built at",
       "none": "None",
       "notAvailable": "N/A",
       "actions": {
