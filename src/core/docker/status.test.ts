@@ -41,6 +41,7 @@ const mockDocker = {
 
 const mockPullImage = vi.fn();
 const mockProvisionReverseProxy = vi.fn();
+const mockStartGitHubService = vi.fn();
 
 vi.mock("~/core/docker", () => ({
   docker: {
@@ -51,6 +52,10 @@ vi.mock("~/core/docker", () => ({
     getImage: (...args: unknown[]) => mockDocker.getImage(...args as [string]),
   },
   pullImage: (...args: unknown[]) => mockPullImage(...args),
+}));
+
+vi.mock("~/core/build", () => ({
+  startGitHubService: (...args: unknown[]) => mockStartGitHubService(...args),
 }));
 
 vi.mock("~/core/nginx", () => ({
@@ -366,9 +371,11 @@ describe("Docker status aggregator", () => {
         .rejects.toThrow("No Docker Hub image specified for service srv-empty");
     });
 
-    it("startServiceContainer throws for github service", async () => {
-      await expect(startServiceContainer({ id: "srv-gh", type: "github" }))
-        .rejects.toThrow("GitHub build pipeline is not yet implemented");
+    it("startServiceContainer delegates github services to the build pipeline", async () => {
+      const service = { id: "srv-gh", type: "github" };
+      await startServiceContainer(service);
+      expect(mockStartGitHubService).toHaveBeenCalledWith(service);
+      expect(mockDocker.createContainer).not.toHaveBeenCalled();
     });
 
     it("startServiceContainer throws if non-dockerhub container not found", async () => {

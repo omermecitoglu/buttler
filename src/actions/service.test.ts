@@ -8,6 +8,8 @@ const mockStopServiceContainer = vi.fn();
 const mockRestartServiceContainer = vi.fn();
 const mockIsImagePresentLocally = vi.fn();
 const mockMarkServicePulling = vi.fn();
+const mockFindLatestImage = vi.fn();
+const mockStartBuilding = vi.fn();
 const mockRevalidatePath = vi.fn();
 const mockUpdateTag = vi.fn();
 const mockRedirect = vi.fn();
@@ -22,6 +24,11 @@ vi.mock("~/operations/getService", () => ({
 
 vi.mock("~/operations/createService", () => ({
   default: (...args: unknown[]) => mockCreateService(...args),
+}));
+
+vi.mock("~/core/build", () => ({
+  findLatestImage: (...args: unknown[]) => mockFindLatestImage(...args),
+  startBuilding: (...args: unknown[]) => mockStartBuilding(...args),
 }));
 
 vi.mock("~/core/docker/status", () => ({
@@ -81,6 +88,23 @@ describe("service lifecycle server actions", () => {
       expect(res).toEqual({ success: true });
     });
 
+    it("builds a github service in the background if it has no image", async () => {
+      const service = { ...sampleService, type: "github", repository: "acme/app", branch: "dev" };
+      mockGetService.mockResolvedValue(service);
+      mockFindLatestImage.mockResolvedValue(null);
+      expect(await startService("srv-test")).toEqual({ success: true });
+      expect(mockStartBuilding).toHaveBeenCalledWith(service);
+      expect(mockStartServiceContainer).not.toHaveBeenCalled();
+    });
+
+    it("starts a github service from its existing image", async () => {
+      mockGetService.mockResolvedValue({ ...sampleService, type: "github" });
+      mockFindLatestImage.mockResolvedValue("sha256:abc");
+      await startService("srv-test");
+      expect(mockStartServiceContainer).toHaveBeenCalled();
+      expect(mockStartBuilding).not.toHaveBeenCalled();
+    });
+
     it("throws if service is not found in database", async () => {
       mockGetService.mockResolvedValue(null);
       await expect(startService("srv-unknown")).rejects.toThrow("Service not found: srv-unknown");
@@ -122,7 +146,7 @@ describe("service lifecycle server actions", () => {
 
   describe("createServiceAction", () => {
     it("validates and creates a service with configurations and redirects", async () => {
-      mockCreateService.mockReturnValue({ id: "srv-new" });
+      mockCreateService.mockReturnValue({ id: "srv-new", type: "github" });
       const formData = new FormData();
       formData.set("name", "My API Service");
       formData.set("type", "github");
@@ -139,6 +163,13 @@ describe("service lifecycle server actions", () => {
         type: "github",
         repository: "org/repo",
         branch: "main",
+        ports: [{ external: 3000, internal: 3000 }],
+        environmentVariables: [{ key: "NODE_ENV", value: "production" }],
+        volumes: [{ name: "app-data", containerPath: "/data" }],
+      });
+      expect(mockStartBuilding).toHaveBeenCalledWith({
+        id: "srv-new",
+        type: "github",
         ports: [{ external: 3000, internal: 3000 }],
         environmentVariables: [{ key: "NODE_ENV", value: "production" }],
         volumes: [{ name: "app-data", containerPath: "/data" }],
