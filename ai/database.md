@@ -37,3 +37,9 @@
 - Secret values are encrypted in the operations layer (AES-256-GCM, `src/core/secrets.ts`). The key is generated at `$HOME/.buttler/secret.key` (`BUTTLER_HOME` overrides the directory). It must never be stored in the database or backed up together with it.
 - Secrets are write-only: `getService` returns `null` for their values. Only `getDeployableService` decrypts them, and its result must never be cached or sent to the browser.
 - Secrets never become Docker build args. They are served to BuildKit by the build session (`src/core/docker/build-session.ts`).
+
+## Users & Access
+
+- The `users` table lists the people who have access, by their GitHub user ID. Everyone else is denied.
+- The first user who logs in becomes the admin (`claimAdmin`). A partial unique index allows only one admin.
+- `getAccess` (`src/core/access.ts`) is the only function that decides whether a user has access. A session is never enough on its own.
