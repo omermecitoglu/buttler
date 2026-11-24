@@ -4,8 +4,16 @@ import { getIronSession } from "iron-session";
 import { cookies } from "next/headers";
 import { getSetting, setSetting } from "./settings";
 
+export type SessionUser = {
+  login: string,
+  name: string | null,
+  avatar: string,
+};
+
 type SessionData = {
   userId?: number,
+  /** Missing in the sessions that were created before it was introduced */
+  user?: SessionUser,
   githubToken?: string,
 };
 

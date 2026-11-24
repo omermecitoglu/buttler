@@ -52,6 +52,11 @@ export async function GET(request: Request) {
     const data = await tokenRes.json();
     const user = await getUser(data.access_token);
     session.userId = user.id;
+    session.user = {
+      login: user.login,
+      name: user.name,
+      avatar: user.avatar,
+    };
     session.githubToken = data.access_token;
     await session.save();
     return redirect(getHomePath(publicOrigin));
