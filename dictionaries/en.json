@@ -302,6 +302,8 @@
       "secret": "Secret",
       "volumes": "Storage Mounts",
       "noVolumes": "No storage mounts configured.",
+      "domains": "Domains",
+      "noDomains": "No domains configured.",
       "none": "None",
       "notAvailable": "N/A"
     },
@@ -335,7 +337,28 @@
       }
     },
     "settings": {
-      "systemService": "System services are managed by Buttler, they can't be deleted.",
+      "systemService": "System services are managed by Buttler, they can't be deleted and don't have domains.",
+      "domains": {
+        "title": "Domains",
+        "description": "The public hostnames of this service, and the port of its container that receives their requests.",
+        "empty": "No domains configured.",
+        "hostnameLabel": "Domain",
+        "hostnamePlaceholder": "e.g. app.example.com",
+        "portLabel": "Container port",
+        "portPlaceholder": "e.g. 3000",
+        "add": "Add domain",
+        "adding": "Adding...",
+        "remove": "Remove",
+        "removing": "Removing...",
+        "removeDomain": "Remove {hostname}",
+        "messages": {
+          "add_failed": "The domain could not be added.",
+          "hostname_taken": "This domain is already used by a service.",
+          "invalid_hostname": "Enter an exact domain like app.example.com, without a wildcard, a port or a path.",
+          "invalid_port": "The port must be a number between 1 and 65535.",
+          "remove_failed": "The domain could not be removed."
+        }
+      },
       "delete": {
         "title": "Delete this service",
         "description": "Its container and the images that Buttler built for it are deleted too. This can't be undone."
