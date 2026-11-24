@@ -1,5 +1,6 @@
 import { docker } from "~/core/docker";
 import { type ServiceEnvironmentVariable, getRuntimeVariables } from "~/core/environment-variables";
+import { getBuildingServiceIds } from "./builds";
 import { BUTTLER_SERVICE_LABEL } from "./labels";
 import type Docker from "dockerode";
 
@@ -15,6 +16,8 @@ export type ContainerPortBinding = {
 export type ServiceRuntimeState = {
   containerId: string | null,
   containerName: string | null,
+  /** ID of the image that the container is created from */
+  imageId: string | null,
   status: ContainerRuntimeStatus,
   state: string,
   uptime: string | null,
@@ -119,11 +122,13 @@ export function matchContainerForService(
 export function createServiceRuntimeState(
   serviceId: string,
   container?: Docker.ContainerInfo,
+  isBuilding = isServiceBuilding(serviceId),
 ): ServiceRuntimeState {
   if (isServicePulling(serviceId)) {
     return {
       containerId: container?.Id ?? null,
       containerName: container?.Names[0]?.replace(/^\//, "") ?? null,
+      imageId: container?.ImageID ?? null,
       status: "pulling",
       state: "pulling",
       uptime: null,
@@ -133,10 +138,11 @@ export function createServiceRuntimeState(
     };
   }
 
-  if (isServiceBuilding(serviceId)) {
+  if (isBuilding) {
     return {
       containerId: container?.Id ?? null,
       containerName: container?.Names[0]?.replace(/^\//, "") ?? null,
+      imageId: container?.ImageID ?? null,
       status: "building",
       state: "building",
       uptime: null,
@@ -150,6 +156,7 @@ export function createServiceRuntimeState(
     return {
       containerId: null,
       containerName: null,
+      imageId: null,
       status: "stopped",
       state: "stopped",
       uptime: null,
@@ -162,6 +169,7 @@ export function createServiceRuntimeState(
   return {
     containerId: container.Id,
     containerName: container.Names[0]?.replace(/^\//, "") ?? null,
+    imageId: container.ImageID,
     status: parseContainerRuntimeStatus(container),
     state: container.State,
     uptime: formatContainerUptime(container.Status),
@@ -196,10 +204,16 @@ export async function getServicesRuntimeStates(services: ServiceIdentity[]): Pro
     return Object.fromEntries(services.map(s => [s.id, createServiceRuntimeState(s.id)]));
   }
 
+  // Only GitHub services are built
+  const hasBuilds = services.some(service => service.type === "github");
+  const buildingIds = hasBuilds ? await getBuildingServiceIds() : new Set<string>();
+
   const result: Record<string, ServiceRuntimeState> = {};
   for (const service of services) {
     const matched = matchContainerForService(service, containers);
-    result[service.id] = createServiceRuntimeState(service.id, matched);
+    // Buttler also tracks the steps that Docker is not aware of, e.g. cloning the repository
+    const isBuilding = isServiceBuilding(service.id) || buildingIds.has(service.id);
+    result[service.id] = createServiceRuntimeState(service.id, matched, isBuilding);
   }
   return result;
 }

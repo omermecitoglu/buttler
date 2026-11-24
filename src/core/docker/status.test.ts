@@ -42,6 +42,7 @@ const mockDocker = {
 const mockPullImage = vi.fn();
 const mockProvisionReverseProxy = vi.fn();
 const mockStartGitHubService = vi.fn();
+const mockGetBuildingServiceIds = vi.fn();
 
 vi.mock("~/core/docker", () => ({
   docker: {
@@ -52,6 +53,10 @@ vi.mock("~/core/docker", () => ({
     getImage: (...args: unknown[]) => mockDocker.getImage(...args as [string]),
   },
   pullImage: (...args: unknown[]) => mockPullImage(...args),
+}));
+
+vi.mock("./builds", () => ({
+  getBuildingServiceIds: () => mockGetBuildingServiceIds(),
 }));
 
 vi.mock("~/core/build", () => ({
@@ -238,6 +243,7 @@ describe("Docker status aggregator", () => {
     it("creates state from live container info", () => {
       const state = createServiceRuntimeState("srv-live", {
         Id: "c-live",
+        ImageID: "sha256:live",
         Names: ["/live-service"],
         State: "running",
         Status: "Up 3 hours",
@@ -248,6 +254,7 @@ describe("Docker status aggregator", () => {
       expect(state.status).toBe("running");
       expect(state.containerId).toBe("c-live");
       expect(state.containerName).toBe("live-service");
+      expect(state.imageId).toBe("sha256:live");
       expect(state.uptime).toBe("Up 3 hours");
       expect(state.ports).toEqual([{ external: 80, internal: 3000, type: "tcp", hostIp: "0.0.0.0" }]);
       expect(state.ipAddresses).toEqual(["172.17.0.5"]);
@@ -275,6 +282,25 @@ describe("Docker status aggregator", () => {
       expect(result["srv-1"].containerId).toBe("c-1");
       expect(result["srv-2"].status).toBe("stopped");
       expect(result["srv-2"].containerId).toBeNull();
+    });
+
+    it("reports the builds that are running in Docker", async () => {
+      mockDocker.listContainers.mockResolvedValue([]);
+      mockGetBuildingServiceIds.mockResolvedValue(new Set(["srv-1"]));
+
+      const result = await getServicesRuntimeStates([
+        { id: "srv-1", type: "github" },
+        { id: "srv-2", type: "github" },
+      ]);
+
+      expect(result["srv-1"].status).toBe("building");
+      expect(result["srv-2"].status).toBe("stopped");
+    });
+
+    it("does not query builds when there are no GitHub services", async () => {
+      mockDocker.listContainers.mockResolvedValue([]);
+      await getServicesRuntimeStates([{ id: "srv-1", type: "dockerhub" }]);
+      expect(mockGetBuildingServiceIds).not.toHaveBeenCalled();
     });
 
     it("handles Docker error gracefully and returns default states", async () => {
