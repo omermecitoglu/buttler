@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { getCurrentUser, requireAdmin, requireNotInstalled, requireUser, userMiddleware } from "./auth";
+import { adminMiddleware, getCurrentUser, requireAdmin, requireNotInstalled, requireUser, userMiddleware } from "./auth";
 
 const mocks = vi.hoisted(() => ({
   getSession: vi.fn(),
@@ -59,6 +59,7 @@ describe("auth", () => {
     mocks.getAccess.mockResolvedValue("member");
     await expect(requireUser()).resolves.toMatchObject({ role: "member" });
     await expect(requireAdmin()).rejects.toThrow("403");
+    await expect(adminMiddleware()).rejects.toThrow("403");
   });
 
   it("should lock out the users who lose their access during a session", async () => {

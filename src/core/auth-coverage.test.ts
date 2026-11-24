@@ -90,6 +90,6 @@ describe("authorization of the entry points", () => {
   });
 
   it.each(pages)("$name should be wrapped in Authorized", ({ file }) => {
-    expect(fs.readFileSync(file, "utf-8")).toContain("<Authorized>");
+    expect(fs.readFileSync(file, "utf-8")).toMatch(/<Authorized[ >]/);
   });
 });

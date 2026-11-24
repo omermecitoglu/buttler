@@ -50,3 +50,8 @@ export async function requireNotInstalled() {
 export async function userMiddleware() {
   await requireUser();
 }
+
+/** Middleware of the form actions that need the admin */
+export async function adminMiddleware() {
+  await requireAdmin();
+}
