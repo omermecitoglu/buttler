@@ -3,6 +3,7 @@ import { defineFormAction, displayMessage } from "@omer-x/next-form-actions";
 import { refresh, updateTag } from "next/cache";
 import { after } from "next/server";
 import z from "zod";
+import { requireUser, userMiddleware } from "~/core/auth";
 import { findLatestImage, startBuilding } from "~/core/build";
 import {
   type ServiceRef,
@@ -54,6 +55,7 @@ const volumesField = jsonField("invalid_volumes", z.array(z.object({
 })));
 
 export const createServiceAction = defineFormAction({
+  middlewares: [userMiddleware],
   schema: z.object({
     name: z.string().trim().min(1, "service_name_required"),
     type: z.enum(["github", "dockerhub"]),
@@ -95,6 +97,7 @@ export const createServiceAction = defineFormAction({
 });
 
 export const updateServiceAction = defineFormAction({
+  middlewares: [userMiddleware],
   // The parts that are not given are left untouched
   schema: z.object({
     name: z.string().trim().min(1).optional(),
@@ -155,6 +158,7 @@ function startPulling(service: ServiceRef) {
 }
 
 export async function startService(serviceId: string): Promise<ServiceActionResult> {
+  await requireUser();
   const service = await getServiceToDeploy(serviceId);
   if (service.type === "dockerhub") {
     const imageTag = getServiceImageTag(service);
@@ -175,6 +179,7 @@ export async function startService(serviceId: string): Promise<ServiceActionResu
 }
 
 export async function stopService(serviceId: string): Promise<ServiceActionResult> {
+  await requireUser();
   const service = await getService(db, serviceId);
   if (!service) {
     throw new Error(`Service not found: ${serviceId}`);
@@ -185,6 +190,7 @@ export async function stopService(serviceId: string): Promise<ServiceActionResul
 }
 
 export async function restartService(serviceId: string): Promise<ServiceActionResult> {
+  await requireUser();
   const service = await getServiceToDeploy(serviceId);
   await restartServiceContainer(service);
   refresh();
@@ -193,6 +199,7 @@ export async function restartService(serviceId: string): Promise<ServiceActionRe
 
 /** Builds and deploys the latest commit of a GitHub service */
 export async function triggerBuild(serviceId: string): Promise<ServiceActionResult> {
+  await requireUser();
   const service = await getServiceToDeploy(serviceId);
   if (service.type !== "github") {
     throw new Error(`Service cannot be built: ${serviceId}`);
@@ -207,6 +214,7 @@ export async function triggerBuild(serviceId: string): Promise<ServiceActionResu
 
 /** Pulls and deploys the latest image of a Docker Hub service, other services run their last known image again */
 export async function redeployService(serviceId: string): Promise<ServiceActionResult> {
+  await requireUser();
   const service = await getServiceToDeploy(serviceId);
   if (service.type !== "dockerhub") return restartService(serviceId);
   startPulling(service);
@@ -218,33 +226,41 @@ export async function redeployService(serviceId: string): Promise<ServiceActionR
 // Services and operations are being redesigned from scratch in Phase 3.
 
 export async function create(_formData: FormData) {
+  await requireUser();
   // Deprecated in v2
 }
 
 export async function update(_id: string, _: unknown, _formData: FormData): Promise<Record<string, string>> {
+  await requireUser();
   return {};
 }
 
 export async function destroy(_id: string, _: FormData) {
+  await requireUser();
   // Deprecated in v2
 }
 
 export async function start(_serviceId: string, _: FormData) {
+  await requireUser();
   // Deprecated in v2
 }
 
 export async function stop(_serviceId: string, _containerId: string, _: FormData) {
+  await requireUser();
   // Deprecated in v2
 }
 
 export async function build(_id: string, _: FormData) {
+  await requireUser();
   // Deprecated in v2
 }
 
 export async function attachDatabase(_serviceId: string, _databaseId: string, _: FormData) {
+  await requireUser();
   // Deprecated in v2
 }
 
 export async function detachDatabase(_serviceId: string, _databaseId: string, _: FormData) {
+  await requireUser();
   // Deprecated in v2
 }

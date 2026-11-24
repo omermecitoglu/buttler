@@ -50,6 +50,11 @@ vi.mock("~/operations/updateService", () => ({
   MissingSecretValueError: class extends Error {},
 }));
 
+vi.mock("~/core/auth", () => ({
+  requireUser: vi.fn(),
+  userMiddleware: vi.fn(),
+}));
+
 vi.mock("~/core/build", () => ({
   findLatestImage: (...args: unknown[]) => mockFindLatestImage(...args),
   startBuilding: (...args: unknown[]) => mockStartBuilding(...args),

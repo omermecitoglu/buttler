@@ -6,6 +6,11 @@ import { installApp } from "./install";
 const mockSetSetting = vi.fn();
 const mockGetGitHubApp = vi.fn();
 const mockRedirect = vi.fn();
+const mockRequireNotInstalled = vi.fn();
+
+vi.mock("~/core/auth", () => ({
+  requireNotInstalled: () => mockRequireNotInstalled(),
+}));
 
 vi.mock("~/core/settings", () => ({
   setSetting: (key: string, value: string) => mockSetSetting(key, value),
@@ -48,6 +53,12 @@ describe("installApp action", () => {
       clientId: "Iv1.abc",
       htmlUrl: "https://github.com/apps/my-buttler",
     });
+  });
+
+  it("should be rejected once the instance is installed", async () => {
+    mockRequireNotInstalled.mockRejectedValueOnce(new Error("forbidden"));
+    await expect(installApp({}, makeFormData(validFields))).rejects.toThrow("forbidden");
+    expect(mockSetSetting).not.toHaveBeenCalled();
   });
 
   it("should reject a non-numeric app id", async () => {
