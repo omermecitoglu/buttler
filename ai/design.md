@@ -268,4 +268,6 @@ Wide screens (lg and up)             Narrow screens
 - **Builds** (`/services/[id]/builds`)
 - **Logs** (`/services/[id]/logs`)
 
+Power and deploy actions report through toasts. `ToastProvider` (`src/components/ui/toast.tsx`) is mounted in the base layout, use `Toast.useToastManager()` from `@base-ui/react/toast` below it.
+
 The layout is not rendered again while switching between the tabs, and its `notFound()` is handled by `services/not-found.tsx`.
