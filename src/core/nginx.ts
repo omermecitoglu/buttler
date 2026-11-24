@@ -78,7 +78,7 @@ export async function provisionReverseProxy(options?: { db?: typeof db }) {
       "80/tcp": {},
       "443/tcp": {},
     },
-    Tty: true,
+    Tty: false,
   });
 
   await created.start();

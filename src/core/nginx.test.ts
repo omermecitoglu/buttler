@@ -133,6 +133,7 @@ describe("Reverse proxy system service management", () => {
             "443/tcp": [{ HostPort: "443" }],
           },
         }),
+        Tty: false,
       }));
       expect(newContainer.start).toHaveBeenCalledTimes(1);
       expect(result).toBe(newContainer);

@@ -375,7 +375,7 @@ export async function deployServiceContainer(service: ServiceRef, image: string)
       },
     },
     ExposedPorts: exposedPorts,
-    Tty: true,
+    Tty: false,
   });
 
   await container.start();
