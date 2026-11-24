@@ -55,6 +55,19 @@ describe("updateService", () => {
     });
   });
 
+  it("should only change the given parts", async () => {
+    updateService(db, serviceId, { ports: [{ external: 9090, internal: 80 }] });
+    updateService(db, serviceId, { name: "renamed" });
+    expect(await getDeployableService(db, serviceId)).toMatchObject({
+      name: "renamed",
+      repository: "owner/app",
+      branch: "main",
+      ports: [{ external: 9090, internal: 80 }],
+      environmentVariables: [{ key: "TOKEN", value: "hunter2" }],
+      volumes: [{ name: "data", containerPath: "/data" }],
+    });
+  });
+
   it("should keep the secrets that are left untouched", async () => {
     updateService(db, serviceId, {
       ...base,

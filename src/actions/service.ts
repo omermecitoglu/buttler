@@ -20,7 +20,7 @@ import getService from "~/operations/getService";
 import updateService, { MissingSecretValueError } from "~/operations/updateService";
 
 function jsonField<T extends z.ZodType>(errorMessage: string, schema: T) {
-  return z.string().optional().default("[]").transform((val, ctx): z.output<T> => {
+  return z.string().transform((val, ctx): z.output<T> => {
     try {
       return schema.parse(JSON.parse(val || "[]"));
     } catch {
@@ -53,9 +53,9 @@ export const createServiceAction = defineFormAction({
     type: z.enum(["github", "dockerhub"]),
     repository: z.string().trim().min(1, "repository_required"),
     branch: z.string().trim().min(1, "branch_required"),
-    ports: portsField,
-    environmentVariables: jsonField("invalid_environment_variables", z.array(environmentVariable)),
-    volumes: volumesField,
+    ports: portsField.optional().default([]),
+    environmentVariables: jsonField("invalid_environment_variables", z.array(environmentVariable)).optional().default([]),
+    volumes: volumesField.optional().default([]),
   }),
   action: input => async (locale: AppLocale) => {
     // Only the services with a build step can use the other scopes
@@ -89,16 +89,17 @@ export const createServiceAction = defineFormAction({
 });
 
 export const updateServiceAction = defineFormAction({
+  // The parts that are not given are left untouched
   schema: z.object({
-    name: z.string().trim().min(1),
-    repository: z.string().trim().min(1),
-    branch: z.string().trim().min(1),
-    ports: portsField,
+    name: z.string().trim().min(1).optional(),
+    repository: z.string().trim().min(1).optional(),
+    branch: z.string().trim().min(1).optional(),
+    ports: portsField.optional(),
     environmentVariables: jsonField("invalid_environment_variables", z.array(environmentVariable.extend({
       // Secrets that are left untouched don't have a value
       value: z.string().nullable(),
-    }))),
-    volumes: volumesField,
+    }))).optional(),
+    volumes: volumesField.optional(),
   }),
   action: input => async (serviceId: string): Promise<Record<string, string>> => {
     const service = await getService(db, serviceId);
@@ -106,7 +107,7 @@ export const updateServiceAction = defineFormAction({
     // Only the services with a build step can use the other scopes
     const environmentVariables = service.type === "github"
       ? input.environmentVariables
-      : input.environmentVariables.map(variable => ({ ...variable, scope: "runtime" as const }));
+      : input.environmentVariables?.map(variable => ({ ...variable, scope: "runtime" as const }));
     try {
       updateService(db, serviceId, { ...input, environmentVariables });
     } catch (error) {
