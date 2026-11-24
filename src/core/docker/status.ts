@@ -1,4 +1,5 @@
 import { docker } from "~/core/docker";
+import { getServiceImageTag } from "~/core/dockerhub";
 import { type ServiceEnvironmentVariable, getRuntimeVariables } from "~/core/environment-variables";
 import { getSharedState } from "~/core/shared-state";
 import { getBuildingServiceIds } from "./builds";
@@ -278,11 +279,7 @@ export async function startServiceContainer(service: ServiceRef): Promise<void> 
     return;
   }
 
-  const rawImage = service.repository ?? "";
-  const imageTag = rawImage
-    ? (service.branch ? `${rawImage}:${service.branch}` : (rawImage.includes(":") ? rawImage : `${rawImage}:latest`))
-    : "";
-
+  const imageTag = getServiceImageTag(service);
   if (!imageTag) {
     throw new Error(`No Docker Hub image specified for service ${service.id}`);
   }
@@ -299,6 +296,23 @@ export async function startServiceContainer(service: ServiceRef): Promise<void> 
   }
 
   await deployServiceContainer(service, imageTag);
+}
+
+/** Pulls the image of a Docker Hub service and replaces its container, which keeps running until the image is ready */
+export async function pullAndDeployService(service: ServiceRef): Promise<void> {
+  // The service stays marked until the container is replaced, otherwise it would look idle in between
+  markServicePulling(service.id, true);
+  try {
+    const imageTag = getServiceImageTag(service);
+    if (!imageTag) {
+      throw new Error(`No Docker Hub image specified for service ${service.id}`);
+    }
+    const { pullImage } = await import("~/core/docker");
+    await pullImage(imageTag);
+    await deployServiceContainer(service, imageTag);
+  } finally {
+    markServicePulling(service.id, false);
+  }
 }
 
 /** Replaces the container of a service (if there is any) with a new one that runs the given image */

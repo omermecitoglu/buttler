@@ -14,6 +14,7 @@ import {
   markServicePulling,
   matchContainerForService,
   parseContainerRuntimeStatus,
+  pullAndDeployService,
   restartServiceContainer,
   startServiceContainer,
   stopServiceContainer,
@@ -390,6 +391,33 @@ describe("Docker status aggregator", () => {
       });
       expect(mockPullImage).toHaveBeenCalledWith("postgres:15");
       expect(mockContainer.start).toHaveBeenCalled();
+    });
+
+    it("pullAndDeployService keeps the service marked until its container is replaced", async () => {
+      mockDocker.listContainers.mockResolvedValue([]);
+      mockPullImage.mockResolvedValue({});
+      mockDocker.createContainer.mockImplementationOnce(() => {
+        expect(isServicePulling("srv-p")).toBe(true);
+        return Promise.resolve(mockContainer);
+      });
+      await pullAndDeployService({ id: "srv-p", type: "dockerhub", repository: "redis", branch: "alpine" });
+      expect(mockPullImage).toHaveBeenCalledWith("redis:alpine");
+      expect(mockDocker.createContainer).toHaveBeenCalledWith(expect.objectContaining({ Image: "redis:alpine" }));
+      expect(isServicePulling("srv-p")).toBe(false);
+    });
+
+    it("pullAndDeployService keeps the container if the image cannot be pulled", async () => {
+      mockPullImage.mockRejectedValueOnce(new Error("no network"));
+      await expect(pullAndDeployService({ id: "srv-p", type: "dockerhub", repository: "redis" }))
+        .rejects.toThrow("no network");
+      expect(mockContainer.stop).not.toHaveBeenCalled();
+      expect(mockContainer.remove).not.toHaveBeenCalled();
+      expect(isServicePulling("srv-p")).toBe(false);
+    });
+
+    it("pullAndDeployService throws if there is no image", async () => {
+      await expect(pullAndDeployService({ id: "srv-p", type: "dockerhub" })).rejects.toThrow("No Docker Hub image");
+      expect(isServicePulling("srv-p")).toBe(false);
     });
 
     it("startServiceContainer throws if no image specified for dockerhub service", async () => {

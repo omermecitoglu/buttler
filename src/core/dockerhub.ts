@@ -6,6 +6,14 @@ export type ParsedDockerImage = {
   tag?: string,
 };
 
+/** Returns the image reference of a Docker Hub service, or null if it doesn't have one */
+export function getServiceImageTag(service: { repository?: string | null, branch?: string | null }): string | null {
+  const { repository, branch } = service;
+  if (!repository) return null;
+  if (branch) return `${repository}:${branch}`;
+  return repository.includes(":") ? repository : `${repository}:latest`;
+}
+
 export function parseDockerImageName(input: string): ParsedDockerImage {
   const trimmed = input.trim();
   if (!trimmed) {
