@@ -267,6 +267,7 @@ Wide screens (lg and up)             Narrow screens
 - **Info** (`/services/[id]`): everything about the service. Each editable section has its own edit button, whose modal only saves that section. The name is edited next to the title.
 - **Builds** (`/services/[id]/builds`)
 - **Logs** (`/services/[id]/logs`)
+- **Settings** (`/services/[id]/settings`): only for the admin, has the domains and the deletion.
 
 Power and deploy actions report through toasts. `ToastProvider` (`src/components/ui/toast.tsx`) is mounted in the base layout, use `Toast.useToastManager()` from `@base-ui/react/toast` below it.
 

@@ -38,6 +38,12 @@
 - Secrets are write-only: `getService` returns `null` for their values. Only `getDeployableService` decrypts them, and its result must never be cached or sent to the browser.
 - Secrets never become Docker build args. They are served to BuildKit by the build session (`src/core/docker/build-session.ts`).
 
+## Domains
+
+- The `domains` table holds the desired public hostnames. The hostname is the primary key, so it can only belong to one service.
+- Only exact hostnames are stored, in lowercase (`src/core/domains.ts`). The port is the one inside the container, it doesn't need to be published.
+- System services can't have domains.
+
 ## Users & Access
 
 - The `users` table lists the people who have access, by their GitHub user ID. Everyone else is denied.
