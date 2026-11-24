@@ -1,6 +1,9 @@
 import { getLocale, getTranslations } from "next-intl/server";
+import { Suspense } from "react";
 import { createServiceAction } from "~/actions/service";
+import Authorized from "~/components/auth/Authorized";
 import NewServiceForm from "~/components/services/NewServiceForm";
+import ServicePanelSkeleton from "~/components/services/ServicePanelSkeleton";
 
 export default async function(_page: PageProps<"/[locale]/services/new">) {
   const [
@@ -17,7 +20,11 @@ export default async function(_page: PageProps<"/[locale]/services/new">) {
         <h1 className="text-2xl font-bold tracking-tight text-slate-100">{t("title")}</h1>
         <p className="mt-1 text-sm text-slate-400">{t("subtitle")}</p>
       </div>
-      <NewServiceForm action={createServiceAction.bind(null, locale)} />
+      <Suspense fallback={<ServicePanelSkeleton />}>
+        <Authorized>
+          <NewServiceForm action={createServiceAction.bind(null, locale)} />
+        </Authorized>
+      </Suspense>
     </div>
   );
 }

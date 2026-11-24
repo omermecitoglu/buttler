@@ -19,6 +19,17 @@
       "default": "An error occurred during authentication. Please try again."
     }
   },
+  "AccessPage": {
+    "unauthorized": {
+      "title": "You are not signed in",
+      "description": "Sign in to see this page."
+    },
+    "forbidden": {
+      "title": "Access denied",
+      "description": "Your GitHub account doesn't have access to this page."
+    },
+    "login": "Go to the login page"
+  },
   "InstallPage": {
     "title": "Install Buttler",
     "description": "Set up your GitHub App in one click, or enter your credentials manually below.",
