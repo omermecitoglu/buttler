@@ -1,6 +1,6 @@
 "use server";
 import { defineFormAction, displayMessage } from "@omer-x/next-form-actions";
-import { revalidatePath, updateTag } from "next/cache";
+import { refresh, updateTag } from "next/cache";
 import z from "zod";
 import { findLatestImage, startBuilding } from "~/core/build";
 import {
@@ -17,6 +17,35 @@ import type { AppLocale } from "~/i18n/routing";
 import createService from "~/operations/createService";
 import getDeployableService from "~/operations/getDeployableService";
 import getService from "~/operations/getService";
+import updateService, { MissingSecretValueError } from "~/operations/updateService";
+
+function jsonField<T extends z.ZodType>(errorMessage: string, schema: T) {
+  return z.string().optional().default("[]").transform((val, ctx): z.output<T> => {
+    try {
+      return schema.parse(JSON.parse(val || "[]"));
+    } catch {
+      ctx.addIssue({ code: "custom", message: errorMessage });
+      return z.NEVER;
+    }
+  });
+}
+
+const portsField = jsonField("invalid_ports", z.array(z.object({
+  external: z.coerce.number().int().min(1).max(65535),
+  internal: z.coerce.number().int().min(1).max(65535),
+})));
+
+const environmentVariable = z.object({
+  key: z.string().min(1).regex(/^[a-zA-Z_][a-zA-Z0-9_]*$/),
+  value: z.string(),
+  scope: z.enum(environmentVariableScopes).default("runtime"),
+  isSecret: z.boolean().default(false),
+});
+
+const volumesField = jsonField("invalid_volumes", z.array(z.object({
+  name: z.string().trim().min(1, "volume_name_required"),
+  containerPath: z.string().trim().min(1).startsWith("/"),
+})));
 
 export const createServiceAction = defineFormAction({
   schema: z.object({
@@ -24,47 +53,9 @@ export const createServiceAction = defineFormAction({
     type: z.enum(["github", "dockerhub"]),
     repository: z.string().trim().min(1, "repository_required"),
     branch: z.string().trim().min(1, "branch_required"),
-    ports: z.string().optional().default("[]").transform((val, ctx) => {
-      try {
-        const parsed = JSON.parse(val || "[]");
-        if (!Array.isArray(parsed)) throw new Error();
-        return z.array(z.object({
-          external: z.coerce.number().int().min(1).max(65535),
-          internal: z.coerce.number().int().min(1).max(65535),
-        })).parse(parsed);
-      } catch {
-        ctx.addIssue({ code: "custom", message: "invalid_ports" });
-        return z.NEVER;
-      }
-    }),
-    environmentVariables: z.string().optional().default("[]").transform((val, ctx) => {
-      try {
-        const parsed = JSON.parse(val || "[]");
-        if (!Array.isArray(parsed)) throw new Error();
-        return z.array(z.object({
-          key: z.string().min(1).regex(/^[a-zA-Z_][a-zA-Z0-9_]*$/),
-          value: z.string(),
-          scope: z.enum(environmentVariableScopes).default("runtime"),
-          isSecret: z.boolean().default(false),
-        })).parse(parsed);
-      } catch {
-        ctx.addIssue({ code: "custom", message: "invalid_environment_variables" });
-        return z.NEVER;
-      }
-    }),
-    volumes: z.string().optional().default("[]").transform((val, ctx) => {
-      try {
-        const parsed = JSON.parse(val || "[]");
-        if (!Array.isArray(parsed)) throw new Error();
-        return z.array(z.object({
-          name: z.string().trim().min(1, "volume_name_required"),
-          containerPath: z.string().trim().min(1).startsWith("/"),
-        })).parse(parsed);
-      } catch {
-        ctx.addIssue({ code: "custom", message: "invalid_volumes" });
-        return z.NEVER;
-      }
-    }),
+    ports: portsField,
+    environmentVariables: jsonField("invalid_environment_variables", z.array(environmentVariable)),
+    volumes: volumesField,
   }),
   action: input => async (locale: AppLocale) => {
     // Only the services with a build step can use the other scopes
@@ -97,6 +88,36 @@ export const createServiceAction = defineFormAction({
   },
 });
 
+export const updateServiceAction = defineFormAction({
+  schema: z.object({
+    name: z.string().trim().min(1),
+    repository: z.string().trim().min(1),
+    branch: z.string().trim().min(1),
+    ports: portsField,
+    environmentVariables: jsonField("invalid_environment_variables", z.array(environmentVariable.extend({
+      // Secrets that are left untouched don't have a value
+      value: z.string().nullable(),
+    }))),
+    volumes: volumesField,
+  }),
+  action: input => async (serviceId: string): Promise<Record<string, string>> => {
+    const service = await getService(db, serviceId);
+    if (!service || service.type === "system") return displayMessage("error", "update_failed");
+    // Only the services with a build step can use the other scopes
+    const environmentVariables = service.type === "github"
+      ? input.environmentVariables
+      : input.environmentVariables.map(variable => ({ ...variable, scope: "runtime" as const }));
+    try {
+      updateService(db, serviceId, { ...input, environmentVariables });
+    } catch (error) {
+      return displayMessage("error", error instanceof MissingSecretValueError ? "secret_value_required" : "update_failed");
+    }
+    updateTag("getAllServices()");
+    updateTag(`getSingleService(${serviceId})`);
+    return {};
+  },
+});
+
 export async function startService(serviceId: string) {
   const service = await getDeployableService(db, serviceId);
   if (!service) {
@@ -119,21 +140,18 @@ export async function startService(serviceId: string) {
             console.error(`Failed to pull and start service ${service.id}:`, err);
           }
         })();
-        revalidatePath("/");
-        revalidatePath("/services");
+        refresh();
         return { success: true };
       }
     }
   }
   if (service.type === "github" && !await findLatestImage(service.id)) {
     startBuilding(service);
-    revalidatePath("/");
-    revalidatePath("/services");
+    refresh();
     return { success: true };
   }
   await startServiceContainer(service);
-  revalidatePath("/");
-  revalidatePath("/services");
+  refresh();
   return { success: true };
 }
 
@@ -143,8 +161,7 @@ export async function stopService(serviceId: string) {
     throw new Error(`Service not found: ${serviceId}`);
   }
   await stopServiceContainer(service);
-  revalidatePath("/");
-  revalidatePath("/services");
+  refresh();
   return { success: true };
 }
 
@@ -154,8 +171,7 @@ export async function restartService(serviceId: string) {
     throw new Error(`Service not found: ${serviceId}`);
   }
   await restartServiceContainer(service);
-  revalidatePath("/");
-  revalidatePath("/services");
+  refresh();
   return { success: true };
 }
 
