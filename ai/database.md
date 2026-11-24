@@ -30,3 +30,10 @@
 - The purpose of the `src/operations/` directory is to keep database operation functions isolated and abstract from the rest of the application.
 - If Drizzle is ever replaced with another ORM or database layer in the future, only `src/database/schema` and `src/operations/` need to be refactored.
 - Server actions, API routes, and background tasks should invoke these operations rather than performing direct ad-hoc database queries.
+
+## Environment Variables & Secrets
+
+- Each variable has a `scope` (`build`, `runtime` or `both`, default `runtime`) and an `is_secret` flag. Use the helpers in `src/core/environment-variables.ts` to pick the variables for a build or a container.
+- Secret values are encrypted in the operations layer (AES-256-GCM, `src/core/secrets.ts`). The key is generated at `$HOME/.buttler/secret.key` (`BUTTLER_HOME` overrides the directory). It must never be stored in the database or backed up together with it.
+- Secrets are write-only: `getService` returns `null` for their values. Only `getDeployableService` decrypts them, and its result must never be cached or sent to the browser.
+- Secrets never become Docker build args. They are served to BuildKit by the build session (`src/core/docker/build-session.ts`).
