@@ -1,7 +1,9 @@
+import { requireUser } from "~/core/auth";
 import { getDockerHubTags } from "~/core/dockerhub";
 import type { NextRequest } from "next/server";
 
 export async function GET(request: NextRequest) {
+  await requireUser();
   const image = request.nextUrl.searchParams.get("image");
   if (!image) {
     return Response.json({ tags: [] });
