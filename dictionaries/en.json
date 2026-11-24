@@ -22,13 +22,14 @@
   "AccessPage": {
     "unauthorized": {
       "title": "You are not signed in",
-      "description": "Sign in to see this page."
+      "description": "Sign in to see this page.",
+      "link": "Go to the login page"
     },
     "forbidden": {
       "title": "Access denied",
-      "description": "Your GitHub account doesn't have access to this page."
-    },
-    "login": "Go to the login page"
+      "description": "Your GitHub account doesn't have access to this page.",
+      "link": "Back to services"
+    }
   },
   "InstallPage": {
     "title": "Install Buttler",
