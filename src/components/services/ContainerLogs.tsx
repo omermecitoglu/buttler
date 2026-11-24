@@ -59,7 +59,7 @@ const ContainerLogs = ({ serviceId, serviceName, isRunning }: ContainerLogsProps
 
   const handleCopy = async () => {
     try {
-      await navigator.clipboard.writeText(visibleLines.map(line => line.text).join("\n"));
+      await navigator.clipboard.writeText(formatLines(visibleLines));
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
@@ -68,7 +68,7 @@ const ContainerLogs = ({ serviceId, serviceName, isRunning }: ContainerLogsProps
   };
 
   const handleDownload = () => {
-    const url = URL.createObjectURL(new Blob([formatLines(lines)], { type: "text/plain;charset=utf-8" }));
+    const url = URL.createObjectURL(new Blob([formatLines(visibleLines)], { type: "text/plain;charset=utf-8" }));
     const link = document.createElement("a");
     link.href = url;
     link.download = `${serviceName}.log`;
@@ -98,7 +98,7 @@ const ContainerLogs = ({ serviceId, serviceName, isRunning }: ContainerLogsProps
             <FontAwesomeIcon icon={copied ? faCheck : faCopy} className="size-3 text-slate-400" />
             <span>{copied ? t("copied") : t("copy")}</span>
           </Button>
-          <Button size="xs" variant="outline" disabled={lines.length === 0} onClick={handleDownload} className="gap-1.5">
+          <Button size="xs" variant="outline" disabled={visibleLines.length === 0} onClick={handleDownload} className="gap-1.5">
             <FontAwesomeIcon icon={faDownload} className="size-3 text-slate-400" />
             <span>{t("download")}</span>
           </Button>
