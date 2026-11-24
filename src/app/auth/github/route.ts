@@ -1,9 +1,12 @@
 import { redirect } from "next/navigation";
+import { getAccess } from "~/core/access";
 import { getUser } from "~/core/github/users";
 import { getPublicOrigin } from "~/core/headers";
 import { getHomePath } from "~/core/home";
 import { getSession } from "~/core/session";
 import { getSetting } from "~/core/settings";
+import db from "~/database";
+import claimAdmin from "~/operations/claimAdmin";
 
 export async function GET(request: Request) {
   const { searchParams, pathname } = new URL(request.url);
@@ -51,6 +54,11 @@ export async function GET(request: Request) {
 
     const data = await tokenRes.json();
     const user = await getUser(data.access_token);
+    await claimAdmin(db, { id: user.id, login: user.login, avatar: user.avatar });
+    if (!await getAccess(user.id)) {
+      session.destroy();
+      return redirect("/login?error=not_allowed");
+    }
     session.userId = user.id;
     session.user = {
       login: user.login,

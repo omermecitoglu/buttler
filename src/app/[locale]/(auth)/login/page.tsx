@@ -10,10 +10,10 @@ import Card from "~/components/ui/card";
 import { getSetting } from "~/core/settings";
 import { Link } from "~/i18n/navigation";
 
-type KnownError = "github" | "access_denied" | "missing_code";
+type KnownError = "github" | "access_denied" | "not_allowed" | "missing_code";
 
 const isKnownError = (val: unknown): val is KnownError => (
-  val === "github" || val === "access_denied" || val === "missing_code"
+  val === "github" || val === "access_denied" || val === "not_allowed" || val === "missing_code"
 );
 
 async function LoginErrorMessage({

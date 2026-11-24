@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 import createMiddleware from "next-intl/middleware";
+import { getAccess } from "./core/access";
 import { getPublicOrigin } from "./core/headers";
 import { getHomePath } from "./core/home";
 import { getSession } from "./core/session";
@@ -43,13 +44,15 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL(getHomePath(publicOrigin), request.url));
   }
 
+  const access = await getAccess(session.userId);
+
   if (startsWith(pathname, publicPages)) {
     // public pages
   } else if (startsWith(pathname, ["/login"])) {
-    if (session.userId) {
+    if (access) {
       return NextResponse.redirect(new URL(getHomePath(publicOrigin), request.url));
     }
-  } else if (!session.userId) {
+  } else if (!access) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
   return handleI18nRouting(request);
