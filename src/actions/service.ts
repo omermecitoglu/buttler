@@ -3,7 +3,7 @@ import { defineFormAction, displayMessage } from "@omer-x/next-form-actions";
 import { refresh, updateTag } from "next/cache";
 import { after } from "next/server";
 import z from "zod";
-import { requireUser, userMiddleware } from "~/core/auth";
+import { requireUser } from "~/core/auth";
 import { findLatestImage, startBuilding } from "~/core/build";
 import {
   type ServiceRef,
@@ -25,6 +25,7 @@ import createService from "~/operations/createService";
 import getDeployableService from "~/operations/getDeployableService";
 import getService from "~/operations/getService";
 import updateService, { MissingSecretValueError } from "~/operations/updateService";
+import { userMiddleware } from "./middlewares/user";
 
 function jsonField<T extends z.ZodType>(errorMessage: string, schema: T) {
   return z.string().transform((val, ctx): z.output<T> => {

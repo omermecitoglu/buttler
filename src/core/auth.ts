@@ -45,13 +45,3 @@ export async function requireAdmin() {
 export async function requireNotInstalled() {
   if (await isInstalled()) forbidden();
 }
-
-/** Middleware of the form actions that need a user */
-export async function userMiddleware() {
-  await requireUser();
-}
-
-/** Middleware of the form actions that need the admin */
-export async function adminMiddleware() {
-  await requireAdmin();
-}

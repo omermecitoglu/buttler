@@ -50,9 +50,10 @@ vi.mock("~/operations/updateService", () => ({
   MissingSecretValueError: class extends Error {},
 }));
 
+vi.mock("server-only", () => ({}));
+
 vi.mock("~/core/auth", () => ({
   requireUser: vi.fn(),
-  userMiddleware: vi.fn(),
 }));
 
 vi.mock("~/core/build", () => ({
