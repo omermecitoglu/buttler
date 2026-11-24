@@ -26,10 +26,22 @@ Docker is the single source of truth for builds, nothing about them is stored in
 ## Deletion
 
 - Only the admin can delete a service (`deleteServiceAction`), from the "Settings" tab of its page. System services can't be deleted, and neither can services that are being built or pulled, because they would be deployed again.
-- The container, the built images and the chosen volumes are removed before the database row, so a deletion that fails can be tried again (`src/core/docker/removal.ts`).
+- The container, its ingress network, the built images and the chosen volumes are removed before the database row, so a deletion that fails can be tried again (`src/core/docker/removal.ts`).
 - Containers are matched by the label or the `buttler-service-<id>` name only. `matchContainerForService` also matches by the service name, which may find an unrelated container.
 - Volumes are kept, except the ones that are chosen in the dialog. The ones that other services or containers use are always kept. Stopped services have no container, so the `volumes` table is checked too (`getSharedVolumes`).
 - Docker Hub images are never removed, other containers may use them.
+
+## Ingress Networks
+
+- A service with at least one domain shares a network with Nginx (`src/core/docker/ingress.ts`). Every service has its own, so the services can't reach each other through them.
+- The networks are named `buttler-ingress-<service id>`, and the service has the alias `service-<service id>` in it. Nginx must use the alias, which stays the same when the container is replaced.
+- `syncIngressNetwork` makes the network of a service match its domains in SQLite. It runs after a domain is added or removed, and on every deploy: before the old container is replaced, and again before the new one is started.
+- `provisionReverseProxy` syncs all of them, at startup too. This connects a new Nginx container and removes leftovers.
+- Changes run one after another, and read the domains when it's their turn.
+- A domain isn't added if its service can't be connected. A failed cleanup of a removed domain is only logged, and done by the next sync.
+- The networks are internal, so the default network stays the gateway of the containers. Their subnets are `/28` blocks of `172.30.0.0/16` that no other network of Docker or the host overlaps.
+- Networks are only found by their labels (`buttler.network=ingress` and `buttler.service-id`). Others are never used, changed or removed, and a network that is used by an unrelated container is kept.
+- The container is connected after it's created, because networks that are given at creation would replace the default one.
 
 ## Container Logs
 
