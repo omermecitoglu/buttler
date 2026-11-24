@@ -261,13 +261,20 @@ describe("updateServiceAction", () => {
       name: "app",
       repository: "redis",
       branch: "alpine",
-      ports: [],
       // Docker Hub services don't have a build step
       environmentVariables: [{ key: "TOKEN", value: null, scope: "runtime", isSecret: true }],
-      volumes: [],
     });
     expect(mockUpdateTag).toHaveBeenCalledWith("getAllServices()");
     expect(mockUpdateTag).toHaveBeenCalledWith("getSingleService(srv)");
+  });
+
+  it("leaves the parts that are not submitted untouched", async () => {
+    mockGetService.mockResolvedValue({ id: "srv", type: "github" });
+    const formData = new FormData();
+    formData.append("ports", "[]");
+    expect(await updateServiceAction("srv", {}, formData)).toEqual({});
+    const [, , changes] = mockUpdateService.mock.calls[0] as [unknown, unknown, Record<string, unknown>];
+    expect(Object.entries(changes).filter(([, value]) => value !== undefined)).toEqual([["ports", []]]);
   });
 
   it("asks for the values of the secrets that cannot be kept", async () => {
