@@ -1,66 +1,74 @@
+import fs from "node:fs/promises";
 import path from "node:path";
+import ignore from "@balena/dockerignore";
 import Docker from "dockerode";
 import tar from "tar-fs";
-// import { deleteRepo } from "./git";
+import { type BuildProgressEvent, formatBuildProgress } from "./docker/buildkit";
 
 export const docker = new Docker();
 
-type FixedReadableStream = NodeJS.ReadableStream & { destroy: (reason: unknown) => Promise<void> };
+export type BuildImageOptions = {
+  contextPath: string,
+  /** Files to be sent as build context, relative to the context path */
+  files: string[],
+  repository: string,
+  tag: string,
+  labels: Record<string, string>,
+  onProgress?: (text: string) => void,
+};
 
-const streams = {} as Record<string, FixedReadableStream>;
+async function filterIgnoredFiles(contextPath: string, files: string[]) {
+  if (!files.includes(".dockerignore")) return files;
+  const rules = await fs.readFile(path.join(contextPath, ".dockerignore"), "utf-8");
+  const isIncluded = ignore({ ignorecase: false }).add(rules).createFilter();
+  // Docker always needs the Dockerfile itself, even if it's listed in .dockerignore
+  return files.filter(file => file === "Dockerfile" || isIncluded(file));
+}
 
-export function buildImage(
-  imageId: string,
-  repoPath: string,
-  environmentVariables: Record<string, string>,
-  networkId: string | undefined,
-  log: boolean,
-) {
-  const dockerfilePath = path.join(repoPath, "Dockerfile");
-  const tarStream = tar.pack(path.dirname(dockerfilePath)) as unknown as NodeJS.ReadableStream;
+/** Builds an image with BuildKit and returns the ID of it */
+export async function buildImage(options: BuildImageOptions): Promise<string> {
+  const { contextPath, files, repository, tag, labels, onProgress } = options;
+  if (!files.includes("Dockerfile")) {
+    throw new Error("No Dockerfile found at the root of the repository");
+  }
+  const entries = await filterIgnoredFiles(contextPath, files);
+  const context = tar.pack(contextPath, { entries });
+  // A broken build context would leave the request open forever
+  const abortController = new AbortController();
+  context.on("error", error => abortController.abort(error));
+  const stream = await docker.buildImage(context as unknown as NodeJS.ReadableStream, {
+    t: `${repository}:${tag}`,
+    labels,
+    version: "2",
+    abortSignal: abortController.signal,
+  });
 
-  return new Promise<boolean>((resolve, reject) => {
-    docker.buildImage(tarStream, {
-      t: `${imageId}:latest`,
-      buildargs: environmentVariables,
-      networkmode: networkId,
-    }, (err, stream) => {
-      if (err) return reject(err);
-      if (!stream) return reject(new Error("no stream"));
-      // stream.pipe(process.stdout, { end: true });
-      stream.on("data", buffer => {
-        if (!log) return;
-        const logData = buffer.toString("utf-8").trim();
-        const parsedData = JSON.parse(logData);
-        if ("stream" in parsedData) {
-          // eslint-disable-next-line no-console
-          console.log(parsedData.stream);
-        }
-      });
-      stream.on("end", () => {
-        const image = docker.getImage(`${imageId}:latest`);
-        image.inspect().then(() => resolve(true)).catch(() => resolve(false));
-      });
-      stream.on("error", reason => {
-        if (reason === "UPDATE") {
-          resolve(false);
-        } else {
-          reject(reason);
-        }
-      });
-      streams[imageId] = stream as unknown as FixedReadableStream;
+  await new Promise<void>((resolve, reject) => {
+    let buildError: Error | null = null;
+    docker.modem.followProgress(stream, (streamError: Error | null) => {
+      const error = streamError ?? buildError;
+      if (error) return reject(error);
+      resolve();
+    }, (event: BuildProgressEvent) => {
+      if (event.error) {
+        buildError = new Error(event.errorDetail?.message ?? event.error);
+      }
+      const text = formatBuildProgress(event);
+      if (text) onProgress?.(text);
     });
   });
-}
 
-/*
-async function cancelBuild(serviceId: string, imageId: string) {
-  const stream = streams[imageId];
-  await stream.destroy("UPDATE");
-  delete streams[imageId];
-  await deleteRepo(serviceId);
+  const image = docker.getImage(`${repository}:${tag}`);
+  const { Id: imageId, Config: config } = await image.inspect();
+  // Make sure that this is not an older image with the same tag
+  const imageLabels = (config.Labels as Record<string, string> | null) ?? {};
+  const isFresh = Object.entries(labels).every(([key, value]) => imageLabels[key] === value);
+  if (!isFresh) {
+    throw new Error(`Build of ${repository}:${tag} did not produce an image`);
+  }
+  await image.tag({ repo: repository, tag: "latest" });
+  return imageId;
 }
-*/
 
 export function pullImage(imageName: string) {
   const fullImage = imageName.includes(":") ? imageName : `${imageName}:latest`;

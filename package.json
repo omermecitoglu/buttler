@@ -57,6 +57,7 @@
     "build": "npm run build:cli && npm run build:ui"
   },
   "dependencies": {
+    "@balena/dockerignore": "^1.0.2",
     "@base-ui/react": "^1.9.0",
     "@fortawesome/fontawesome-svg-core": "^7.3.1",
     "@fortawesome/free-brands-svg-icons": "^7.3.1",
@@ -80,7 +81,6 @@
     "react-dom": "^19.3.1",
     "react-syntax-highlighter": "^15.6.1",
     "sharp": "^0.34.5",
-    "simple-git": "^3.30.0",
     "tailwind-merge": "^3.7.0",
     "tailwindcss": "^4.3.5",
     "tar-fs": "^3.1.1",
