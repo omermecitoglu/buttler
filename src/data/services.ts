@@ -2,6 +2,7 @@ import "server-only";
 import { cacheTag } from "next/cache";
 import { cache } from "react";
 import { type ServiceImage, getServiceBuilds, listServiceImages } from "~/core/docker/builds";
+import { isVolumeName } from "~/core/docker/removal";
 import { type ServiceRuntimeState, getServiceRuntimeState, getServicesRuntimeStates } from "~/core/docker/status";
 import db from "~/database";
 import type { ServiceDTO } from "~/models/service";
@@ -74,11 +75,20 @@ export const getServiceWithLiveStatus = cache(async (serviceId: ServiceDTO["id"]
 
 export type ServiceDetails = NonNullable<Awaited<ReturnType<typeof getServiceWithLiveStatus>>>;
 
-/** Returns the volumes of a service with whether other services use them too */
-export async function getVolumesOfService(service: Pick<ServiceDetails, "id" | "volumes">) {
+export type ServiceVolume = {
+  name: string,
+  /** Why the volume can't be deleted with the service */
+  keptAs: "shared" | "hostPath" | null,
+};
+
+/** Returns the volumes of a service with whether they can be deleted */
+export async function getVolumesOfService(service: Pick<ServiceDetails, "id" | "volumes">): Promise<ServiceVolume[]> {
   const sharedNames = await getSharedVolumes(db, service.id);
   const names = [...new Set(service.volumes.map(volume => volume.name))];
-  return names.map(name => ({ name, isShared: sharedNames.includes(name) }));
+  return names.map(name => ({
+    name,
+    keptAs: !isVolumeName(name) ? "hostPath" : sharedNames.includes(name) ? "shared" : null,
+  }));
 }
 
 /** Returns null if the builds are not available */
