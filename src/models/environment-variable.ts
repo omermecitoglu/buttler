@@ -6,7 +6,9 @@ import type z from "zod";
 const sharedRefinements = createSharedRefinements(environmentVariables, {
   serviceId: schema => schema.describe("Service identifier this environment variable belongs to"),
   key: schema => schema.min(1, "Key cannot be empty").regex(/^[a-zA-Z_][a-zA-Z0-9_]*$/, "Invalid environment variable name").describe("Environment variable key name"),
-  value: schema => schema.describe("Environment variable value"),
+  value: schema => schema.describe("Environment variable value, encrypted if it is a secret"),
+  scope: schema => schema.describe("Where the environment variable is available (build, runtime, both)"),
+  isSecret: schema => schema.describe("Whether the value is a secret"),
 });
 
 export const EnvironmentVariableDTO = createSelectSchema(environmentVariables, sharedRefinements)
