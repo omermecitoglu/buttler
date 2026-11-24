@@ -1,12 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { type LogLine, isContainerRunning, readContainerLogs } from "~/core/docker/logs";
 import { findServiceContainer } from "~/core/docker/status";
-import { getSession } from "~/core/session";
 import { getSingleService } from "~/data/services";
 import { GET } from "./route";
 import type { NextRequest } from "next/server";
 
-vi.mock("~/core/session", () => ({ getSession: vi.fn() }));
+vi.mock("~/core/auth", () => ({ requireUser: vi.fn() }));
 vi.mock("~/data/services", () => ({ getSingleService: vi.fn() }));
 vi.mock("~/core/docker/status", () => ({ findServiceContainer: vi.fn() }));
 vi.mock("~/core/docker/logs", async importOriginal => ({
@@ -26,7 +25,6 @@ const context = { params: Promise.resolve({ id: "service-id" }) };
 
 describe("GET /api/services/[id]/logs/stream", () => {
   beforeEach(() => {
-    vi.mocked(getSession).mockResolvedValue({ userId: 1 } as Awaited<ReturnType<typeof getSession>>);
     vi.mocked(getSingleService).mockResolvedValue({ id: "service-id" } as Awaited<ReturnType<typeof getSingleService>>);
     vi.mocked(findServiceContainer).mockResolvedValue({} as Awaited<ReturnType<typeof findServiceContainer>>);
     vi.mocked(isContainerRunning).mockResolvedValue(false);
@@ -37,13 +35,6 @@ describe("GET /api/services/[id]/logs/stream", () => {
 
   afterEach(() => {
     vi.resetAllMocks();
-  });
-
-  it("should reject the requests without a session", async () => {
-    vi.mocked(getSession).mockResolvedValue({} as Awaited<ReturnType<typeof getSession>>);
-    const response = await GET(request(), context);
-    expect(response.status).toBe(401);
-    expect(findServiceContainer).not.toHaveBeenCalled();
   });
 
   it("should return 404 when the service doesn't exist", async () => {

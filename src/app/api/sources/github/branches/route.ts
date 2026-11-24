@@ -1,8 +1,10 @@
+import { requireUser } from "~/core/auth";
 import { getInstallationTokenForOwner } from "~/core/github/app";
 import { getRepositoryBranches } from "~/core/github/repos";
 import type { NextRequest } from "next/server";
 
 export async function GET(request: NextRequest) {
+  await requireUser();
   const repoFullName = request.nextUrl.searchParams.get("repo");
   if (!repoFullName) {
     return Response.json({ error: "Query parameter 'repo' is required.", branches: [] }, { status: 400 });
