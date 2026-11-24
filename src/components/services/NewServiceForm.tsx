@@ -19,6 +19,7 @@ import PortMappingsRepeater, {
 import VolumeMountsRepeater, {
   type VolumeMountItem,
 } from "~/components/services/VolumeMountsRepeater";
+import useServiceFormLabels from "~/components/services/useServiceFormLabels";
 import Button from "~/components/ui/button";
 import Card from "~/components/ui/card";
 import Form from "~/components/ui/form";
@@ -34,6 +35,7 @@ type ServiceSourceType = "github" | "dockerhub";
 
 const NewServiceForm = ({ action }: NewServiceFormProps) => {
   const t = useTranslations("NewServicePage");
+  const labels = useServiceFormLabels();
 
   const [sourceType, setSourceType] = useState<ServiceSourceType>("github");
   const [repository, setRepository] = useState<string>("");
@@ -72,50 +74,6 @@ const NewServiceForm = ({ action }: NewServiceFormProps) => {
       name: (v.name ?? "").trim(),
       containerPath: v.containerPath.trim(),
     }));
-
-  const portsLabels = {
-    title: t("portsSection.title"),
-    description: t("portsSection.description"),
-    addButton: t("portsSection.addButton"),
-    removeButton: t("portsSection.removeButton"),
-    hostPortLabel: t("portsSection.hostPortLabel"),
-    hostPortPlaceholder: t("portsSection.hostPortPlaceholder"),
-    containerPortLabel: t("portsSection.containerPortLabel"),
-    containerPortPlaceholder: t("portsSection.containerPortPlaceholder"),
-    emptyMessage: t("portsSection.emptyMessage"),
-  };
-
-  const envLabels = {
-    title: t("envSection.title"),
-    description: t("envSection.description"),
-    addButton: t("envSection.addButton"),
-    removeButton: t("envSection.removeButton"),
-    keyLabel: t("envSection.keyLabel"),
-    keyPlaceholder: t("envSection.keyPlaceholder"),
-    valueLabel: t("envSection.valueLabel"),
-    valuePlaceholder: t("envSection.valuePlaceholder"),
-    scopeLabel: t("envSection.scopeLabel"),
-    scopes: {
-      build: t("envSection.scopes.build"),
-      runtime: t("envSection.scopes.runtime"),
-      both: t("envSection.scopes.both"),
-    },
-    scopeHelp: t("envSection.scopeHelp"),
-    secretLabel: t("envSection.secretLabel"),
-    emptyMessage: t("envSection.emptyMessage"),
-  };
-
-  const volumesLabels = {
-    title: t("volumesSection.title"),
-    description: t("volumesSection.description"),
-    addButton: t("volumesSection.addButton"),
-    removeButton: t("volumesSection.removeButton"),
-    containerPathLabel: t("volumesSection.containerPathLabel"),
-    containerPathPlaceholder: t("volumesSection.containerPathPlaceholder"),
-    volumeNameLabel: t("volumesSection.volumeNameLabel"),
-    volumeNamePlaceholder: t("volumesSection.volumeNamePlaceholder"),
-    emptyMessage: t("volumesSection.emptyMessage"),
-  };
 
   const messages = {
     create_failed: t("messages.create_failed"),
@@ -221,20 +179,20 @@ const NewServiceForm = ({ action }: NewServiceFormProps) => {
       <PortMappingsRepeater
         items={ports}
         onChange={setPorts}
-        labels={portsLabels}
+        labels={labels.ports}
       />
       {/* Environment Variables Section */}
       <EnvironmentVariablesRepeater
         items={envVars}
         onChange={setEnvVars}
         hasBuild={sourceType === "github"}
-        labels={envLabels}
+        labels={labels.env}
       />
       {/* Volume Mounts Section */}
       <VolumeMountsRepeater
         items={volumes}
         onChange={setVolumes}
-        labels={volumesLabels}
+        labels={labels.volumes}
       />
       {/* Form Action Buttons */}
       <div className="flex items-center justify-between pt-4 border-t border-slate-800">
