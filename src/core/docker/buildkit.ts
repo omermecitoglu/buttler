@@ -36,7 +36,7 @@ function readVarint(buffer: Buffer, start: number) {
   throw new Error("Unexpected end of protobuf message");
 }
 
-function readFields(buffer: Buffer): Field[] {
+export function readFields(buffer: Buffer): Field[] {
   const fields: Field[] = [];
   let offset = 0;
   while (offset < buffer.length) {

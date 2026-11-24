@@ -3,6 +3,7 @@ import path from "node:path";
 import ignore from "@balena/dockerignore";
 import Docker from "dockerode";
 import tar from "tar-fs";
+import { openBuildSession } from "./docker/build-session";
 import { type BuildProgressEvent, formatBuildProgress } from "./docker/buildkit";
 
 export const docker = new Docker();
@@ -14,6 +15,10 @@ export type BuildImageOptions = {
   repository: string,
   tag: string,
   labels: Record<string, string>,
+  /** Can be seen in the image history, must not include secrets */
+  buildArgs?: Record<string, string>,
+  /** Can only be read by the build steps that mount them */
+  secrets?: Record<string, string>,
   onProgress?: (text: string) => void,
 };
 
@@ -25,38 +30,69 @@ async function filterIgnoredFiles(contextPath: string, files: string[]) {
   return files.filter(file => file === "Dockerfile" || isIncluded(file));
 }
 
+/** Docker.buildImage() cannot be used here, because it always replaces the session with its own */
+function requestBuild(
+  context: NodeJS.ReadableStream,
+  abortSignal: AbortSignal,
+  options: Docker.ImageBuildOptions & { session: string },
+) {
+  return new Promise<NodeJS.ReadableStream>((resolve, reject) => {
+    docker.modem.dial({
+      path: "/build?",
+      method: "POST",
+      file: context,
+      options,
+      abortSignal,
+      isStream: true,
+      statusCodes: {
+        200: true,
+        500: "server error",
+      },
+    }, (error: Error | null, stream?: unknown) => {
+      if (error) return reject(error);
+      resolve(stream as NodeJS.ReadableStream);
+    });
+  });
+}
+
 /** Builds an image with BuildKit and returns the ID of it */
 export async function buildImage(options: BuildImageOptions): Promise<string> {
-  const { contextPath, files, repository, tag, labels, onProgress } = options;
+  const { contextPath, files, repository, tag, labels, buildArgs = {}, secrets = {}, onProgress } = options;
   if (!files.includes("Dockerfile")) {
     throw new Error("No Dockerfile found at the root of the repository");
   }
   const entries = await filterIgnoredFiles(contextPath, files);
-  const context = tar.pack(contextPath, { entries });
-  // A broken build context would leave the request open forever
-  const abortController = new AbortController();
-  context.on("error", error => abortController.abort(error));
-  const stream = await docker.buildImage(context as unknown as NodeJS.ReadableStream, {
-    t: `${repository}:${tag}`,
-    labels,
-    version: "2",
-    abortSignal: abortController.signal,
-  });
-
-  await new Promise<void>((resolve, reject) => {
-    let buildError: Error | null = null;
-    docker.modem.followProgress(stream, (streamError: Error | null) => {
-      const error = streamError ?? buildError;
-      if (error) return reject(error);
-      resolve();
-    }, (event: BuildProgressEvent) => {
-      if (event.error) {
-        buildError = new Error(event.errorDetail?.message ?? event.error);
-      }
-      const text = formatBuildProgress(event);
-      if (text) onProgress?.(text);
+  const session = await openBuildSession(docker.modem, secrets);
+  try {
+    const context = tar.pack(contextPath, { entries });
+    // A broken build context would leave the request open forever
+    const abortController = new AbortController();
+    context.on("error", error => abortController.abort(error));
+    const stream = await requestBuild(context as unknown as NodeJS.ReadableStream, abortController.signal, {
+      t: `${repository}:${tag}`,
+      labels,
+      buildargs: buildArgs,
+      version: "2",
+      session: session.id,
     });
-  });
+
+    await new Promise<void>((resolve, reject) => {
+      let buildError: Error | null = null;
+      docker.modem.followProgress(stream, (streamError: Error | null) => {
+        const error = streamError ?? buildError;
+        if (error) return reject(error);
+        resolve();
+      }, (event: BuildProgressEvent) => {
+        if (event.error) {
+          buildError = new Error(event.errorDetail?.message ?? event.error);
+        }
+        const text = formatBuildProgress(event);
+        if (text) onProgress?.(text);
+      });
+    });
+  } finally {
+    session.close();
+  }
 
   const image = docker.getImage(`${repository}:${tag}`);
   const { Id: imageId, Config: config } = await image.inspect();

@@ -12,7 +12,7 @@ const nextConfig: NextConfig = {
   },
   allowedDevOrigins: ["*.ngrok-free.app"],
   poweredByHeader: false,
-  serverExternalPackages: ["dockerode"],
+  serverExternalPackages: ["dockerode", "@grpc/grpc-js"],
 };
 
 export default withNextIntl(nextConfig);
