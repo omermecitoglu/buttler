@@ -1,10 +1,7 @@
 import { docker } from "~/core/docker";
 import { listServiceImages } from "./builds";
-import { BUTTLER_SERVICE_LABEL } from "./labels";
-
-const NOT_MODIFIED = 304;
-const NOT_FOUND = 404;
-const CONFLICT = 409;
+import { isOwnContainer } from "./containers";
+import { CONFLICT, NOT_FOUND, NOT_MODIFIED, ignoreStatus } from "./errors";
 
 const volumeNamePattern = /^[a-zA-Z0-9][a-zA-Z0-9_.-]+$/;
 
@@ -13,23 +10,10 @@ export function isVolumeName(name: string) {
   return volumeNamePattern.test(name);
 }
 
-async function ignoreStatus(promise: Promise<unknown>, ...statusCodes: number[]) {
-  try {
-    await promise;
-  } catch (error) {
-    const { statusCode } = error as { statusCode?: number };
-    if (!statusCode || !statusCodes.includes(statusCode)) throw error;
-  }
-}
-
 /** Only removes the containers that are created by Buttler, a container with the name of the service may be unrelated */
 export async function removeServiceContainers(serviceId: string) {
   const containers = await docker.listContainers({ all: true });
-  const ownContainers = containers.filter(container => {
-    return container.Labels[BUTTLER_SERVICE_LABEL] === serviceId ||
-      container.Names.includes(`/buttler-service-${serviceId}`);
-  });
-  for (const { Id: id } of ownContainers) {
+  for (const { Id: id } of containers.filter(info => isOwnContainer(info, serviceId))) {
     const container = docker.getContainer(id);
     await ignoreStatus(container.stop({ t: 10 }), NOT_MODIFIED, NOT_FOUND);
     await ignoreStatus(container.remove({ force: true }), NOT_FOUND);
