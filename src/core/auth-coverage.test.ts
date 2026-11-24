@@ -26,6 +26,13 @@ vi.mock("~/core/access", () => ({ getAccess: mocks.getAccess }));
 /** They must work without a user */
 const publicActions = ["session.ts: logout", "install.ts: installApp"];
 
+/** They have their own checks instead of a session, which are covered by their own tests */
+const routesWithOwnCheck = [
+  "auth/github-install/route.ts",
+  "auth/github/route.ts",
+  "webhooks/github/route.ts",
+];
+
 type EntryPoint = (...args: unknown[]) => Promise<unknown>;
 
 const root = path.resolve(import.meta.dirname, "..");
@@ -61,6 +68,11 @@ describe("authorization of the entry points", () => {
     expect(routes.length).toBeGreaterThan(0);
     expect(pages.length).toBeGreaterThan(0);
     expect(actions.map(({ name }) => name)).toEqual(expect.arrayContaining(publicActions));
+  });
+
+  it("should not find other route handlers outside of /api", () => {
+    const names = findFiles("app", /(^|[/\\])route\.ts$/).map(({ name }) => name.replaceAll("\\", "/"));
+    expect(names.filter(name => !name.startsWith("api/")).sort()).toEqual(routesWithOwnCheck);
   });
 
   const protectedEntryPoints = [...actions.filter(({ name }) => !publicActions.includes(name)), ...routes];
