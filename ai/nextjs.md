@@ -25,6 +25,7 @@ const nextConfig: NextConfig = {
 ## Data Fetching
 
 - Do not use server actions for fetching data; use API route handlers (`src/app/api/...`).
+- The proxy doesn't run for `/api`, so route handlers must check the session themselves (`getSession`).
 
 ## In-Memory State
 
