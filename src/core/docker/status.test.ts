@@ -338,7 +338,7 @@ describe("Docker status aggregator", () => {
         repository: "redis",
         branch: "alpine",
         ports: [{ external: 6379, internal: 6379 }],
-        environmentVariables: [{ key: "A", value: "B" }],
+        environmentVariables: [{ key: "A", value: "B", scope: "runtime", isSecret: false }],
         volumes: [{ name: "vol1", containerPath: "/data" }],
       });
       expect(mockDocker.createVolume).toHaveBeenCalledWith({ Name: "vol1" });

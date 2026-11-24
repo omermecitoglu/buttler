@@ -9,8 +9,10 @@ import {
   deployServiceContainer,
   markServiceBuilding,
 } from "~/core/docker/status";
+import { getBuildArgs, getBuildSecrets } from "~/core/environment-variables";
 import { cloneRepo, deleteRepo, parseRepository } from "~/core/git";
 import { getInstallationTokenForOwner } from "~/core/github/app";
+import { createRedactor } from "~/core/redact";
 import { getFilePath } from "~/core/storage";
 
 export const BUTTLER_BRANCH_LABEL = "buttler.branch";
@@ -62,6 +64,8 @@ async function runPipeline(service: ServiceRef) {
       throw new Error(`No repository or branch specified for service ${service.id}`);
     }
     const log = openBuildLog(service.id);
+    const secrets = getBuildSecrets(service.environmentVariables);
+    const output = createRedactor(Object.values(secrets), log.write);
     try {
       log.line(`Cloning ${repository} (${branch})`);
       const { owner } = parseRepository(repository);
@@ -86,15 +90,19 @@ async function runPipeline(service: ServiceRef) {
           [BUTTLER_COMMIT_LABEL]: commit.hash,
           [BUTTLER_BUILT_AT_LABEL]: new Date().toISOString(),
         },
-        onProgress: log.write,
+        buildArgs: getBuildArgs(service.environmentVariables),
+        secrets,
+        onProgress: output.write,
       });
+      output.flush();
 
       // The previous container keeps running until the new image is ready
       log.line(`Deploying ${imageId}`);
       await deployServiceContainer(service, imageId);
       log.line("Deployed");
     } catch (error) {
-      log.line(`Failed: ${error instanceof Error ? error.message : String(error)}`);
+      output.flush();
+      log.line(`Failed: ${output.redact(error instanceof Error ? error.message : String(error))}`);
       throw error;
     } finally {
       log.close();

@@ -1,4 +1,5 @@
 import { docker } from "~/core/docker";
+import { type ServiceEnvironmentVariable, getRuntimeVariables } from "~/core/environment-variables";
 import type Docker from "dockerode";
 
 export const BUTTLER_SERVICE_LABEL = "buttler.service-id";
@@ -171,18 +172,22 @@ export function createServiceRuntimeState(
   };
 }
 
-export type ServiceRef = {
+/** Enough to find the container of a service */
+export type ServiceIdentity = {
   id: string,
   name?: string,
   type?: string,
+};
+
+export type ServiceRef = ServiceIdentity & {
   repository?: string | null,
   branch?: string | null,
   ports?: { external: number, internal: number }[],
-  environmentVariables?: { key: string, value: string }[],
+  environmentVariables?: ServiceEnvironmentVariable[],
   volumes?: { name: string, containerPath: string }[],
 };
 
-export async function getServicesRuntimeStates(services: ServiceRef[]): Promise<Record<string, ServiceRuntimeState>> {
+export async function getServicesRuntimeStates(services: ServiceIdentity[]): Promise<Record<string, ServiceRuntimeState>> {
   let containers: Docker.ContainerInfo[];
   try {
     containers = await docker.listContainers({ all: true });
@@ -200,12 +205,12 @@ export async function getServicesRuntimeStates(services: ServiceRef[]): Promise<
   return result;
 }
 
-export async function getServiceRuntimeState(service: ServiceRef): Promise<ServiceRuntimeState> {
+export async function getServiceRuntimeState(service: ServiceIdentity): Promise<ServiceRuntimeState> {
   const map = await getServicesRuntimeStates([service]);
   return map[service.id];
 }
 
-export async function findServiceContainer(service: ServiceRef): Promise<Docker.Container | null> {
+export async function findServiceContainer(service: ServiceIdentity): Promise<Docker.Container | null> {
   let containers: Docker.ContainerInfo[];
   try {
     containers = await docker.listContainers({ all: true });
@@ -323,7 +328,7 @@ export async function deployServiceContainer(service: ServiceRef, image: string)
     exposedPorts[`${p.internal}/tcp`] = {};
   }
 
-  const env = (service.environmentVariables ?? []).map(e => `${e.key}=${e.value}`);
+  const env = Object.entries(getRuntimeVariables(service.environmentVariables)).map(([key, value]) => `${key}=${value}`);
   const binds = (service.volumes ?? []).map(v => `${v.name}:${v.containerPath}`);
 
   const container = await docker.createContainer({
@@ -348,7 +353,7 @@ export async function deployServiceContainer(service: ServiceRef, image: string)
   await container.start();
 }
 
-export async function stopServiceContainer(service: ServiceRef): Promise<void> {
+export async function stopServiceContainer(service: ServiceIdentity): Promise<void> {
   const container = await findServiceContainer(service);
   if (!container) {
     try {

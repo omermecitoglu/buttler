@@ -42,7 +42,12 @@ const service = {
   repository: "acme/app",
   branch: "dev",
   ports: [{ external: 8080, internal: 80 }],
-  environmentVariables: [{ key: "SECRET", value: "x" }],
+  environmentVariables: [
+    { key: "RUNTIME_ONLY", value: "r1", scope: "runtime" as const, isSecret: false },
+    { key: "RUNTIME_SECRET", value: "r2", scope: "runtime" as const, isSecret: true },
+    { key: "NEXT_PUBLIC_URL", value: "b1", scope: "both" as const, isSecret: false },
+    { key: "NPM_TOKEN", value: "hunter22", scope: "build" as const, isSecret: true },
+  ],
   volumes: [{ name: "data", containerPath: "/data" }],
 };
 
@@ -92,12 +97,13 @@ describe("build pipeline", () => {
       labels: { "buttler.service-id": "srv", "buttler.branch": "dev", "buttler.commit": "abcdef123" },
     });
     expect(options.labels["buttler.built-at"]).toMatch(/^\d{4}-.*Z$/);
-    // environment variables must not leak into the image
-    expect(JSON.stringify(options)).not.toContain("SECRET");
+    // only the variables that are scoped for the build are sent, and secrets are not build args
+    expect(options.buildArgs).toEqual({ NEXT_PUBLIC_URL: "b1" });
+    expect(options.secrets).toEqual({ NPM_TOKEN: "hunter22" });
     expect(mocks.container.stop).toHaveBeenCalled();
     expect(mocks.createContainer).toHaveBeenCalledWith(expect.objectContaining({
       Image: "sha256:new",
-      Env: ["SECRET=x"],
+      Env: ["RUNTIME_ONLY=r1", "RUNTIME_SECRET=r2", "NEXT_PUBLIC_URL=b1"],
       Labels: expect.objectContaining({ "buttler.service-id": "srv" }),
       HostConfig: expect.objectContaining({
         Binds: ["data:/data"],
@@ -108,6 +114,21 @@ describe("build pipeline", () => {
     expect(mocks.deleteRepo).toHaveBeenCalledWith("srv");
     await vi.waitFor(async () => {
       expect(await fs.readFile(getBuildLogPath("srv"), "utf-8")).toContain("Deployed");
+    });
+  });
+
+  it("should hide build secrets in the log", async () => {
+    mocks.buildImage.mockImplementation(options => {
+      options.onProgress("token is hun");
+      options.onProgress("ter22\nunfinished hunter22");
+      return Promise.reject(new Error("failed with hunter22"));
+    });
+    await expect(buildAndDeploy(service)).rejects.toThrow();
+    await vi.waitFor(async () => {
+      const log = await fs.readFile(getBuildLogPath("srv"), "utf-8");
+      expect(log).toContain("token is ***\nunfinished ***");
+      expect(log).toContain("Failed: failed with ***");
+      expect(log).not.toContain("hunter22");
     });
   });
 

@@ -10,10 +10,12 @@ import {
   startServiceContainer,
   stopServiceContainer,
 } from "~/core/docker/status";
+import { environmentVariableScopes } from "~/core/environment-variables";
 import db from "~/database";
 import { redirect } from "~/i18n/navigation";
 import type { AppLocale } from "~/i18n/routing";
 import createService from "~/operations/createService";
+import getDeployableService from "~/operations/getDeployableService";
 import getService from "~/operations/getService";
 
 export const createServiceAction = defineFormAction({
@@ -42,6 +44,8 @@ export const createServiceAction = defineFormAction({
         return z.array(z.object({
           key: z.string().min(1).regex(/^[a-zA-Z_][a-zA-Z0-9_]*$/),
           value: z.string(),
+          scope: z.enum(environmentVariableScopes).default("runtime"),
+          isSecret: z.boolean().default(false),
         })).parse(parsed);
       } catch {
         ctx.addIssue({ code: "custom", message: "invalid_environment_variables" });
@@ -63,6 +67,10 @@ export const createServiceAction = defineFormAction({
     }),
   }),
   action: input => async (locale: AppLocale) => {
+    // Only the services with a build step can use the other scopes
+    const environmentVariables = input.type === "github"
+      ? input.environmentVariables
+      : input.environmentVariables.map(variable => ({ ...variable, scope: "runtime" as const }));
     try {
       const service = await Promise.resolve(createService(db, {
         name: input.name,
@@ -70,14 +78,14 @@ export const createServiceAction = defineFormAction({
         repository: input.repository,
         branch: input.branch,
         ports: input.ports,
-        environmentVariables: input.environmentVariables,
+        environmentVariables,
         volumes: input.volumes,
       }));
       if (service.type === "github") {
         startBuilding({
           ...service,
           ports: input.ports,
-          environmentVariables: input.environmentVariables,
+          environmentVariables,
           volumes: input.volumes,
         });
       }
@@ -90,7 +98,7 @@ export const createServiceAction = defineFormAction({
 });
 
 export async function startService(serviceId: string) {
-  const service = await getService(db, serviceId);
+  const service = await getDeployableService(db, serviceId);
   if (!service) {
     throw new Error(`Service not found: ${serviceId}`);
   }
@@ -141,7 +149,7 @@ export async function stopService(serviceId: string) {
 }
 
 export async function restartService(serviceId: string) {
-  const service = await getService(db, serviceId);
+  const service = await getDeployableService(db, serviceId);
   if (!service) {
     throw new Error(`Service not found: ${serviceId}`);
   }

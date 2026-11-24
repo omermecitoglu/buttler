@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createServiceAction, restartService, startService, stopService } from "./service";
 
 const mockGetService = vi.fn();
+const mockGetDeployableService = vi.fn();
 const mockCreateService = vi.fn();
 const mockStartServiceContainer = vi.fn();
 const mockStopServiceContainer = vi.fn();
@@ -20,6 +21,10 @@ vi.mock("~/database", () => ({
 
 vi.mock("~/operations/getService", () => ({
   default: (...args: unknown[]) => mockGetService(...args),
+}));
+
+vi.mock("~/operations/getDeployableService", () => ({
+  default: (...args: unknown[]) => mockGetDeployableService(...args),
 }));
 
 vi.mock("~/operations/createService", () => ({
@@ -61,7 +66,7 @@ describe("service lifecycle server actions", () => {
 
   describe("startService", () => {
     it("starts container directly if image is already present", async () => {
-      mockGetService.mockResolvedValue({
+      mockGetDeployableService.mockResolvedValue({
         ...sampleService,
         repository: "redis",
         branch: "alpine",
@@ -75,7 +80,7 @@ describe("service lifecycle server actions", () => {
     });
 
     it("marks service pulling and starts background task if image is not present", async () => {
-      mockGetService.mockResolvedValue({
+      mockGetDeployableService.mockResolvedValue({
         ...sampleService,
         repository: "postgres",
         branch: "15",
@@ -90,7 +95,7 @@ describe("service lifecycle server actions", () => {
 
     it("builds a github service in the background if it has no image", async () => {
       const service = { ...sampleService, type: "github", repository: "acme/app", branch: "dev" };
-      mockGetService.mockResolvedValue(service);
+      mockGetDeployableService.mockResolvedValue(service);
       mockFindLatestImage.mockResolvedValue(null);
       expect(await startService("srv-test")).toEqual({ success: true });
       expect(mockStartBuilding).toHaveBeenCalledWith(service);
@@ -98,7 +103,7 @@ describe("service lifecycle server actions", () => {
     });
 
     it("starts a github service from its existing image", async () => {
-      mockGetService.mockResolvedValue({ ...sampleService, type: "github" });
+      mockGetDeployableService.mockResolvedValue({ ...sampleService, type: "github" });
       mockFindLatestImage.mockResolvedValue("sha256:abc");
       await startService("srv-test");
       expect(mockStartServiceContainer).toHaveBeenCalled();
@@ -106,7 +111,7 @@ describe("service lifecycle server actions", () => {
     });
 
     it("throws if service is not found in database", async () => {
-      mockGetService.mockResolvedValue(null);
+      mockGetDeployableService.mockResolvedValue(null);
       await expect(startService("srv-unknown")).rejects.toThrow("Service not found: srv-unknown");
       expect(mockStartServiceContainer).not.toHaveBeenCalled();
     });
@@ -130,7 +135,7 @@ describe("service lifecycle server actions", () => {
 
   describe("restartService", () => {
     it("restarts container and revalidates path", async () => {
-      mockGetService.mockResolvedValue(sampleService);
+      mockGetDeployableService.mockResolvedValue(sampleService);
       const res = await restartService("srv-test");
       expect(mockRestartServiceContainer).toHaveBeenCalledWith(sampleService);
       expect(mockRevalidatePath).toHaveBeenCalledWith("/");
@@ -139,7 +144,7 @@ describe("service lifecycle server actions", () => {
     });
 
     it("throws if service is not found in database", async () => {
-      mockGetService.mockResolvedValue(null);
+      mockGetDeployableService.mockResolvedValue(null);
       await expect(restartService("srv-unknown")).rejects.toThrow("Service not found: srv-unknown");
     });
   });
@@ -153,29 +158,54 @@ describe("service lifecycle server actions", () => {
       formData.set("repository", "org/repo");
       formData.set("branch", "main");
       formData.set("ports", JSON.stringify([{ external: 3000, internal: 3000 }]));
-      formData.set("environmentVariables", JSON.stringify([{ key: "NODE_ENV", value: "production" }]));
+      formData.set("environmentVariables", JSON.stringify([
+        { key: "NODE_ENV", value: "production" },
+        { key: "NPM_TOKEN", value: "t", scope: "build", isSecret: true },
+      ]));
       formData.set("volumes", JSON.stringify([{ name: "app-data", containerPath: "/data" }]));
 
       await createServiceAction("en", {}, formData);
 
+      const environmentVariables = [
+        { key: "NODE_ENV", value: "production", scope: "runtime", isSecret: false },
+        { key: "NPM_TOKEN", value: "t", scope: "build", isSecret: true },
+      ];
       expect(mockCreateService).toHaveBeenCalledWith(expect.anything(), {
         name: "My API Service",
         type: "github",
         repository: "org/repo",
         branch: "main",
         ports: [{ external: 3000, internal: 3000 }],
-        environmentVariables: [{ key: "NODE_ENV", value: "production" }],
+        environmentVariables,
         volumes: [{ name: "app-data", containerPath: "/data" }],
       });
       expect(mockStartBuilding).toHaveBeenCalledWith({
         id: "srv-new",
         type: "github",
         ports: [{ external: 3000, internal: 3000 }],
-        environmentVariables: [{ key: "NODE_ENV", value: "production" }],
+        environmentVariables,
         volumes: [{ name: "app-data", containerPath: "/data" }],
       });
       expect(mockUpdateTag).toHaveBeenCalledWith("getAllServices()");
       expect(mockRedirect).toHaveBeenCalledWith({ locale: "en", href: "/services" });
+    });
+
+    it("makes the variables of services without a build step available at runtime", async () => {
+      mockCreateService.mockReturnValue({ id: "srv-dh", type: "dockerhub" });
+      const formData = new FormData();
+      formData.set("name", "Cache");
+      formData.set("type", "dockerhub");
+      formData.set("repository", "redis");
+      formData.set("branch", "latest");
+      formData.set("environmentVariables", JSON.stringify([
+        { key: "PASSWORD", value: "p", scope: "build", isSecret: true },
+      ]));
+
+      await createServiceAction("en", {}, formData);
+
+      expect(mockCreateService).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({
+        environmentVariables: [{ key: "PASSWORD", value: "p", scope: "runtime", isSecret: true }],
+      }));
     });
 
     it("returns validation errors if required fields are missing", async () => {
