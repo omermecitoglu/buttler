@@ -23,6 +23,14 @@ Docker is the single source of truth for builds, nothing about them is stored in
 - Builds and pulls go on after the response is sent, so the actions return what they led to (`ServiceActionOutcome`) instead of waiting. A failed pull is only written to the server log.
 - A deploy always starts the new container, so "Rebuild" and "Redeploy" also start a stopped service.
 
+## Deletion
+
+- Only the admin can delete a service (`deleteServiceAction`). System services can't be deleted, and neither can services that are being built or pulled, because they would be deployed again.
+- The container, the built images and (optionally) the volumes are removed before the database row, so a deletion that fails can be tried again (`src/core/docker/removal.ts`).
+- Containers are matched by the label or the `buttler-service-<id>` name only. `matchContainerForService` also matches by the service name, which may find an unrelated container.
+- Volumes are kept by default. The ones that other services or containers use are always kept. Stopped services have no container, so the `volumes` table is checked too (`getSharedVolumes`).
+- Docker Hub images are never removed, other containers may use them.
+
 ## Container Logs
 
 Logs are read live from Docker and never stored.
