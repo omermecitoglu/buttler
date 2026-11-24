@@ -1,6 +1,5 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { stripVTControlCharacters } from "node:util";
 import ignore from "@balena/dockerignore";
 import Docker from "dockerode";
 import tar from "tar-fs";
@@ -197,18 +196,6 @@ export function executeCommandInContainer(containerId: string, command: string[]
           resolve(output);
         });
       });
-    });
-  });
-}
-
-export function getContainerLogs(containerId: string, limit: number) {
-  const container = docker.getContainer(containerId);
-  return new Promise<string>((resolve, reject) => {
-    container.logs({ follow: false, stdout: true, stderr: true, tail: limit }, (err, buffer) => {
-      if (err) return reject(err);
-      if (!buffer) return reject(new Error("stream is undefined"));
-      // Containers have a TTY, so their output may include colors and other terminal sequences
-      resolve(stripVTControlCharacters(buffer.toString()));
     });
   });
 }
