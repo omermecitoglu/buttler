@@ -3,6 +3,8 @@ import * as dockerhub from "~/core/dockerhub";
 import { GET } from "./route";
 import type { NextRequest } from "next/server";
 
+vi.mock("~/core/auth", () => ({ requireUser: vi.fn() }));
+
 describe("GET /api/sources/dockerhub/tags", () => {
   it("should return empty tags when image param is missing", async () => {
     const req = {

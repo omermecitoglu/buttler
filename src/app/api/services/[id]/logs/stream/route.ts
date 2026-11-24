@@ -1,6 +1,6 @@
+import { requireUser } from "~/core/auth";
 import { isContainerRunning, parseTimestamp, readContainerLogs } from "~/core/docker/logs";
 import { findServiceContainer } from "~/core/docker/status";
-import { getSession } from "~/core/session";
 import { getSingleService } from "~/data/services";
 import type { NextRequest } from "next/server";
 
@@ -20,8 +20,7 @@ function parseSince(value: string | null) {
 
 export async function GET(request: NextRequest, { params }: RouteContext<"/api/services/[id]/logs/stream">) {
   // The proxy doesn't cover the API routes
-  const session = await getSession();
-  if (!session.userId) return Response.json({ error: "Unauthorized" }, { status: 401 });
+  await requireUser();
 
   const { id } = await params;
   const service = await getSingleService(id);

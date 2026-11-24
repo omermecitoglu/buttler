@@ -1,3 +1,4 @@
+import { requireUser } from "~/core/auth";
 import { getAllAppInstallationTokens, getGitHubAppMetadata } from "~/core/github/app";
 import { getInstallationRepositories } from "~/core/github/repos";
 
@@ -11,6 +12,7 @@ export type SourceRepository = {
 };
 
 export async function GET() {
+  await requireUser();
   try {
     const [
       installationTokens,

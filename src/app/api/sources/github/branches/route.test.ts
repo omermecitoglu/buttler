@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
+vi.mock("~/core/auth", () => ({ requireUser: vi.fn() }));
 
 import * as appCore from "~/core/github/app";
 import * as reposCore from "~/core/github/repos";
