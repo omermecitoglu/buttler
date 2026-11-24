@@ -416,7 +416,11 @@ describe("deleteServiceAction", () => {
   beforeEach(() => {
     vi.resetAllMocks();
     vi.spyOn(console, "error").mockImplementation(() => undefined);
-    mockGetService.mockResolvedValue({ id: "srv", type: "github", volumes: [{ name: "data" }, { name: "cache" }, { name: "shared" }] });
+    mockGetService.mockResolvedValue({
+      id: "srv",
+      type: "github",
+      volumes: [{ name: "data" }, { name: "cache" }, { name: "shared" }],
+    });
     mockGetServiceRuntimeState.mockResolvedValue({ status: "running" });
     mockGetSharedVolumes.mockResolvedValue(["shared"]);
   });
