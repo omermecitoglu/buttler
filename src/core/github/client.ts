@@ -10,7 +10,8 @@ export type GitHubFetchResponse<T> = {
 
 export async function githubFetch<T>(
   endpoint: string,
-  accessToken: string,
+  /** Requests without a token can only read public data, and have a lower rate limit */
+  accessToken: string | null,
   init?: RequestInit,
 ): Promise<GitHubFetchResponse<T>> {
   const url = endpoint.startsWith("http")
@@ -18,7 +19,9 @@ export async function githubFetch<T>(
     : `${GITHUB_API_BASE_URL}${endpoint.startsWith("/") ? "" : "/"}${endpoint}`;
 
   const headers = new Headers(init?.headers);
-  headers.set("Authorization", `Bearer ${accessToken}`);
+  if (accessToken) {
+    headers.set("Authorization", `Bearer ${accessToken}`);
+  }
   headers.set("Accept", "application/vnd.github+json");
   if (!headers.has("X-GitHub-Api-Version")) {
     headers.set("X-GitHub-Api-Version", "2022-11-28");
