@@ -25,6 +25,10 @@ export function getBuildLogPath(serviceId: string) {
   return getFilePath("logs/builds", `${serviceId}.log`);
 }
 
+export async function deleteBuildLog(serviceId: string) {
+  await fs.promises.rm(getBuildLogPath(serviceId), { force: true });
+}
+
 export function getImageRepository(service: ServiceRef) {
   const slug = (service.name ?? "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
   return `buttler/${slug || service.id}`;
