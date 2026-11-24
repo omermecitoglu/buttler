@@ -1,15 +1,21 @@
 "use server";
 import { defineFormAction, displayMessage } from "@omer-x/next-form-actions";
 import { refresh, updateTag } from "next/cache";
+import { after } from "next/server";
 import z from "zod";
 import { findLatestImage, startBuilding } from "~/core/build";
 import {
+  type ServiceRef,
   isImagePresentLocally,
+  isServiceBuilding,
+  isServicePulling,
   markServicePulling,
+  pullAndDeployService,
   restartServiceContainer,
   startServiceContainer,
   stopServiceContainer,
 } from "~/core/docker/status";
+import { getServiceImageTag } from "~/core/dockerhub";
 import { environmentVariableScopes } from "~/core/environment-variables";
 import db from "~/database";
 import { redirect } from "~/i18n/navigation";
@@ -119,61 +125,93 @@ export const updateServiceAction = defineFormAction({
   },
 });
 
-export async function startService(serviceId: string) {
+/** What an action on a service led to, builds and pulls go on in the background */
+export type ServiceActionOutcome = "started" | "stopped" | "restarted" | "building" | "pulling";
+
+type ServiceActionResult = {
+  outcome: ServiceActionOutcome,
+};
+
+async function getServiceToDeploy(serviceId: string) {
   const service = await getDeployableService(db, serviceId);
   if (!service) {
     throw new Error(`Service not found: ${serviceId}`);
   }
+  return service;
+}
+
+function startPulling(service: ServiceRef) {
+  // Requests made during a pull share it
+  if (isServicePulling(service.id)) return;
+  markServicePulling(service.id, true);
+  after(async () => {
+    try {
+      await pullAndDeployService(service);
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error(`Failed to pull and deploy service ${service.id}:`, error);
+    }
+  });
+}
+
+export async function startService(serviceId: string): Promise<ServiceActionResult> {
+  const service = await getServiceToDeploy(serviceId);
   if (service.type === "dockerhub") {
-    const rawImage = service.repository ?? "";
-    const imageTag = rawImage
-      ? (service.branch ? `${rawImage}:${service.branch}` : (rawImage.includes(":") ? rawImage : `${rawImage}:latest`))
-      : "";
-    if (imageTag) {
-      const hasImage = await isImagePresentLocally(imageTag);
-      if (!hasImage) {
-        markServicePulling(service.id, true);
-        void (async () => {
-          try {
-            await startServiceContainer(service);
-          } catch (err) {
-            // eslint-disable-next-line no-console
-            console.error(`Failed to pull and start service ${service.id}:`, err);
-          }
-        })();
-        refresh();
-        return { success: true };
-      }
+    const imageTag = getServiceImageTag(service);
+    if (imageTag && !await isImagePresentLocally(imageTag)) {
+      startPulling(service);
+      refresh();
+      return { outcome: "pulling" };
     }
   }
   if (service.type === "github" && !await findLatestImage(service.id)) {
     startBuilding(service);
     refresh();
-    return { success: true };
+    return { outcome: "building" };
   }
   await startServiceContainer(service);
   refresh();
-  return { success: true };
+  return { outcome: "started" };
 }
 
-export async function stopService(serviceId: string) {
+export async function stopService(serviceId: string): Promise<ServiceActionResult> {
   const service = await getService(db, serviceId);
   if (!service) {
     throw new Error(`Service not found: ${serviceId}`);
   }
   await stopServiceContainer(service);
   refresh();
-  return { success: true };
+  return { outcome: "stopped" };
 }
 
-export async function restartService(serviceId: string) {
-  const service = await getDeployableService(db, serviceId);
-  if (!service) {
-    throw new Error(`Service not found: ${serviceId}`);
-  }
+export async function restartService(serviceId: string): Promise<ServiceActionResult> {
+  const service = await getServiceToDeploy(serviceId);
   await restartServiceContainer(service);
   refresh();
-  return { success: true };
+  return { outcome: "restarted" };
+}
+
+/** Builds and deploys the latest commit of a GitHub service */
+export async function triggerBuild(serviceId: string): Promise<ServiceActionResult> {
+  const service = await getServiceToDeploy(serviceId);
+  if (service.type !== "github") {
+    throw new Error(`Service cannot be built: ${serviceId}`);
+  }
+  // A repeated click must not queue another build
+  if (!isServiceBuilding(service.id)) {
+    startBuilding(service);
+  }
+  refresh();
+  return { outcome: "building" };
+}
+
+/** Pulls and deploys the latest image of a Docker Hub service, other services run their last known image again */
+export async function redeployService(serviceId: string): Promise<ServiceActionResult> {
+  const service = await getServiceToDeploy(serviceId);
+  if (service.type !== "dockerhub") return restartService(serviceId);
+  startPulling(service);
+  refresh();
+  return { outcome: "pulling" };
 }
 
 // NOTE (v2 roadmap): Legacy v1 service server actions.

@@ -1,6 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { MissingSecretValueError } from "~/operations/updateService";
-import { createServiceAction, restartService, startService, stopService, updateServiceAction } from "./service";
+import {
+  createServiceAction,
+  redeployService,
+  restartService,
+  startService,
+  stopService,
+  triggerBuild,
+  updateServiceAction,
+} from "./service";
 
 const mockGetService = vi.fn();
 const mockGetDeployableService = vi.fn();
@@ -10,6 +18,10 @@ const mockStopServiceContainer = vi.fn();
 const mockRestartServiceContainer = vi.fn();
 const mockIsImagePresentLocally = vi.fn();
 const mockMarkServicePulling = vi.fn();
+const mockIsServiceBuilding = vi.fn();
+const mockIsServicePulling = vi.fn();
+const mockPullAndDeployService = vi.fn();
+const mockAfter = vi.fn();
 const mockFindLatestImage = vi.fn();
 const mockStartBuilding = vi.fn();
 const mockUpdateService = vi.fn();
@@ -49,6 +61,13 @@ vi.mock("~/core/docker/status", () => ({
   restartServiceContainer: (...args: unknown[]) => mockRestartServiceContainer(...args),
   isImagePresentLocally: (...args: unknown[]) => mockIsImagePresentLocally(...args),
   markServicePulling: (...args: unknown[]) => mockMarkServicePulling(...args),
+  isServiceBuilding: (...args: unknown[]) => mockIsServiceBuilding(...args),
+  isServicePulling: (...args: unknown[]) => mockIsServicePulling(...args),
+  pullAndDeployService: (...args: unknown[]) => mockPullAndDeployService(...args),
+}));
+
+vi.mock("next/server", () => ({
+  after: (...args: unknown[]) => mockAfter(...args),
 }));
 
 vi.mock("next/cache", () => ({
@@ -63,6 +82,8 @@ vi.mock("~/i18n/navigation", () => ({
 describe("service lifecycle server actions", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockIsServiceBuilding.mockReturnValue(false);
+    mockIsServicePulling.mockReturnValue(false);
   });
 
   const sampleService = {
@@ -82,7 +103,7 @@ describe("service lifecycle server actions", () => {
       const res = await startService("srv-test");
       expect(mockStartServiceContainer).toHaveBeenCalled();
       expect(mockRefresh).toHaveBeenCalled();
-      expect(res).toEqual({ success: true });
+      expect(res).toEqual({ outcome: "started" });
     });
 
     it("marks service pulling and starts background task if image is not present", async () => {
@@ -95,14 +116,14 @@ describe("service lifecycle server actions", () => {
       const res = await startService("srv-test");
       expect(mockMarkServicePulling).toHaveBeenCalledWith("srv-test", true);
       expect(mockRefresh).toHaveBeenCalled();
-      expect(res).toEqual({ success: true });
+      expect(res).toEqual({ outcome: "pulling" });
     });
 
     it("builds a github service in the background if it has no image", async () => {
       const service = { ...sampleService, type: "github", repository: "acme/app", branch: "dev" };
       mockGetDeployableService.mockResolvedValue(service);
       mockFindLatestImage.mockResolvedValue(null);
-      expect(await startService("srv-test")).toEqual({ success: true });
+      expect(await startService("srv-test")).toEqual({ outcome: "building" });
       expect(mockStartBuilding).toHaveBeenCalledWith(service);
       expect(mockStartServiceContainer).not.toHaveBeenCalled();
     });
@@ -128,7 +149,7 @@ describe("service lifecycle server actions", () => {
       const res = await stopService("srv-test");
       expect(mockStopServiceContainer).toHaveBeenCalledWith(sampleService);
       expect(mockRefresh).toHaveBeenCalled();
-      expect(res).toEqual({ success: true });
+      expect(res).toEqual({ outcome: "stopped" });
     });
 
     it("throws if service is not found in database", async () => {
@@ -143,12 +164,78 @@ describe("service lifecycle server actions", () => {
       const res = await restartService("srv-test");
       expect(mockRestartServiceContainer).toHaveBeenCalledWith(sampleService);
       expect(mockRefresh).toHaveBeenCalled();
-      expect(res).toEqual({ success: true });
+      expect(res).toEqual({ outcome: "restarted" });
     });
 
     it("throws if service is not found in database", async () => {
       mockGetDeployableService.mockResolvedValue(null);
       await expect(restartService("srv-unknown")).rejects.toThrow("Service not found: srv-unknown");
+    });
+  });
+
+  describe("triggerBuild", () => {
+    it("builds a github service", async () => {
+      const service = { ...sampleService, type: "github" };
+      mockGetDeployableService.mockResolvedValue(service);
+      expect(await triggerBuild("srv-test")).toEqual({ outcome: "building" });
+      expect(mockStartBuilding).toHaveBeenCalledWith(service);
+      expect(mockRefresh).toHaveBeenCalled();
+    });
+
+    it("does not queue another build during a build", async () => {
+      mockGetDeployableService.mockResolvedValue({ ...sampleService, type: "github" });
+      mockIsServiceBuilding.mockReturnValue(true);
+      expect(await triggerBuild("srv-test")).toEqual({ outcome: "building" });
+      expect(mockStartBuilding).not.toHaveBeenCalled();
+    });
+
+    it.each(["dockerhub", "system"])("rejects %s services", async type => {
+      mockGetDeployableService.mockResolvedValue({ ...sampleService, type });
+      await expect(triggerBuild("srv-test")).rejects.toThrow("Service cannot be built: srv-test");
+      expect(mockStartBuilding).not.toHaveBeenCalled();
+    });
+
+    it("throws if service is not found in database", async () => {
+      mockGetDeployableService.mockResolvedValue(null);
+      await expect(triggerBuild("srv-unknown")).rejects.toThrow("Service not found: srv-unknown");
+    });
+  });
+
+  describe("redeployService", () => {
+    it("pulls and deploys a dockerhub service after the response", async () => {
+      mockGetDeployableService.mockResolvedValue(sampleService);
+      expect(await redeployService("srv-test")).toEqual({ outcome: "pulling" });
+      expect(mockMarkServicePulling).toHaveBeenCalledWith("srv-test", true);
+      expect(mockRefresh).toHaveBeenCalled();
+      expect(mockPullAndDeployService).not.toHaveBeenCalled();
+      const [task] = mockAfter.mock.calls[0] as [() => Promise<void>];
+      await task();
+      expect(mockPullAndDeployService).toHaveBeenCalledWith(sampleService);
+    });
+
+    it("logs the errors of the background task", async () => {
+      const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+      mockGetDeployableService.mockResolvedValue(sampleService);
+      mockPullAndDeployService.mockRejectedValueOnce(new Error("no network"));
+      await redeployService("srv-test");
+      const [task] = mockAfter.mock.calls[0] as [() => Promise<void>];
+      await expect(task()).resolves.toBeUndefined();
+      expect(consoleError).toHaveBeenCalled();
+      consoleError.mockRestore();
+    });
+
+    it("does not pull again during a pull", async () => {
+      mockGetDeployableService.mockResolvedValue(sampleService);
+      mockIsServicePulling.mockReturnValue(true);
+      expect(await redeployService("srv-test")).toEqual({ outcome: "pulling" });
+      expect(mockAfter).not.toHaveBeenCalled();
+    });
+
+    it("runs the last known image of other services again", async () => {
+      const service = { ...sampleService, type: "github" };
+      mockGetDeployableService.mockResolvedValue(service);
+      expect(await redeployService("srv-test")).toEqual({ outcome: "restarted" });
+      expect(mockRestartServiceContainer).toHaveBeenCalledWith(service);
     });
   });
 
