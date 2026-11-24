@@ -31,6 +31,7 @@ const mockGetSharedVolumes = vi.fn();
 const mockGetServiceRuntimeState = vi.fn();
 const mockRemoveServiceContainers = vi.fn();
 const mockRemoveServiceImages = vi.fn();
+const mockRemoveIngressNetwork = vi.fn();
 const mockRemoveVolumes = vi.fn();
 const mockDeleteBuildLog = vi.fn();
 const mockRequireAdmin = vi.fn();
@@ -72,6 +73,10 @@ vi.mock("~/operations/deleteService", () => ({
 
 vi.mock("~/operations/getSharedVolumes", () => ({
   default: (...args: unknown[]) => mockGetSharedVolumes(...args),
+}));
+
+vi.mock("~/core/docker/ingress", () => ({
+  removeIngressNetwork: (...args: unknown[]) => mockRemoveIngressNetwork(...args),
 }));
 
 vi.mock("~/core/docker/removal", () => ({
@@ -441,6 +446,19 @@ describe("deleteServiceAction", () => {
     expect(mockUpdateTag).toHaveBeenCalledWith("getAllServices()");
     expect(mockUpdateTag).toHaveBeenCalledWith("getSingleService(srv)");
     expect(mockRedirect).toHaveBeenCalledWith({ locale: "en", href: "/services" });
+  });
+
+  it("removes the ingress network after the container", async () => {
+    await submit();
+    expect(mockRemoveIngressNetwork).toHaveBeenCalledWith("srv");
+    expect(mockRemoveIngressNetwork).toHaveBeenCalledAfter(mockRemoveServiceContainers);
+    expect(mockRemoveIngressNetwork).toHaveBeenCalledBefore(mockDeleteService);
+  });
+
+  it("keeps the service if its ingress network can't be removed", async () => {
+    mockRemoveIngressNetwork.mockRejectedValue(new Error("no docker"));
+    expect(await submit()).toEqual({ "[error]": "delete_failed" });
+    expect(mockDeleteService).not.toHaveBeenCalled();
   });
 
   it("only deletes the chosen volumes", async () => {

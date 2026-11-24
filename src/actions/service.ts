@@ -5,6 +5,7 @@ import { after } from "next/server";
 import z from "zod";
 import { requireUser } from "~/core/auth";
 import { deleteBuildLog, findLatestImage, startBuilding } from "~/core/build";
+import { removeIngressNetwork } from "~/core/docker/ingress";
 import { removeServiceContainers, removeServiceImages, removeVolumes } from "~/core/docker/removal";
 import {
   type ServiceRef,
@@ -142,6 +143,7 @@ function isServiceBeingDeployed(serviceId: string) {
 /** The service itself is deleted last, so a deletion that fails can be tried again. Returns false if it's kept. */
 async function removeService({ id, volumes }: { id: string, volumes: { name: string }[] }, chosenVolumes: string[]) {
   await removeServiceContainers(id);
+  await removeIngressNetwork(id);
   await removeServiceImages(id);
   if (chosenVolumes.length > 0) {
     const sharedVolumes = await getSharedVolumes(db, id);
