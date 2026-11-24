@@ -32,7 +32,7 @@ export default async function({ children }: LayoutProps<"/[locale]">) {
   ]);
 
   return (
-    <html lang={locale}>
+    <html lang={locale} className="scheme-dark">
       <body data-theme="dark" className="min-h-screen bg-slate-950 text-slate-100">
         <NextIntlClientProvider
           messages={pick(
