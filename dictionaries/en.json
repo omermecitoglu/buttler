@@ -93,7 +93,6 @@
         "start": "Start",
         "stop": "Stop",
         "restart": "Restart",
-        "logs": "Logs",
         "details": "Details",
         "starting": "Starting...",
         "pulling": "Pulling...",
@@ -114,15 +113,6 @@
         "dockerhub": "Docker Hub",
         "system": "System"
       }
-    },
-    "logsModal": {
-      "title": "Container Logs",
-      "close": "Close",
-      "copy": "Copy",
-      "copied": "Copied!",
-      "loading": "Fetching logs...",
-      "empty": "No logs recorded yet for this container.",
-      "error": "Failed to load container logs."
     }
   },
   "NewServicePage": {
@@ -211,6 +201,87 @@
       "invalid_environment_variables": "One or more environment variables are invalid.",
       "invalid_volumes": "One or more storage mounts are invalid.",
       "volume_name_required": "Volume name is required for all storage mounts."
+    }
+  },
+  "ServicePage": {
+    "back": "Back to services",
+    "tabs": {
+      "label": "Service sections",
+      "info": "Info",
+      "builds": "Builds",
+      "logs": "Logs"
+    },
+    "notFound": {
+      "title": "Service not found",
+      "description": "This service doesn't exist or has been removed."
+    },
+    "info": {
+      "runtime": "Runtime",
+      "source": "Source",
+      "container": "Container",
+      "containerId": "Container ID",
+      "uptime": "Uptime",
+      "ipAddress": "IP Address",
+      "type": "Type",
+      "repository": "Repository",
+      "image": "Image",
+      "branch": "Branch",
+      "tag": "Tag",
+      "deployedBuild": "Deployed build",
+      "builtAt": "Built at",
+      "ports": "Port Mappings",
+      "noPorts": "No port mappings configured.",
+      "variables": "Environment Variables",
+      "noVariables": "No environment variables configured.",
+      "key": "Key",
+      "value": "Value",
+      "scope": "Available in",
+      "secret": "Secret",
+      "volumes": "Storage Mounts",
+      "noVolumes": "No storage mounts configured.",
+      "none": "None",
+      "notAvailable": "N/A"
+    },
+    "edit": {
+      "button": "Edit",
+      "title": "Edit service",
+      "close": "Close",
+      "cancel": "Cancel",
+      "save": "Save changes",
+      "saving": "Saving...",
+      "name": "Service Name",
+      "secretPlaceholder": "Leave empty to keep the saved value",
+      "applyHelp": "Restart the service to apply the changes.",
+      "applyHelpWithBuild": "Restart the service to apply the changes. Changes to the source and to the build variables need a new build.",
+      "messages": {
+        "update_failed": "Failed to save the changes. Check that host ports and variable keys are unique, and try again.",
+        "secret_value_required": "Enter the value again for secrets that are renamed or no longer secret.",
+        "field_required": "Name and source fields are required.",
+        "invalid_ports": "One or more port mappings are invalid.",
+        "invalid_environment_variables": "One or more environment variables are invalid.",
+        "invalid_volumes": "One or more storage mounts are invalid."
+      }
+    },
+    "builds": {
+      "empty": "This service hasn't been built yet.",
+      "notBuilt": "Only GitHub services are built by Buttler.",
+      "unavailable": "Failed to load the builds.",
+      "deployed": "Deployed",
+      "unknownCommit": "Unknown commit",
+      "status": {
+        "ready": "Ready",
+        "building": "Building",
+        "failed": "Failed"
+      }
+    },
+    "logs": {
+      "refresh": "Refresh",
+      "copy": "Copy",
+      "copied": "Copied!",
+      "loading": "Fetching logs...",
+      "empty": "No logs recorded yet for this container.",
+      "error": "Failed to load container logs.",
+      "noContainer": "This service doesn't have a container. Start it to see its logs."
     }
   }
 }

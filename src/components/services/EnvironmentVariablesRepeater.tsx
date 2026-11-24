@@ -20,6 +20,8 @@ export type EnvironmentVariableItem = {
   value: string,
   scope: EnvironmentVariableScope,
   isSecret: boolean,
+  /** Key of the saved secret, which is kept if a new value is not entered */
+  savedSecretKey?: string,
 };
 
 export type EnvironmentVariablesRepeaterLabels = {
@@ -35,6 +37,7 @@ export type EnvironmentVariablesRepeaterLabels = {
   scopes?: Record<EnvironmentVariableScope, string>,
   scopeHelp?: string,
   secretLabel?: string,
+  savedSecretPlaceholder?: string,
   emptyMessage?: string,
 };
 
@@ -196,7 +199,9 @@ const EnvironmentVariablesRepeater = ({
                     autoComplete={item.isSecret ? "new-password" : "off"}
                     size="sm"
                     className="font-mono text-xs"
-                    placeholder={valuePlaceholder}
+                    placeholder={item.isSecret && item.savedSecretKey === item.key.trim() && labels?.savedSecretPlaceholder
+                      ? labels.savedSecretPlaceholder
+                      : valuePlaceholder}
                     value={item.value}
                     onChange={e => handleChange(index, { value: e.target.value })}
                     disabled={disabled}

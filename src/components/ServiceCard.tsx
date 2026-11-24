@@ -1,7 +1,7 @@
+import { faArrowRight } from "@fortawesome/free-solid-svg-icons/faArrowRight";
 import { faNetworkWired } from "@fortawesome/free-solid-svg-icons/faNetworkWired";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useFormatter } from "next-intl";
-import ServiceActions from "~/components/ServiceActions";
 import ServiceTypeBadge from "~/components/ServiceTypeBadge";
 import StatusBadge from "~/components/StatusBadge";
 import Card from "~/components/ui/card";
@@ -20,6 +20,7 @@ export type ServiceCardProps = {
     builtAt: string,
     none: string,
     notAvailable: string,
+    details: string,
     status: Record<ContainerRuntimeStatus, string>,
     types: Record<"github" | "dockerhub" | "system", string>,
   },
@@ -59,7 +60,7 @@ const ServiceCard = ({
         <div className="flex items-start justify-between gap-3">
           <div className="flex flex-col gap-1 min-w-0">
             <Link
-              href={{ pathname: "/services/[serviceId]", params: { serviceId: service.id } }}
+              href={{ pathname: "/services/[id]", params: { id: service.id } }}
               className="truncate text-base font-semibold text-slate-100 hover:text-white"
             >
               {service.name}
@@ -127,14 +128,14 @@ const ServiceCard = ({
           )}
         </div>
       </div>
-      {/* Card Footer Actions */}
-      <div className="border-t border-slate-800/80 pt-3">
-        <ServiceActions
-          serviceId={service.id}
-          serviceName={service.name}
-          status={service.runtime.status}
-          containerId={service.runtime.containerId}
-        />
+      <div className="flex justify-end border-t border-slate-800/80 pt-3">
+        <Link
+          href={{ pathname: "/services/[id]", params: { id: service.id } }}
+          className="inline-flex items-center gap-1 text-xs font-medium text-slate-400 transition-colors hover:text-slate-100"
+        >
+          <span>{labels.details}</span>
+          <FontAwesomeIcon icon={faArrowRight} className="size-2.5" />
+        </Link>
       </div>
     </Card>
   );
