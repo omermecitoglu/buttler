@@ -36,6 +36,7 @@ const AddDomainForm = ({ action, defaultPort }: AddDomainFormProps) => {
   // Validation errors are in upper case
   const messages = {
     add_failed: t("messages.add_failed"),
+    connect_failed: t("messages.connect_failed"),
     hostname_taken: t("messages.hostname_taken"),
     INVALID_HOSTNAME: t("messages.invalid_hostname"),
     INVALID_PORT: t("messages.invalid_port"),
