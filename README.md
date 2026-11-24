@@ -138,6 +138,8 @@ Everyone is denied by default. The first person who logs in after the installati
 > [!IMPORTANT]
 > Log in right after the installation. Until the first login, anyone who can reach the instance can become its admin. This also applies to instances that were installed before this version.
 
+The admin can let other people in by adding their GitHub handles in **Settings**.
+
 ## Usage
 
 To launch the application

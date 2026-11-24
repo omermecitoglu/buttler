@@ -255,7 +255,7 @@ Wide screens (lg and up)             Narrow screens
 
 - The document scrolls, not `<main>`. The sidebar and the mobile header are sticky.
 - There is no desktop header. Pages render their own title and actions.
-- Navigation items are listed in `MainNav`, which is shared by the sidebar and the mobile drawer. An item is active on its own page and on the pages below it.
+- Navigation items are listed in `MainNav`, which is shared by the sidebar and the mobile drawer. Its `adminItems` are only shown to the admin. An item is active on its own page and on the pages below it.
 - `CurrentUser` shows the GitHub account of the session. It reads cookies, so the layout streams it in a `<Suspense>` boundary and passes it to the sidebar and the mobile drawer.
 - Dark mode is activated by default via `data-theme="dark"` on `<body>`. `scheme-dark` on `<html>` covers scrollbars and native controls.
 - `MainNav` reads the pathname, which is not known while prerendering dynamic routes. It has its own `<Suspense>` boundary, and other components that call `usePathname` need one too.
