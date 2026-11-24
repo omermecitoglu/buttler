@@ -7,7 +7,7 @@ export const users = snakeCase.table("users", {
   id: integer({ mode: "number" }).primaryKey(),
   login: text().notNull(),
   avatar: text().notNull(),
-  role: text({ enum: ["admin"] }).notNull(),
+  role: text({ enum: ["admin", "member"] }).notNull(),
   createdAt: text().notNull().default(sql`(CURRENT_TIMESTAMP)`),
 }, table => [
   // There is only one admin, even if two people log in to a new instance at the same time
