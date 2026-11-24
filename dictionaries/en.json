@@ -284,12 +284,26 @@
       }
     },
     "logs": {
-      "refresh": "Refresh",
+      "pauseScroll": "Pause scrolling",
+      "resumeScroll": "Resume scrolling",
       "copy": "Copy",
       "copied": "Copied!",
+      "download": "Download",
+      "clear": "Clear",
+      "reconnect": "Reconnect",
+      "filter": "Filter lines by keyword",
+      "noMatches": "No lines match the filter.",
       "loading": "Fetching logs...",
-      "empty": "No logs recorded yet for this container.",
+      "empty": "No logs to show yet.",
       "error": "Failed to load container logs.",
+      "notRunning": "The container is not running. These are its last logs.",
+      "status": {
+        "connecting": "Connecting",
+        "live": "Live",
+        "reconnecting": "Reconnecting",
+        "stopped": "Not running",
+        "failed": "Disconnected"
+      },
       "noContainer": "This service doesn't have a container. Start it to see its logs."
     }
   }
