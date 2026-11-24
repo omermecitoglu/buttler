@@ -114,6 +114,17 @@ const ServiceInfo = async ({ params }: ServiceInfoProps) => {
           )}
         </ServiceInfoSection>
       </div>
+      <ServiceInfoSection title={t("domains")}>
+        {service.domains.length === 0 ? (
+          <p className="text-sm text-slate-500">{t("noDomains")}</p>
+        ) : (
+          <ul className="flex flex-col gap-2 font-mono text-sm break-all text-slate-300">
+            {service.domains.map(({ hostname, port }) => (
+              <li key={hostname}>{`${hostname} → ${port}`}</li>
+            ))}
+          </ul>
+        )}
+      </ServiceInfoSection>
       <ServiceInfoSection
         title={t("variables")}
         action={renderEdit({ section: "variables", isGitHub, variables: service.environmentVariables })}
