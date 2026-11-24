@@ -7,6 +7,7 @@ import { getSession } from "~/core/session";
 import { getSetting } from "~/core/settings";
 import db from "~/database";
 import claimAdmin from "~/operations/claimAdmin";
+import updateUser from "~/operations/updateUser";
 
 export async function GET(request: Request) {
   const { searchParams, pathname } = new URL(request.url);
@@ -54,11 +55,13 @@ export async function GET(request: Request) {
 
     const data = await tokenRes.json();
     const user = await getUser(data.access_token);
-    await claimAdmin(db, { id: user.id, login: user.login, avatar: user.avatar });
+    const account = { id: user.id, login: user.login, avatar: user.avatar };
+    await claimAdmin(db, account);
     if (!await getAccess(user.id)) {
       session.destroy();
       return redirect("/login?error=not_allowed");
     }
+    await updateUser(db, account);
     session.userId = user.id;
     session.user = {
       login: user.login,
