@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { BUTTLER_SERVICE_LABEL } from "./labels";
 import {
-  BUTTLER_SERVICE_LABEL,
   createServiceRuntimeState,
   extractContainerIpAddresses,
   extractContainerPorts,

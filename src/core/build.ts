@@ -4,20 +4,17 @@ import path from "node:path";
 import { after } from "next/server";
 import { buildImage, docker } from "~/core/docker";
 import {
+  BUTTLER_BRANCH_LABEL,
+  BUTTLER_BUILT_AT_LABEL,
+  BUTTLER_COMMIT_LABEL,
   BUTTLER_SERVICE_LABEL,
-  type ServiceRef,
-  deployServiceContainer,
-  markServiceBuilding,
-} from "~/core/docker/status";
+} from "~/core/docker/labels";
+import { type ServiceRef, deployServiceContainer, markServiceBuilding } from "~/core/docker/status";
 import { getBuildArgs, getBuildSecrets } from "~/core/environment-variables";
 import { cloneRepo, deleteRepo, parseRepository } from "~/core/git";
 import { getInstallationTokenForOwner } from "~/core/github/app";
 import { createRedactor } from "~/core/redact";
 import { getFilePath } from "~/core/storage";
-
-export const BUTTLER_BRANCH_LABEL = "buttler.branch";
-export const BUTTLER_COMMIT_LABEL = "buttler.commit";
-export const BUTTLER_BUILT_AT_LABEL = "buttler.built-at";
 
 const runningBuilds = new Map<string, Promise<void>>();
 const queuedBuilds = new Map<string, Promise<void>>();

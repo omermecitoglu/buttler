@@ -1,8 +1,7 @@
 import { docker } from "~/core/docker";
 import { type ServiceEnvironmentVariable, getRuntimeVariables } from "~/core/environment-variables";
+import { BUTTLER_SERVICE_LABEL } from "./labels";
 import type Docker from "dockerode";
-
-export const BUTTLER_SERVICE_LABEL = "buttler.service-id";
 
 export type ContainerRuntimeStatus = "running" | "stopped" | "exited" | "building" | "pulling" | "restarting";
 
