@@ -1,9 +1,11 @@
 import { connection } from "next/server";
 import { getTranslations } from "next-intl/server";
+import { updateServiceAction } from "~/actions/service";
 import ServiceActions from "~/components/ServiceActions";
 import ServiceTypeBadge from "~/components/ServiceTypeBadge";
 import ServicesPoller from "~/components/ServicesPoller";
 import StatusBadge from "~/components/StatusBadge";
+import EditServiceModal from "~/components/services/EditServiceModal";
 import { getServiceWithLiveStatus } from "~/data/services";
 import { notFound } from "~/i18n/navigation";
 
@@ -30,7 +32,16 @@ const ServiceHeader = async ({ params }: ServiceHeaderProps) => {
     <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
       {isBusy && <ServicesPoller />}
       <div className="flex min-w-0 flex-col gap-2">
-        <h1 className="truncate text-2xl font-bold tracking-tight text-slate-100">{service.name}</h1>
+        <div className="flex min-w-0 items-center gap-2">
+          <h1 className="truncate text-2xl font-bold tracking-tight text-slate-100">{service.name}</h1>
+          {service.type !== "system" && (
+            <EditServiceModal
+              action={updateServiceAction.bind(null, service.id)}
+              edit={{ section: "name", name: service.name }}
+              iconOnly
+            />
+          )}
+        </div>
         <div className="flex items-center gap-2">
           <ServiceTypeBadge type={service.type} label={t(`types.${service.type}`)} />
           <StatusBadge status={status} label={t(`status.${status}`)} />
