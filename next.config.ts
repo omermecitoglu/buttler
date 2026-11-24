@@ -17,6 +17,15 @@ const nextConfig: NextConfig = {
     ],
   },
   poweredByHeader: false,
+  // Do not add a robots.txt that disallows crawling, crawlers must be able to see this header
+  headers: () => [
+    {
+      source: "/:path*",
+      headers: [
+        { key: "X-Robots-Tag", value: "noindex, nofollow, noarchive, nosnippet" },
+      ],
+    },
+  ],
   serverExternalPackages: ["dockerode", "@grpc/grpc-js"],
 };
 
