@@ -1,6 +1,7 @@
 import "server-only";
 import { cacheTag } from "next/cache";
-import { type ServiceImage, listServiceImages } from "~/core/docker/builds";
+import { cache } from "react";
+import { type ServiceImage, getServiceBuilds, listServiceImages } from "~/core/docker/builds";
 import { type ServiceRuntimeState, getServiceRuntimeState, getServicesRuntimeStates } from "~/core/docker/status";
 import db from "~/database";
 import type { ServiceDTO } from "~/models/service";
@@ -49,13 +50,13 @@ export async function getSingleService(serviceId: ServiceDTO["id"]) {
   "use cache";
   cacheTag(`getSingleService(${serviceId})`);
   cacheTag("getSingleService(...)");
-  const item = await getService(db, serviceId);
-  if (!item) throw new Error(`Service not found (${serviceId})`);
-  return item;
+  return await getService(db, serviceId);
 }
 
-export async function getServiceWithLiveStatus(serviceId: ServiceDTO["id"]) {
+/** The layout and the page of a service share the result during a request */
+export const getServiceWithLiveStatus = cache(async (serviceId: ServiceDTO["id"]) => {
   const item = await getSingleService(serviceId);
+  if (!item) return null;
   const [
     runtime,
     images,
@@ -68,8 +69,17 @@ export async function getServiceWithLiveStatus(serviceId: ServiceDTO["id"]) {
     runtime,
     deployedImage: images.find(image => image.id === runtime.imageId) ?? null,
   };
-}
+});
 
-export function getSpecificServices(ids: ServiceDTO["id"][]) {
-  return Promise.all(ids.map(id => getSingleService(id)));
+export type ServiceDetails = NonNullable<Awaited<ReturnType<typeof getServiceWithLiveStatus>>>;
+
+/** Returns null if the builds are not available */
+export async function getBuildsOfService(serviceId: ServiceDTO["id"]) {
+  try {
+    return await getServiceBuilds(serviceId);
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error("Failed to query the builds:", error);
+    return null;
+  }
 }

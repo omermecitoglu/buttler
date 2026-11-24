@@ -24,6 +24,7 @@ const ServicesList = async () => {
     builtAt: t("service.builtAt"),
     none: t("service.none"),
     notAvailable: t("service.notAvailable"),
+    details: t("service.actions.details"),
     status: {
       running: t("service.status.running"),
       stopped: t("service.status.stopped"),
