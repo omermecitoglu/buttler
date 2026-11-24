@@ -21,10 +21,17 @@ const ServiceLogs = async ({ params }: ServiceLogsProps) => {
   ]);
   if (!service) notFound();
 
-  const { containerId } = service.runtime;
+  const { containerId, state } = service.runtime;
   if (!containerId) return <Card className="p-6 text-sm text-slate-500">{t("noContainer")}</Card>;
 
-  return <ContainerLogs key={containerId} containerId={containerId} />;
+  return (
+    <ContainerLogs
+      key={containerId}
+      serviceId={service.id}
+      serviceName={service.name}
+      isRunning={state === "running"}
+    />
+  );
 };
 
 export default ServiceLogs;

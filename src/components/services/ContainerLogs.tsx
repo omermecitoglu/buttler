@@ -3,52 +3,63 @@
 import { faArrowsRotate } from "@fortawesome/free-solid-svg-icons/faArrowsRotate";
 import { faCheck } from "@fortawesome/free-solid-svg-icons/faCheck";
 import { faCopy } from "@fortawesome/free-solid-svg-icons/faCopy";
+import { faDownload } from "@fortawesome/free-solid-svg-icons/faDownload";
+import { faEraser } from "@fortawesome/free-solid-svg-icons/faEraser";
+import { faPause } from "@fortawesome/free-solid-svg-icons/faPause";
+import { faPlay } from "@fortawesome/free-solid-svg-icons/faPlay";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useTranslations } from "next-intl";
-import { useEffect, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import Button from "~/components/ui/button";
 import Card from "~/components/ui/card";
+import Input from "~/components/ui/input";
+import ContainerLogLine from "./ContainerLogLine";
+import LogStreamStatusBadge from "./LogStreamStatusBadge";
+import useContainerLogs, { type NumberedLogLine } from "./useContainerLogs";
 
-const LINE_LIMIT = 200;
+/** Distance to the bottom in pixels, which is still considered as the bottom */
+const BOTTOM_THRESHOLD = 24;
+
+function formatLines(lines: NumberedLogLine[]) {
+  return lines.map(line => (line.timestamp ? `${line.timestamp} ${line.text}` : line.text)).join("\n");
+}
 
 export type ContainerLogsProps = {
-  containerId: string,
+  serviceId: string,
+  serviceName: string,
+  isRunning: boolean,
 };
 
-const ContainerLogs = ({ containerId }: ContainerLogsProps) => {
+const ContainerLogs = ({ serviceId, serviceName, isRunning }: ContainerLogsProps) => {
   const t = useTranslations("ServicePage.logs");
-  const [logs, setLogs] = useState("");
-  const [status, setStatus] = useState<"loading" | "ready" | "failed">("loading");
-  const [version, setVersion] = useState(0);
+  const { lines, status, clear, reconnect } = useContainerLogs(serviceId, isRunning);
+  const [filter, setFilter] = useState("");
+  const [autoScroll, setAutoScroll] = useState(true);
   const [copied, setCopied] = useState(false);
+  const viewport = useRef<HTMLDivElement>(null);
+  const lastScrollTop = useRef(0);
 
-  useEffect(() => {
-    const controller = new AbortController();
+  const keyword = filter.trim().toLowerCase();
+  const visibleLines = keyword ? lines.filter(line => line.text.toLowerCase().includes(keyword)) : lines;
 
-    async function loadLogs() {
-      setStatus("loading");
-      try {
-        const response = await fetch(
-          `/api/logs?container=${encodeURIComponent(containerId)}&limit=${LINE_LIMIT}`,
-          { signal: controller.signal },
-        );
-        if (!response.ok) throw new Error("Failed to fetch logs");
-        const { content } = await response.json() as { content: string };
-        if (controller.signal.aborted) return;
-        setLogs(content);
-        setStatus("ready");
-      } catch {
-        if (!controller.signal.aborted) setStatus("failed");
-      }
+  useLayoutEffect(() => {
+    if (autoScroll && viewport.current) {
+      viewport.current.scrollTop = viewport.current.scrollHeight;
     }
+  }, [autoScroll, lines, keyword]);
 
-    void loadLogs();
-    return () => controller.abort();
-  }, [containerId, version]);
+  const handleScroll = () => {
+    if (!viewport.current) return;
+    const { scrollTop, scrollHeight, clientHeight } = viewport.current;
+    const isScrolledUp = scrollTop < lastScrollTop.current;
+    const isAtBottom = scrollHeight - scrollTop - clientHeight <= BOTTOM_THRESHOLD;
+    lastScrollTop.current = scrollTop;
+    if (isScrolledUp && !isAtBottom) setAutoScroll(false);
+  };
 
   const handleCopy = async () => {
     try {
-      await navigator.clipboard.writeText(logs);
+      await navigator.clipboard.writeText(visibleLines.map(line => line.text).join("\n"));
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
@@ -56,42 +67,77 @@ const ContainerLogs = ({ containerId }: ContainerLogsProps) => {
     }
   };
 
-  const message = status === "failed"
-    ? t("error")
-    : logs
-      ? null
-      : status === "loading" ? t("loading") : t("empty");
+  const handleDownload = () => {
+    const url = URL.createObjectURL(new Blob([formatLines(lines)], { type: "text/plain;charset=utf-8" }));
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${serviceName}.log`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const isEnded = status === "stopped" || status === "failed";
+  const message = lines.length > 0 ? t("noMatches") : status === "connecting" ? t("loading") : t("empty");
 
   return (
     <Card className="flex flex-col gap-4 p-6">
-      <div className="flex justify-end gap-2">
-        <Button size="xs" variant="outline" disabled={!logs} onClick={handleCopy} className="gap-1.5">
-          <FontAwesomeIcon icon={copied ? faCheck : faCopy} className="size-3 text-slate-400" />
-          <span>{copied ? t("copied") : t("copy")}</span>
-        </Button>
-        <Button
-          size="xs"
-          variant="secondary"
-          disabled={status === "loading"}
-          onClick={() => setVersion(current => current + 1)}
-          className="gap-1.5"
-        >
-          <FontAwesomeIcon
-            icon={faArrowsRotate}
-            className={status === "loading" ? "size-3 animate-spin text-slate-400" : "size-3 text-slate-400"}
-          />
-          <span>{t("refresh")}</span>
-        </Button>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <LogStreamStatusBadge status={status} label={t(`status.${status}`)} />
+        <div className="flex flex-wrap gap-2">
+          <Button
+            size="xs"
+            variant="outline"
+            aria-pressed={autoScroll}
+            onClick={() => setAutoScroll(current => !current)}
+            className="gap-1.5"
+          >
+            <FontAwesomeIcon icon={autoScroll ? faPause : faPlay} className="size-3 text-slate-400" />
+            <span>{autoScroll ? t("pauseScroll") : t("resumeScroll")}</span>
+          </Button>
+          <Button size="xs" variant="outline" disabled={visibleLines.length === 0} onClick={handleCopy} className="gap-1.5">
+            <FontAwesomeIcon icon={copied ? faCheck : faCopy} className="size-3 text-slate-400" />
+            <span>{copied ? t("copied") : t("copy")}</span>
+          </Button>
+          <Button size="xs" variant="outline" disabled={lines.length === 0} onClick={handleDownload} className="gap-1.5">
+            <FontAwesomeIcon icon={faDownload} className="size-3 text-slate-400" />
+            <span>{t("download")}</span>
+          </Button>
+          <Button size="xs" variant="outline" disabled={lines.length === 0} onClick={clear} className="gap-1.5">
+            <FontAwesomeIcon icon={faEraser} className="size-3 text-slate-400" />
+            <span>{t("clear")}</span>
+          </Button>
+          {isEnded && (
+            <Button size="xs" variant="secondary" onClick={reconnect} className="gap-1.5">
+              <FontAwesomeIcon icon={faArrowsRotate} className="size-3 text-slate-400" />
+              <span>{t("reconnect")}</span>
+            </Button>
+          )}
+        </div>
       </div>
-      {message ? (
-        <p className={status === "failed" ? "py-16 text-center text-sm text-rose-400" : "py-16 text-center text-sm text-slate-500"}>
-          {message}
+      <Input
+        type="search"
+        size="sm"
+        value={filter}
+        onChange={event => setFilter(event.target.value)}
+        placeholder={t("filter")}
+        aria-label={t("filter")}
+      />
+      {isEnded && (
+        <p className={status === "failed" ? "text-sm text-rose-400" : "text-sm text-slate-400"}>
+          {status === "failed" ? t("error") : t("notRunning")}
         </p>
-      ) : (
-        <pre className="max-h-[65dvh] overflow-auto rounded-xl border border-slate-800/80 bg-slate-950 p-4 font-mono text-xs leading-relaxed text-slate-300 select-text">
-          {logs}
-        </pre>
       )}
+      <div
+        ref={viewport}
+        role="log"
+        aria-live="off"
+        onScroll={handleScroll}
+        className="h-[60dvh] overflow-y-auto rounded-xl border border-slate-800/80 bg-slate-950 py-3 font-mono text-xs leading-relaxed"
+      >
+        {visibleLines.length > 0
+          ? visibleLines.map(line => <ContainerLogLine key={line.number} line={line} />)
+          : <p className="py-16 text-center font-sans text-sm text-slate-500">{message}</p>}
+      </div>
     </Card>
   );
 };
