@@ -238,7 +238,9 @@ export async function startServiceContainer(service: ServiceRef): Promise<void> 
   }
 
   if (service.type === "github") {
-    throw new Error("GitHub build pipeline is not yet implemented");
+    const { startGitHubService } = await import("~/core/build");
+    await startGitHubService(service);
+    return;
   }
 
   if (service.type !== "dockerhub") {

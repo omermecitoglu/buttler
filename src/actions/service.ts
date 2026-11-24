@@ -2,6 +2,7 @@
 import { defineFormAction, displayMessage } from "@omer-x/next-form-actions";
 import { revalidatePath, updateTag } from "next/cache";
 import z from "zod";
+import { findLatestImage, startBuilding } from "~/core/build";
 import {
   isImagePresentLocally,
   markServicePulling,
@@ -63,7 +64,7 @@ export const createServiceAction = defineFormAction({
   }),
   action: input => async (locale: AppLocale) => {
     try {
-      await Promise.resolve(createService(db, {
+      const service = await Promise.resolve(createService(db, {
         name: input.name,
         type: input.type,
         repository: input.repository,
@@ -72,6 +73,14 @@ export const createServiceAction = defineFormAction({
         environmentVariables: input.environmentVariables,
         volumes: input.volumes,
       }));
+      if (service.type === "github") {
+        startBuilding({
+          ...service,
+          ports: input.ports,
+          environmentVariables: input.environmentVariables,
+          volumes: input.volumes,
+        });
+      }
       updateTag("getAllServices()");
     } catch {
       displayMessage("error", "create_failed");
@@ -107,6 +116,12 @@ export async function startService(serviceId: string) {
         return { success: true };
       }
     }
+  }
+  if (service.type === "github" && !await findLatestImage(service.id)) {
+    startBuilding(service);
+    revalidatePath("/");
+    revalidatePath("/services");
+    return { success: true };
   }
   await startServiceContainer(service);
   revalidatePath("/");
