@@ -20,6 +20,8 @@ const ServicesList = async () => {
     ports: t("service.ports"),
     ipAddress: t("service.ipAddress"),
     uptime: t("service.uptime"),
+    deployedBuild: t("service.deployedBuild"),
+    builtAt: t("service.builtAt"),
     none: t("service.none"),
     notAvailable: t("service.notAvailable"),
     status: {

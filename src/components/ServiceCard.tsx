@@ -1,5 +1,6 @@
 import { faNetworkWired } from "@fortawesome/free-solid-svg-icons/faNetworkWired";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { useFormatter } from "next-intl";
 import ServiceActions from "~/components/ServiceActions";
 import ServiceTypeBadge from "~/components/ServiceTypeBadge";
 import StatusBadge from "~/components/StatusBadge";
@@ -15,6 +16,8 @@ export type ServiceCardProps = {
     ports: string,
     ipAddress: string,
     uptime: string,
+    deployedBuild: string,
+    builtAt: string,
     none: string,
     notAvailable: string,
     status: Record<ContainerRuntimeStatus, string>,
@@ -26,6 +29,7 @@ const ServiceCard = ({
   service,
   labels,
 }: ServiceCardProps) => {
+  const format = useFormatter();
   const sourceText = service.repository
     ? `${service.repository}${service.branch ? `:${service.branch}` : ""}`
     : labels.notAvailable;
@@ -39,6 +43,14 @@ const ServiceCard = ({
     : null;
 
   const uptimeText = service.runtime.uptime ?? labels.notAvailable;
+
+  const { deployedImage } = service;
+  // Images are tagged with the short commit hash
+  const buildText = deployedImage?.commit?.slice(0, 7) ?? labels.notAvailable;
+  const buildTitle = [deployedImage?.commit, ...deployedImage?.tags ?? []].filter(Boolean).join("\n");
+  const builtAtText = deployedImage
+    ? format.dateTime(new Date(deployedImage.builtAt), { dateStyle: "medium", timeStyle: "short" })
+    : labels.notAvailable;
 
   return (
     <Card className="flex flex-col justify-between gap-5 p-6 transition-all hover:border-slate-700">
@@ -97,6 +109,22 @@ const ServiceCard = ({
               )}
             </span>
           </div>
+          {service.type === "github" && (
+            <>
+              <div>
+                <span className="block font-medium text-slate-500">{labels.deployedBuild}</span>
+                <span className="mt-0.5 block truncate font-mono text-slate-300" title={buildTitle || undefined}>
+                  {buildText}
+                </span>
+              </div>
+              <div>
+                <span className="block font-medium text-slate-500">{labels.builtAt}</span>
+                <span className="mt-0.5 block truncate text-slate-300">
+                  {builtAtText}
+                </span>
+              </div>
+            </>
+          )}
         </div>
       </div>
       {/* Card Footer Actions */}
