@@ -15,3 +15,12 @@ Docker is the single source of truth for builds, nothing about them is stored in
 
 - GitHub App webhooks are received at `/webhooks/github` (`src/app/webhooks/github/route.ts`). A push builds every service with the same repository and branch, after the response is sent.
 - Builds of a service never overlap: pushes during a build share a single queued build, which clones the latest commit.
+
+## Container Logs
+
+Logs are read live from Docker and never stored.
+
+- `readContainerLogs` (`src/core/docker/logs.ts`) follows the logs of a container until it stops or the signal is aborted.
+- `/api/services/[id]/logs/stream` sends them as server-sent events. A message is a batch of lines, and its ID is the timestamp of the last line, so a reconnecting browser only receives the newer lines.
+- The stream ends with an `end` event when the container stops, or a `failure` event when the logs can't be read.
+- Docker only separates stdout and stderr for the containers without a TTY. The output of a container with a TTY is treated as stdout.
