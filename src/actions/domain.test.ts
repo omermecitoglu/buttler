@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({
   getService: vi.fn(),
   createDomain: vi.fn(),
   deleteDomain: vi.fn(),
+  syncIngressNetwork: vi.fn(),
   updateTag: vi.fn(),
 }));
 
@@ -25,6 +26,7 @@ vi.mock("~/database", () => ({ default: {} }));
 vi.mock("~/core/session", () => ({ getSession: mocks.getSession }));
 vi.mock("~/core/access", () => ({ getAccess: mocks.getAccess }));
 vi.mock("~/core/settings", () => ({}));
+vi.mock("~/core/docker/ingress", () => ({ syncIngressNetwork: mocks.syncIngressNetwork }));
 vi.mock("~/operations/getService", () => ({ default: mocks.getService }));
 vi.mock("~/operations/createDomain", () => ({ default: mocks.createDomain }));
 vi.mock("~/operations/deleteDomain", () => ({ default: mocks.deleteDomain }));
@@ -52,6 +54,20 @@ describe("domain actions", () => {
     expect(mocks.updateTag).toHaveBeenCalledWith("getSingleService(srv)");
   });
 
+  it("should connect the service after a domain is added", async () => {
+    await add("app.example.com");
+    expect(mocks.syncIngressNetwork).toHaveBeenCalledWith("srv");
+    expect(mocks.syncIngressNetwork).toHaveBeenCalledAfter(mocks.createDomain);
+  });
+
+  it("should not keep the domain if the service can't be connected", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+    mocks.syncIngressNetwork.mockRejectedValue(new Error("no docker"));
+    expect(await add("app.example.com")).toEqual({ "[error]": "connect_failed" });
+    expect(mocks.deleteDomain).toHaveBeenCalledWith({}, "srv", "app.example.com");
+    expect(mocks.updateTag).not.toHaveBeenCalled();
+  });
+
   it("should reject invalid hostnames", async () => {
     expect(await add("*.example.com")).toEqual({ hostname: "INVALID_HOSTNAME" });
     expect(mocks.createDomain).not.toHaveBeenCalled();
@@ -77,6 +93,19 @@ describe("domain actions", () => {
   it("should remove a domain", async () => {
     expect(await removeDomainAction("srv", "app.example.com", {}, new FormData())).toEqual({});
     expect(mocks.deleteDomain).toHaveBeenCalledWith({}, "srv", "app.example.com");
+    expect(mocks.updateTag).toHaveBeenCalledWith("getSingleService(srv)");
+  });
+
+  it("should disconnect the service after a domain is removed", async () => {
+    await removeDomainAction("srv", "app.example.com", {}, new FormData());
+    expect(mocks.syncIngressNetwork).toHaveBeenCalledWith("srv");
+    expect(mocks.syncIngressNetwork).toHaveBeenCalledAfter(mocks.deleteDomain);
+  });
+
+  it("should remove the domain even if the service can't be disconnected", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+    mocks.syncIngressNetwork.mockRejectedValue(new Error("no docker"));
+    expect(await removeDomainAction("srv", "app.example.com", {}, new FormData())).toEqual({});
     expect(mocks.updateTag).toHaveBeenCalledWith("getSingleService(srv)");
   });
 
