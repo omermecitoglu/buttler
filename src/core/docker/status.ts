@@ -277,10 +277,15 @@ export async function startServiceContainer(service: ServiceRef): Promise<void> 
     }
   }
 
+  await deployServiceContainer(service, imageTag);
+}
+
+/** Replaces the container of a service (if there is any) with a new one that runs the given image */
+export async function deployServiceContainer(service: ServiceRef, image: string): Promise<void> {
   const existingContainer = await findServiceContainer(service);
   if (existingContainer) {
     try {
-      await existingContainer.stop({ t: 2 });
+      await existingContainer.stop({ t: 10 });
     } catch {
       // ignore
     }
@@ -321,7 +326,7 @@ export async function startServiceContainer(service: ServiceRef): Promise<void> 
 
   const container = await docker.createContainer({
     name: containerName,
-    Image: imageTag,
+    Image: image,
     Labels: {
       [BUTTLER_SERVICE_LABEL]: service.id,
       "com.docker.compose.project": "buttler",
