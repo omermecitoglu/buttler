@@ -2,7 +2,8 @@ import "server-only";
 import fs from "node:fs";
 import path from "node:path";
 import { after } from "next/server";
-import { buildImage, docker } from "~/core/docker";
+import { buildImage } from "~/core/docker";
+import { listServiceImages } from "~/core/docker/builds";
 import {
   BUTTLER_BRANCH_LABEL,
   BUTTLER_BUILT_AT_LABEL,
@@ -30,12 +31,8 @@ export function getImageRepository(service: ServiceRef) {
 
 /** Returns the ID of the most recently built image of a service */
 export async function findLatestImage(serviceId: string): Promise<string | null> {
-  const images = await docker.listImages({
-    filters: { label: [`${BUTTLER_SERVICE_LABEL}=${serviceId}`] },
-  });
-  const getBuildDate = (image: typeof images[number]) => image.Labels[BUTTLER_BUILT_AT_LABEL] || "";
-  const latest = images.toSorted((a, b) => getBuildDate(b).localeCompare(getBuildDate(a))).at(0);
-  return latest?.Id ?? null;
+  const images = await listServiceImages(serviceId);
+  return images.at(0)?.id ?? null;
 }
 
 function openBuildLog(serviceId: string) {
