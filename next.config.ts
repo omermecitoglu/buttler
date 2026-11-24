@@ -11,6 +11,11 @@ const nextConfig: NextConfig = {
     authInterrupts: true,
   },
   allowedDevOrigins: ["*.ngrok-free.app"],
+  images: {
+    remotePatterns: [
+      { protocol: "https", hostname: "avatars.githubusercontent.com", pathname: "/u/**" },
+    ],
+  },
   poweredByHeader: false,
   serverExternalPackages: ["dockerode", "@grpc/grpc-js"],
 };

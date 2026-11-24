@@ -6,7 +6,7 @@ import { faXmark } from "@fortawesome/free-solid-svg-icons/faXmark";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { cn } from "@omer-x/tailwind-ui-kit/utils";
 import { useTranslations } from "next-intl";
-import { useEffect, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import LogoutButton from "~/components/LogoutButton";
 import Brand from "~/components/layout/Brand";
 import MainNav from "~/components/layout/MainNav";
@@ -17,7 +17,11 @@ const iconButtonClass = cn(
   "focus-visible:outline-2 focus-visible:outline-slate-500",
 );
 
-const MobileHeader = () => {
+export type MobileHeaderProps = {
+  currentUser: ReactNode,
+};
+
+const MobileHeader = ({ currentUser }: MobileHeaderProps) => {
   const t = useTranslations("BaseLayout");
   const [open, setOpen] = useState(false);
   const close = () => setOpen(false);
@@ -66,7 +70,8 @@ const MobileHeader = () => {
               </Dialog.Close>
             </div>
             <MainNav onNavigate={close} />
-            <div className="border-t border-slate-800 p-3">
+            <div className="flex flex-col gap-1 border-t border-slate-800 p-3">
+              {currentUser}
               <LogoutButton />
             </div>
           </Dialog.Popup>

@@ -1,9 +1,18 @@
 import { getTranslations } from "next-intl/server";
+import { Suspense } from "react";
+import CurrentUser from "~/components/layout/CurrentUser";
+import CurrentUserSkeleton from "~/components/layout/CurrentUserSkeleton";
 import MobileHeader from "~/components/layout/MobileHeader";
 import Sidebar from "~/components/layout/Sidebar";
 
 export default async function({ children }: LayoutProps<"/[locale]">) {
   const t = await getTranslations("BaseLayout");
+
+  const currentUser = (
+    <Suspense fallback={<CurrentUserSkeleton />}>
+      <CurrentUser />
+    </Suspense>
+  );
 
   return (
     <div className="flex min-h-dvh flex-col lg:flex-row">
@@ -13,8 +22,8 @@ export default async function({ children }: LayoutProps<"/[locale]">) {
       >
         {t("skipToContent")}
       </a>
-      <Sidebar />
-      <MobileHeader />
+      <Sidebar currentUser={currentUser} />
+      <MobileHeader currentUser={currentUser} />
       <main id="content" className="min-w-0 flex-1 scroll-mt-14 px-4 py-6 sm:px-6 lg:px-10 lg:py-8">
         <div className="mx-auto w-full max-w-7xl">
           {children}

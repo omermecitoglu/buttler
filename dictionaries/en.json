@@ -62,6 +62,7 @@
     "menu": "Menu",
     "openMenu": "Open menu",
     "closeMenu": "Close menu",
+    "signedInWithGitHub": "Signed in with GitHub",
     "logout": "Log out",
     "nav": {
       "label": "Main navigation",
