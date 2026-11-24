@@ -177,7 +177,7 @@ describe("build pipeline", () => {
   });
 
   it("should start from the latest image without building", async () => {
-    mocks.listImages.mockResolvedValue([{ Id: "a", Labels: {} }]);
+    mocks.listImages.mockResolvedValue([{ Id: "a", Labels: {}, Created: 1 }]);
     await startGitHubService(service);
     expect(mocks.buildImage).not.toHaveBeenCalled();
     expect(mocks.createContainer).toHaveBeenCalledWith(expect.objectContaining({ Image: "a" }));
