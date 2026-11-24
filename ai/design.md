@@ -248,8 +248,7 @@ Wide screens (lg and up)             Narrow screens
 │ Brand      │                     │ │ Brand          Menu │ MobileHeader (h-14, sticky)
 │ MainNav    │  <main>             │ ├─────────────────────┤
 │            │  (max-w-7xl inside) │ │  <main>             │
-│ User       │                     │ │                     │
-│ Log out    │                     │ │                     │
+│ User   [→] │                     │ │                     │
 └────────────┴─────────────────────┘ └─────────────────────┘
  Sidebar (w-60, sticky)
 ```

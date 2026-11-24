@@ -16,7 +16,7 @@ const CurrentUser = async () => {
   if (!user) return null;
 
   return (
-    <div className="flex h-12 items-center gap-3 px-3" title={t("signedInWithGitHub")}>
+    <div className="flex h-10 min-w-0 items-center gap-3 pl-2" title={t("signedInWithGitHub")}>
       <span className="sr-only">{t("signedInWithGitHub")}</span>
       <Image
         src={user.avatar}

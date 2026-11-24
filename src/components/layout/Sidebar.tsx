@@ -13,7 +13,7 @@ const Sidebar = ({ currentUser }: SidebarProps) => (
       <Brand />
     </div>
     <MainNav />
-    <div className="flex flex-col gap-1 border-t border-slate-800 p-3">
+    <div className="flex items-center gap-2 border-t border-slate-800 p-3">
       {currentUser}
       <LogoutButton />
     </div>
