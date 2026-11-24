@@ -1,5 +1,17 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { getDockerHubTags, parseDockerImageName } from "./dockerhub";
+import { getDockerHubTags, getServiceImageTag, parseDockerImageName } from "./dockerhub";
+
+describe("getServiceImageTag", () => {
+  it.each([
+    [{ repository: "redis", branch: "alpine" }, "redis:alpine"],
+    [{ repository: "redis:7", branch: null }, "redis:7"],
+    [{ repository: "redis" }, "redis:latest"],
+    [{ repository: "", branch: "alpine" }, null],
+    [{}, null],
+  ])("should resolve %o", (service, expected) => {
+    expect(getServiceImageTag(service)).toBe(expected);
+  });
+});
 
 describe("parseDockerImageName", () => {
   it("should handle official single-name images", () => {
