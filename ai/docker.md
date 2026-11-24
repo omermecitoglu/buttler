@@ -14,7 +14,13 @@ Docker is the single source of truth for builds, nothing about them is stored in
 ## Build Triggers
 
 - GitHub App webhooks are received at `/webhooks/github` (`src/app/webhooks/github/route.ts`). A push builds every service with the same repository and branch, after the response is sent.
+- The "Rebuild" button of a GitHub service builds the latest commit of its branch (`triggerBuild`). It's ignored while the service is already being built.
 - Builds of a service never overlap: pushes during a build share a single queued build, which clones the latest commit.
+
+## Redeploys
+
+- The "Redeploy" button of a Docker Hub service pulls its image and replaces the container (`redeployService`). The old container keeps running until the image is ready, and the service is marked as pulling until it's replaced.
+- Builds and pulls go on after the response is sent, so the actions return what they led to (`ServiceActionOutcome`) instead of waiting. A failed pull is only written to the server log.
 
 ## Container Logs
 
