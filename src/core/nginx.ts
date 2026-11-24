@@ -2,10 +2,12 @@ import path from "node:path";
 import db from "~/database";
 import ensureReverseProxyService from "~/operations/ensureReverseProxyService";
 import { docker, executeCommandInContainer, pullImage } from "./docker";
+import { REVERSE_PROXY_CONTAINER_NAME } from "./docker/containers";
+import { syncIngressNetworks } from "./docker/ingress";
 import { generateBaselineProxyConfig } from "./nginx-conf";
 import { checkFile, getFilePath, saveFile } from "./storage";
 
-export const REVERSE_PROXY_CONTAINER_NAME = "buttler-nginx";
+export { REVERSE_PROXY_CONTAINER_NAME };
 export const REVERSE_PROXY_IMAGE = "nginx:alpine";
 export const BUTTLER_SERVICE_LABEL = "buttler.service-id";
 
@@ -37,6 +39,7 @@ export async function provisionReverseProxy(options?: { db?: typeof db }) {
   const container = docker.getContainer(REVERSE_PROXY_CONTAINER_NAME);
   try {
     const info = await container.inspect();
+    await syncIngressNetworks();
     if (!info.State.Running) {
       await container.start();
     }
@@ -81,6 +84,7 @@ export async function provisionReverseProxy(options?: { db?: typeof db }) {
     Tty: false,
   });
 
+  await syncIngressNetworks();
   await created.start();
   return created;
 }

@@ -26,6 +26,7 @@ const mockDocker = {
 };
 
 const mockPullImage = vi.fn();
+const mockSyncIngressNetworks = vi.fn();
 const mockExecuteCommand = vi.fn();
 const mockEnsureReverseProxyService = vi.fn();
 const mockCheckFile = vi.fn();
@@ -39,6 +40,10 @@ vi.mock("./docker", () => ({
   },
   pullImage: (...args: unknown[]) => mockPullImage(...args),
   executeCommandInContainer: (...args: unknown[]) => mockExecuteCommand(...args),
+}));
+
+vi.mock("./docker/ingress", () => ({
+  syncIngressNetworks: (...args: unknown[]) => mockSyncIngressNetworks(...args),
 }));
 
 vi.mock("~/operations/ensureReverseProxyService", () => ({
@@ -91,6 +96,7 @@ describe("Reverse proxy system service management", () => {
       const result = await provisionReverseProxy();
       expect(mockEnsureReverseProxyService).toHaveBeenCalledTimes(1);
       expect(mockContainer.start).toHaveBeenCalledTimes(1);
+      expect(mockSyncIngressNetworks).toHaveBeenCalledBefore(mockContainer.start);
       expect(result).toBe(mockContainer);
     });
 
@@ -100,6 +106,7 @@ describe("Reverse proxy system service management", () => {
 
       const result = await provisionReverseProxy();
       expect(mockContainer.start).not.toHaveBeenCalled();
+      expect(mockSyncIngressNetworks).toHaveBeenCalledTimes(1);
       expect(result).toBe(mockContainer);
     });
 
@@ -136,6 +143,8 @@ describe("Reverse proxy system service management", () => {
         Tty: false,
       }));
       expect(newContainer.start).toHaveBeenCalledTimes(1);
+      expect(mockSyncIngressNetworks).toHaveBeenCalledAfter(mockDocker.createContainer);
+      expect(mockSyncIngressNetworks).toHaveBeenCalledBefore(newContainer.start);
       expect(result).toBe(newContainer);
     });
   });
