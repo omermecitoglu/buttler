@@ -8,7 +8,8 @@ export default async function() {
     <AccessMessage
       title={t("forbidden.title")}
       description={t("forbidden.description")}
-      loginLabel={t("login")}
+      href="/services"
+      linkLabel={t("forbidden.link")}
     />
   );
 }
