@@ -57,6 +57,6 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!api|webhook|auth|_next|_vercel|.*\\..*).*)",
+    "/((?!api|webhooks|auth|_next|_vercel|.*\\..*).*)",
   ],
 };

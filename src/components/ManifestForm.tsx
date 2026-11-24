@@ -27,7 +27,7 @@ const ManifestForm = ({ publicOrigin }: ManifestFormProps) => {
     name: appName,
     url: origin,
     hook_attributes: {
-      url: `${origin}/webhook`,
+      url: `${origin}/webhooks/github`,
     },
     redirect_url: `${origin}/auth/github-install`,
     setup_url: `${origin}/services/new`,
