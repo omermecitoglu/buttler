@@ -4,6 +4,7 @@ import { faServer } from "@fortawesome/free-solid-svg-icons/faServer";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { cn } from "@omer-x/tailwind-ui-kit/utils";
 import { useTranslations } from "next-intl";
+import { Suspense } from "react";
 import { Link, usePathname } from "~/i18n/navigation";
 
 const items = [
@@ -14,9 +15,12 @@ export type MainNavProps = {
   onNavigate?: () => void,
 };
 
-const MainNav = ({ onNavigate }: MainNavProps) => {
+type NavItemsProps = MainNavProps & {
+  pathname: string,
+};
+
+const NavItems = ({ pathname, onNavigate }: NavItemsProps) => {
   const t = useTranslations("BaseLayout");
-  const pathname = usePathname();
 
   return (
     <nav aria-label={t("nav.label")} className="flex flex-1 flex-col gap-1 overflow-y-auto p-3">
@@ -46,5 +50,16 @@ const MainNav = ({ onNavigate }: MainNavProps) => {
     </nav>
   );
 };
+
+const CurrentNavItems = (props: MainNavProps) => (
+  <NavItems pathname={usePathname()} {...props} />
+);
+
+// The pathname of a dynamic route is not known while prerendering
+const MainNav = (props: MainNavProps) => (
+  <Suspense fallback={<NavItems pathname="" {...props} />}>
+    <CurrentNavItems {...props} />
+  </Suspense>
+);
 
 export default MainNav;
