@@ -14,6 +14,7 @@
     "errors": {
       "github": "GitHub authentication failed. Please try again.",
       "access_denied": "Access was denied by GitHub. Please authorize the application to proceed.",
+      "not_allowed": "Your GitHub account doesn't have access to this Buttler instance. Ask its admin to let you in.",
       "missing_code": "Authorization code was missing. Please try again.",
       "default": "An error occurred during authentication. Please try again."
     }
