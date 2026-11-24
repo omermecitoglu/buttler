@@ -21,6 +21,7 @@
   - [Option A: GitHub App Manifest Flow (Recommended)](#option-a-github-app-manifest-flow-recommended)
   - [Option B: Manual GitHub App Configuration](#option-b-manual-github-app-configuration)
   - [Installation Scope](#installation-scope)
+  - [First Login](#first-login)
 - [Usage](#usage)
 - [Screenshots](#screenshots)
 - [Contributing](#contributing)
@@ -129,6 +130,13 @@ When installing the GitHub App onto your personal account or organization:
 - Choose **"Only select repositories"** rather than "All repositories".
 - Selecting only the repositories you intend to deploy with Buttler adheres to the principle of least privilege, ensuring Buttler only accesses authorized codebases.
 - You can grant or revoke access to additional repositories at any time from your GitHub App installation settings.
+
+### First Login
+
+Everyone is denied by default. The first person who logs in after the installation becomes the **admin** of the instance.
+
+> [!IMPORTANT]
+> Log in right after the installation. Until the first login, anyone who can reach the instance can become its admin. This also applies to instances that were installed before this version.
 
 ## Usage
 
