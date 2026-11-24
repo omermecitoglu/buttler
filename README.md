@@ -108,8 +108,8 @@ If you prefer to create and configure the GitHub App manually:
    - **GitHub App name**: Choose a unique name (e.g., `Buttler-<your-name>`).
    - **Homepage URL**: `https://<your-host>` (e.g., `http://localhost:2083`).
    - **Authorization callback URL**: `https://<your-host>/auth/github`
-   - **Webhook URL**: `https://<your-host>/api/webhook` (or `/webhook`)
-   - **Webhook secret**: Enter a secret token (optional in local development, recommended in production).
+   - **Webhook URL**: `https://<your-host>/webhooks/github`
+   - **Webhook secret**: Enter a secret token. Deliveries are rejected unless the same secret is configured in Buttler.
 3. Configure the required **Permissions**:
    - **Repository permissions**:
      - **Contents**: `Read-only` (to clone code and inspect `Dockerfile` and repository contents)
