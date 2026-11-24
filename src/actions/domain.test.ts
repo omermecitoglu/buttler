@@ -1,0 +1,96 @@
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { addDomainAction, removeDomainAction } from "./domain";
+
+const mocks = vi.hoisted(() => ({
+  getSession: vi.fn(),
+  getAccess: vi.fn(),
+  getService: vi.fn(),
+  createDomain: vi.fn(),
+  deleteDomain: vi.fn(),
+  updateTag: vi.fn(),
+}));
+
+vi.mock("server-only", () => ({}));
+vi.mock("next/cache", () => ({ updateTag: mocks.updateTag }));
+vi.mock("next/server", () => ({ connection: vi.fn() }));
+vi.mock("next/navigation", () => ({
+  unauthorized: () => {
+    throw new Error("401");
+  },
+  forbidden: () => {
+    throw new Error("403");
+  },
+}));
+vi.mock("~/database", () => ({ default: {} }));
+vi.mock("~/core/session", () => ({ getSession: mocks.getSession }));
+vi.mock("~/core/access", () => ({ getAccess: mocks.getAccess }));
+vi.mock("~/core/settings", () => ({}));
+vi.mock("~/operations/getService", () => ({ default: mocks.getService }));
+vi.mock("~/operations/createDomain", () => ({ default: mocks.createDomain }));
+vi.mock("~/operations/deleteDomain", () => ({ default: mocks.deleteDomain }));
+
+function add(hostname: string, port = "3000") {
+  const formData = new FormData();
+  formData.set("hostname", hostname);
+  formData.set("port", port);
+  return addDomainAction("srv", {}, formData);
+}
+
+describe("domain actions", () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+    mocks.getSession.mockResolvedValue({ userId: 1 });
+    mocks.getAccess.mockResolvedValue("admin");
+    mocks.getService.mockResolvedValue({ id: "srv", type: "github" });
+    mocks.createDomain.mockResolvedValue(true);
+    mocks.deleteDomain.mockResolvedValue(true);
+  });
+
+  it("should add a domain in lowercase", async () => {
+    expect(await add(" App.Example.com ")).toEqual({});
+    expect(mocks.createDomain).toHaveBeenCalledWith({}, { hostname: "app.example.com", serviceId: "srv", port: 3000 });
+    expect(mocks.updateTag).toHaveBeenCalledWith("getSingleService(srv)");
+  });
+
+  it("should reject invalid hostnames", async () => {
+    expect(await add("*.example.com")).toEqual({ hostname: "INVALID_HOSTNAME" });
+    expect(mocks.createDomain).not.toHaveBeenCalled();
+  });
+
+  it.each(["", "0", "65536", "80.5", "http"])("should reject the port \"%s\"", async port => {
+    expect(await add("app.example.com", port)).toEqual({ port: "INVALID_PORT" });
+    expect(mocks.createDomain).not.toHaveBeenCalled();
+  });
+
+  it("should reject hostnames that are already taken", async () => {
+    mocks.createDomain.mockResolvedValue(false);
+    expect(await add("app.example.com")).toEqual({ "[error]": "hostname_taken" });
+    expect(mocks.updateTag).not.toHaveBeenCalled();
+  });
+
+  it.each([null, { id: "srv", type: "system" }])("should not add domains to unknown and system services", async service => {
+    mocks.getService.mockResolvedValue(service);
+    expect(await add("app.example.com")).toEqual({ "[error]": "add_failed" });
+    expect(mocks.createDomain).not.toHaveBeenCalled();
+  });
+
+  it("should remove a domain", async () => {
+    expect(await removeDomainAction("srv", "app.example.com", {}, new FormData())).toEqual({});
+    expect(mocks.deleteDomain).toHaveBeenCalledWith({}, "srv", "app.example.com");
+    expect(mocks.updateTag).toHaveBeenCalledWith("getSingleService(srv)");
+  });
+
+  it("should report the domains that can't be removed", async () => {
+    mocks.deleteDomain.mockResolvedValue(false);
+    expect(await removeDomainAction("srv", "app.example.com", {}, new FormData())).toEqual({ "[error]": "remove_failed" });
+    expect(mocks.updateTag).not.toHaveBeenCalled();
+  });
+
+  it("should reject the users who are not the admin", async () => {
+    mocks.getAccess.mockResolvedValue("member");
+    await expect(add("app.example.com")).rejects.toThrow("403");
+    await expect(removeDomainAction("srv", "app.example.com", {}, new FormData())).rejects.toThrow("403");
+    expect(mocks.createDomain).not.toHaveBeenCalled();
+    expect(mocks.deleteDomain).not.toHaveBeenCalled();
+  });
+});
