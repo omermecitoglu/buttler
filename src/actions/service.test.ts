@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { createServiceAction, restartService, startService, stopService } from "./service";
+import { MissingSecretValueError } from "~/operations/updateService";
+import { createServiceAction, restartService, startService, stopService, updateServiceAction } from "./service";
 
 const mockGetService = vi.fn();
 const mockGetDeployableService = vi.fn();
@@ -11,7 +12,8 @@ const mockIsImagePresentLocally = vi.fn();
 const mockMarkServicePulling = vi.fn();
 const mockFindLatestImage = vi.fn();
 const mockStartBuilding = vi.fn();
-const mockRevalidatePath = vi.fn();
+const mockUpdateService = vi.fn();
+const mockRefresh = vi.fn();
 const mockUpdateTag = vi.fn();
 const mockRedirect = vi.fn();
 
@@ -31,6 +33,11 @@ vi.mock("~/operations/createService", () => ({
   default: (...args: unknown[]) => mockCreateService(...args),
 }));
 
+vi.mock("~/operations/updateService", () => ({
+  default: (...args: unknown[]) => mockUpdateService(...args),
+  MissingSecretValueError: class extends Error {},
+}));
+
 vi.mock("~/core/build", () => ({
   findLatestImage: (...args: unknown[]) => mockFindLatestImage(...args),
   startBuilding: (...args: unknown[]) => mockStartBuilding(...args),
@@ -45,7 +52,7 @@ vi.mock("~/core/docker/status", () => ({
 }));
 
 vi.mock("next/cache", () => ({
-  revalidatePath: (...args: unknown[]) => mockRevalidatePath(...args),
+  refresh: (...args: unknown[]) => mockRefresh(...args),
   updateTag: (...args: unknown[]) => mockUpdateTag(...args),
 }));
 
@@ -74,8 +81,7 @@ describe("service lifecycle server actions", () => {
       mockIsImagePresentLocally.mockResolvedValue(true);
       const res = await startService("srv-test");
       expect(mockStartServiceContainer).toHaveBeenCalled();
-      expect(mockRevalidatePath).toHaveBeenCalledWith("/");
-      expect(mockRevalidatePath).toHaveBeenCalledWith("/services");
+      expect(mockRefresh).toHaveBeenCalled();
       expect(res).toEqual({ success: true });
     });
 
@@ -88,8 +94,7 @@ describe("service lifecycle server actions", () => {
       mockIsImagePresentLocally.mockResolvedValue(false);
       const res = await startService("srv-test");
       expect(mockMarkServicePulling).toHaveBeenCalledWith("srv-test", true);
-      expect(mockRevalidatePath).toHaveBeenCalledWith("/");
-      expect(mockRevalidatePath).toHaveBeenCalledWith("/services");
+      expect(mockRefresh).toHaveBeenCalled();
       expect(res).toEqual({ success: true });
     });
 
@@ -118,12 +123,11 @@ describe("service lifecycle server actions", () => {
   });
 
   describe("stopService", () => {
-    it("stops container and revalidates path", async () => {
+    it("stops container and refreshes the page", async () => {
       mockGetService.mockResolvedValue(sampleService);
       const res = await stopService("srv-test");
       expect(mockStopServiceContainer).toHaveBeenCalledWith(sampleService);
-      expect(mockRevalidatePath).toHaveBeenCalledWith("/");
-      expect(mockRevalidatePath).toHaveBeenCalledWith("/services");
+      expect(mockRefresh).toHaveBeenCalled();
       expect(res).toEqual({ success: true });
     });
 
@@ -134,12 +138,11 @@ describe("service lifecycle server actions", () => {
   });
 
   describe("restartService", () => {
-    it("restarts container and revalidates path", async () => {
+    it("restarts container and refreshes the page", async () => {
       mockGetDeployableService.mockResolvedValue(sampleService);
       const res = await restartService("srv-test");
       expect(mockRestartServiceContainer).toHaveBeenCalledWith(sampleService);
-      expect(mockRevalidatePath).toHaveBeenCalledWith("/");
-      expect(mockRevalidatePath).toHaveBeenCalledWith("/services");
+      expect(mockRefresh).toHaveBeenCalled();
       expect(res).toEqual({ success: true });
     });
 
@@ -232,5 +235,53 @@ describe("service lifecycle server actions", () => {
       const res = await createServiceAction("en", {}, formData);
       expect(res).toEqual({ "[error]": "create_failed" });
     });
+  });
+});
+
+describe("updateServiceAction", () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+  });
+
+  function createFormData() {
+    const formData = new FormData();
+    formData.append("name", "app");
+    formData.append("repository", "redis");
+    formData.append("branch", "alpine");
+    formData.append("environmentVariables", JSON.stringify([
+      { key: "TOKEN", value: null, scope: "both", isSecret: true },
+    ]));
+    return formData;
+  }
+
+  it("saves the service and updates its caches", async () => {
+    mockGetService.mockResolvedValue({ id: "srv", type: "dockerhub" });
+    expect(await updateServiceAction("srv", {}, createFormData())).toEqual({});
+    expect(mockUpdateService).toHaveBeenCalledWith({}, "srv", {
+      name: "app",
+      repository: "redis",
+      branch: "alpine",
+      ports: [],
+      // Docker Hub services don't have a build step
+      environmentVariables: [{ key: "TOKEN", value: null, scope: "runtime", isSecret: true }],
+      volumes: [],
+    });
+    expect(mockUpdateTag).toHaveBeenCalledWith("getAllServices()");
+    expect(mockUpdateTag).toHaveBeenCalledWith("getSingleService(srv)");
+  });
+
+  it("asks for the values of the secrets that cannot be kept", async () => {
+    mockGetService.mockResolvedValue({ id: "srv", type: "github" });
+    mockUpdateService.mockImplementation(() => {
+      throw new MissingSecretValueError("TOKEN");
+    });
+    expect(await updateServiceAction("srv", {}, createFormData())).toEqual({ "[error]": "secret_value_required" });
+    expect(mockUpdateTag).not.toHaveBeenCalled();
+  });
+
+  it.each([null, { id: "srv", type: "system" }])("rejects services that cannot be edited", async service => {
+    mockGetService.mockResolvedValue(service);
+    expect(await updateServiceAction("srv", {}, createFormData())).toEqual({ "[error]": "update_failed" });
+    expect(mockUpdateService).not.toHaveBeenCalled();
   });
 });
