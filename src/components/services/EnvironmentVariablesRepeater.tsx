@@ -1,6 +1,8 @@
 "use client";
 
 import { faKey } from "@fortawesome/free-solid-svg-icons/faKey";
+import { faLock } from "@fortawesome/free-solid-svg-icons/faLock";
+import { faLockOpen } from "@fortawesome/free-solid-svg-icons/faLockOpen";
 import { faPlus } from "@fortawesome/free-solid-svg-icons/faPlus";
 import { faTrash } from "@fortawesome/free-solid-svg-icons/faTrash";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -9,11 +11,15 @@ import { useEffect, useState } from "react";
 import Button from "~/components/ui/button";
 import Input from "~/components/ui/input";
 import Label from "~/components/ui/label";
+import Select from "~/components/ui/select";
+import { type EnvironmentVariableScope, environmentVariableScopes } from "~/core/environment-variables";
 
 export type EnvironmentVariableItem = {
   id?: string,
   key: string,
   value: string,
+  scope: EnvironmentVariableScope,
+  isSecret: boolean,
 };
 
 export type EnvironmentVariablesRepeaterLabels = {
@@ -25,6 +31,10 @@ export type EnvironmentVariablesRepeaterLabels = {
   keyPlaceholder?: string,
   valueLabel?: string,
   valuePlaceholder?: string,
+  scopeLabel?: string,
+  scopes?: Record<EnvironmentVariableScope, string>,
+  scopeHelp?: string,
+  secretLabel?: string,
   emptyMessage?: string,
 };
 
@@ -32,6 +42,8 @@ export type EnvironmentVariablesRepeaterProps = {
   items?: EnvironmentVariableItem[],
   onChange?: (items: EnvironmentVariableItem[]) => void,
   disabled?: boolean,
+  /** Whether the service has a build step, which the variables can be used in */
+  hasBuild?: boolean,
   labels?: EnvironmentVariablesRepeaterLabels,
   className?: string,
 };
@@ -40,12 +52,15 @@ const createEmptyVariable = (): EnvironmentVariableItem => ({
   id: typeof crypto !== "undefined" ? crypto.randomUUID() : Math.random().toString(),
   key: "",
   value: "",
+  scope: "runtime",
+  isSecret: false,
 });
 
 const EnvironmentVariablesRepeater = ({
   items: controlledItems,
   onChange,
   disabled = false,
+  hasBuild = true,
   labels,
   className,
 }: EnvironmentVariablesRepeaterProps) => {
@@ -70,12 +85,12 @@ const EnvironmentVariablesRepeater = ({
     updateItems(internalItems.filter((_, idx) => idx !== indexToRemove));
   };
 
-  const handleChange = (index: number, field: "key" | "value", value: string) => {
+  const handleChange = (index: number, changes: Partial<Omit<EnvironmentVariableItem, "id">>) => {
     const next = internalItems.map((item, idx) => {
       if (idx !== index) return item;
       return {
         ...item,
-        [field]: value,
+        ...changes,
       };
     });
     updateItems(next);
@@ -89,7 +104,15 @@ const EnvironmentVariablesRepeater = ({
   const keyPlaceholder = labels?.keyPlaceholder ?? "e.g. DATABASE_URL";
   const valueLabel = labels?.valueLabel ?? "Value";
   const valuePlaceholder = labels?.valuePlaceholder ?? "e.g. postgres://...";
+  const scopeLabel = labels?.scopeLabel ?? "Available in";
+  const scopes = labels?.scopes ?? { build: "Build", runtime: "Runtime", both: "Both" };
+  const scopeHelp = labels?.scopeHelp;
+  const secretLabel = labels?.secretLabel ?? "Secret";
   const emptyMessage = labels?.emptyMessage ?? "No environment variables configured.";
+
+  const columns = hasBuild
+    ? "grid-cols-[1fr_auto_1fr_7rem_2.5rem_2.5rem]"
+    : "grid-cols-[1fr_auto_1fr_2.5rem_2.5rem]";
 
   return (
     <div className={cn("space-y-3 rounded-lg border border-slate-800 bg-slate-900/50 p-4", className)}>
@@ -132,18 +155,20 @@ const EnvironmentVariablesRepeater = ({
         </div>
       ) : (
         <div className="space-y-2">
-          <div className="grid grid-cols-[1fr_auto_1fr_auto] items-center gap-2 px-1 text-xs font-medium text-slate-400">
+          <div className={cn("grid items-center gap-2 px-1 text-xs font-medium text-slate-400", columns)}>
             <span>{keyLabel}</span>
             <span className="w-4" />
             <span>{valueLabel}</span>
-            <span className="w-8" />
+            {hasBuild && <span>{scopeLabel}</span>}
+            <span className="text-center">{secretLabel}</span>
+            <span />
           </div>
           {internalItems.map((item, index) => {
             const key = item.id ?? `env-${index}`;
             return (
               <div
                 key={key}
-                className="grid grid-cols-[1fr_auto_1fr_auto] items-center gap-2"
+                className={cn("grid items-center gap-2", columns)}
               >
                 <div>
                   <Label htmlFor={`env-key-${index}`} className="sr-only">
@@ -156,7 +181,7 @@ const EnvironmentVariablesRepeater = ({
                     className="font-mono text-xs uppercase"
                     placeholder={keyPlaceholder}
                     value={item.key}
-                    onChange={e => handleChange(index, "key", e.target.value)}
+                    onChange={e => handleChange(index, { key: e.target.value })}
                     disabled={disabled}
                   />
                 </div>
@@ -167,15 +192,47 @@ const EnvironmentVariablesRepeater = ({
                   </Label>
                   <Input
                     id={`env-val-${index}`}
-                    type="text"
+                    type={item.isSecret ? "password" : "text"}
+                    autoComplete={item.isSecret ? "new-password" : "off"}
                     size="sm"
                     className="font-mono text-xs"
                     placeholder={valuePlaceholder}
                     value={item.value}
-                    onChange={e => handleChange(index, "value", e.target.value)}
+                    onChange={e => handleChange(index, { value: e.target.value })}
                     disabled={disabled}
                   />
                 </div>
+                {hasBuild && (
+                  <div>
+                    <Label htmlFor={`env-scope-${index}`} className="sr-only">
+                      {scopeLabel}
+                    </Label>
+                    <Select
+                      id={`env-scope-${index}`}
+                      className="text-xs"
+                      value={item.scope}
+                      onChange={e => handleChange(index, { scope: e.target.value as EnvironmentVariableScope })}
+                      disabled={disabled}
+                    >
+                      {environmentVariableScopes.map(scope => (
+                        <option key={scope} value={scope}>{scopes[scope]}</option>
+                      ))}
+                    </Select>
+                  </div>
+                )}
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="xs"
+                  onClick={() => handleChange(index, { isSecret: !item.isSecret })}
+                  disabled={disabled}
+                  aria-label={secretLabel}
+                  aria-pressed={item.isSecret}
+                  title={secretLabel}
+                  className={item.isSecret ? "text-amber-400 hover:text-amber-300" : "text-slate-500 hover:text-slate-200"}
+                >
+                  <FontAwesomeIcon icon={item.isSecret ? faLock : faLockOpen} className="size-3.5" />
+                </Button>
                 <Button
                   type="button"
                   variant="ghost"
@@ -190,6 +247,9 @@ const EnvironmentVariablesRepeater = ({
               </div>
             );
           })}
+          {hasBuild && scopeHelp && (
+            <p className="px-1 text-xs text-slate-500">{scopeHelp}</p>
+          )}
         </div>
       )}
     </div>
