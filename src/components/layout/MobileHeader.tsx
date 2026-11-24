@@ -19,9 +19,10 @@ const iconButtonClass = cn(
 
 export type MobileHeaderProps = {
   currentUser: ReactNode,
+  isAdmin: Promise<boolean>,
 };
 
-const MobileHeader = ({ currentUser }: MobileHeaderProps) => {
+const MobileHeader = ({ currentUser, isAdmin }: MobileHeaderProps) => {
   const t = useTranslations("BaseLayout");
   const [open, setOpen] = useState(false);
   const close = () => setOpen(false);
@@ -69,7 +70,7 @@ const MobileHeader = ({ currentUser }: MobileHeaderProps) => {
                 <FontAwesomeIcon icon={faXmark} className="size-4" />
               </Dialog.Close>
             </div>
-            <MainNav onNavigate={close} />
+            <MainNav isAdmin={isAdmin} onNavigate={close} />
             <div className="flex items-center gap-2 border-t border-slate-800 p-3">
               {currentUser}
               <LogoutButton />
