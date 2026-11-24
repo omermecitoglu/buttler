@@ -2,7 +2,7 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { buildAndDeploy, findLatestImage, getBuildLogPath, getImageRepository, startBuilding, startGitHubService } from "./build";
+import { buildAndDeploy, deleteBuildLog, findLatestImage, getBuildLogPath, getImageRepository, startBuilding, startGitHubService } from "./build";
 import { isServiceBuilding } from "./docker/status";
 
 const mocks = vi.hoisted(() => ({
@@ -115,6 +115,15 @@ describe("build pipeline", () => {
     await vi.waitFor(async () => {
       expect(await fs.readFile(getBuildLogPath("srv"), "utf-8")).toContain("Deployed");
     });
+  });
+
+  it("should delete the log, even if there is none", async () => {
+    const logPath = getBuildLogPath("deleted");
+    await fs.mkdir(path.dirname(logPath), { recursive: true });
+    await fs.writeFile(logPath, "log");
+    await deleteBuildLog("deleted");
+    await expect(fs.access(logPath)).rejects.toThrow("ENOENT");
+    await expect(deleteBuildLog("deleted")).resolves.toBeUndefined();
   });
 
   it("should hide build secrets in the log", async () => {
