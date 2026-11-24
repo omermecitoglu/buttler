@@ -28,6 +28,7 @@ vi.mock("~/core/docker", () => ({
     createVolume: vi.fn(),
   },
 }));
+vi.mock("~/core/docker/ingress", () => ({ syncIngressNetwork: vi.fn() }));
 vi.mock("~/core/git", () => ({
   parseRepository: () => ({ owner: "acme" }),
   cloneRepo: mocks.cloneRepo,

@@ -3,6 +3,7 @@ import { getServiceImageTag } from "~/core/dockerhub";
 import { type ServiceEnvironmentVariable, getRuntimeVariables } from "~/core/environment-variables";
 import { getSharedState } from "~/core/shared-state";
 import { getBuildingServiceIds } from "./builds";
+import { syncIngressNetwork } from "./ingress";
 import { BUTTLER_SERVICE_LABEL } from "./labels";
 import type Docker from "dockerode";
 
@@ -317,6 +318,9 @@ export async function pullAndDeployService(service: ServiceRef): Promise<void> {
 
 /** Replaces the container of a service (if there is any) with a new one that runs the given image */
 export async function deployServiceContainer(service: ServiceRef, image: string): Promise<void> {
+  // If the network can't be created, the old container keeps running
+  await syncIngressNetwork(service.id);
+
   const existingContainer = await findServiceContainer(service);
   if (existingContainer) {
     try {
@@ -378,6 +382,8 @@ export async function deployServiceContainer(service: ServiceRef, image: string)
     Tty: false,
   });
 
+  // Joins the network of the new container. Networks that are given at creation would replace the default one.
+  await syncIngressNetwork(service.id);
   await container.start();
 }
 
