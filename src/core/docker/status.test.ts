@@ -44,6 +44,7 @@ const mockPullImage = vi.fn();
 const mockProvisionReverseProxy = vi.fn();
 const mockStartGitHubService = vi.fn();
 const mockGetBuildingServiceIds = vi.fn();
+const mockSyncIngressNetwork = vi.fn();
 
 vi.mock("~/core/docker", () => ({
   docker: {
@@ -54,6 +55,10 @@ vi.mock("~/core/docker", () => ({
     getImage: (...args: unknown[]) => mockDocker.getImage(...args as [string]),
   },
   pullImage: (...args: unknown[]) => mockPullImage(...args),
+}));
+
+vi.mock("./ingress", () => ({
+  syncIngressNetwork: (...args: unknown[]) => mockSyncIngressNetwork(...args),
 }));
 
 vi.mock("./builds", () => ({
@@ -378,6 +383,28 @@ describe("Docker status aggregator", () => {
         Tty: false,
       }));
       expect(mockContainer.start).toHaveBeenCalled();
+    });
+
+    it("startServiceContainer connects the new container to the ingress network before it's started", async () => {
+      mockDocker.listContainers.mockResolvedValue([]);
+      mockImage.inspect.mockResolvedValue({});
+      await startServiceContainer({ id: "srv-dh", type: "dockerhub", repository: "redis", branch: "alpine" });
+      expect(mockSyncIngressNetwork).toHaveBeenLastCalledWith("srv-dh");
+      const [creation] = mockDocker.createContainer.mock.invocationCallOrder;
+      const [start] = mockContainer.start.mock.invocationCallOrder;
+      const connection = mockSyncIngressNetwork.mock.invocationCallOrder[1];
+      expect(connection).toBeGreaterThan(creation);
+      expect(connection).toBeLessThan(start);
+    });
+
+    it("startServiceContainer keeps the old container if the ingress network can't be created", async () => {
+      mockDocker.listContainers.mockResolvedValue([]);
+      mockImage.inspect.mockResolvedValue({});
+      mockSyncIngressNetwork.mockRejectedValueOnce(new Error("no subnet"));
+      await expect(startServiceContainer({ id: "srv-dh", type: "dockerhub", repository: "redis", branch: "alpine" }))
+        .rejects.toThrow("no subnet");
+      expect(mockContainer.remove).not.toHaveBeenCalled();
+      expect(mockDocker.createContainer).not.toHaveBeenCalled();
     });
 
     it("startServiceContainer pulls image if not present locally", async () => {
