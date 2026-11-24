@@ -353,7 +353,7 @@
         "removeDomain": "Remove {hostname}",
         "messages": {
           "add_failed": "The domain could not be added.",
-          "connect_failed": "The domain was not added, because the service could not be connected to Nginx. Make sure that Docker is running, and try again.",
+          "connect_failed": "The domain was not added, because the service could not be connected to Nginx. The reason is in the server log.",
           "hostname_taken": "This domain is already used by a service.",
           "invalid_hostname": "Enter an exact domain like app.example.com, without a wildcard, a port or a path.",
           "invalid_port": "The port must be a number between 1 and 65535.",
