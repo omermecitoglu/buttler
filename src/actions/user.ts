@@ -2,13 +2,13 @@
 import { defineFormAction, displayMessage } from "@omer-x/next-form-actions";
 import { refresh } from "next/cache";
 import z from "zod";
-import { adminMiddleware } from "~/core/auth";
 import { type GitHubAccount, findUser } from "~/core/github/users";
 import { getSession } from "~/core/session";
 import db from "~/database";
 import type { UserDTO } from "~/models/user";
 import createUser from "~/operations/createUser";
 import deleteUser from "~/operations/deleteUser";
+import { adminMiddleware } from "./middlewares/admin";
 
 export const addUserAction = defineFormAction({
   middlewares: [adminMiddleware],

@@ -53,7 +53,8 @@ async function findEntryPoints(folder: string, pattern: RegExp) {
   return entries.flat();
 }
 
-const actions = await findEntryPoints("actions", /(?<!\.test)\.ts$/);
+// The middlewares are not actions
+const actions = await findEntryPoints("actions", /^(?!middlewares[/\\]).*(?<!\.test)\.ts$/);
 const routes = await findEntryPoints("app/api", /(^|[/\\])route\.ts$/);
 const pages = findFiles("app/[locale]/(base)", /(^|[/\\])page\.tsx$/);
 

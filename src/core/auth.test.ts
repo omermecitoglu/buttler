@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { adminMiddleware, getCurrentUser, requireAdmin, requireNotInstalled, requireUser, userMiddleware } from "./auth";
+import { getCurrentUser, requireAdmin, requireNotInstalled, requireUser } from "./auth";
 
 const mocks = vi.hoisted(() => ({
   getSession: vi.fn(),
@@ -44,7 +44,6 @@ describe("auth", () => {
     expect(await getCurrentUser()).toBeNull();
     await expect(requireUser()).rejects.toThrow("401");
     await expect(requireAdmin()).rejects.toThrow("401");
-    await expect(userMiddleware()).rejects.toThrow("401");
   });
 
   it("should reject the users without access", async () => {
@@ -52,14 +51,12 @@ describe("auth", () => {
     expect(await getCurrentUser()).toBeNull();
     await expect(requireUser()).rejects.toThrow("403");
     await expect(requireAdmin()).rejects.toThrow("403");
-    await expect(userMiddleware()).rejects.toThrow("403");
   });
 
   it("should reject the users who are not the admin", async () => {
     mocks.getAccess.mockResolvedValue("member");
     await expect(requireUser()).resolves.toMatchObject({ role: "member" });
     await expect(requireAdmin()).rejects.toThrow("403");
-    await expect(adminMiddleware()).rejects.toThrow("403");
   });
 
   it("should lock out the users who lose their access during a session", async () => {
