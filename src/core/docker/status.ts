@@ -1,5 +1,6 @@
 import { docker } from "~/core/docker";
 import { type ServiceEnvironmentVariable, getRuntimeVariables } from "~/core/environment-variables";
+import { getSharedState } from "~/core/shared-state";
 import { getBuildingServiceIds } from "./builds";
 import { BUTTLER_SERVICE_LABEL } from "./labels";
 import type Docker from "dockerode";
@@ -26,8 +27,8 @@ export type ServiceRuntimeState = {
   ports: ContainerPortBinding[],
 };
 
-const activeBuildServices = new Set<string>();
-const activePullServices = new Set<string>();
+const activeBuildServices = getSharedState("active-builds", () => new Set<string>());
+const activePullServices = getSharedState("active-pulls", () => new Set<string>());
 
 export function markServiceBuilding(serviceId: string, isBuilding: boolean) {
   if (isBuilding) {
