@@ -21,6 +21,7 @@ Docker is the single source of truth for builds, nothing about them is stored in
 
 - The "Redeploy" button of a Docker Hub service pulls its image and replaces the container (`redeployService`). The old container keeps running until the image is ready, and the service is marked as pulling until it's replaced.
 - Builds and pulls go on after the response is sent, so the actions return what they led to (`ServiceActionOutcome`) instead of waiting. A failed pull is only written to the server log.
+- A deploy always starts the new container, so "Rebuild" and "Redeploy" also start a stopped service.
 
 ## Container Logs
 
