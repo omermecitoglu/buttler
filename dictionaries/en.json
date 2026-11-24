@@ -58,8 +58,13 @@
     }
   },
   "BaseLayout": {
+    "skipToContent": "Skip to content",
+    "menu": "Menu",
+    "openMenu": "Open menu",
+    "closeMenu": "Close menu",
     "logout": "Log out",
     "nav": {
+      "label": "Main navigation",
       "services": "Services"
     }
   },

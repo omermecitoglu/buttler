@@ -16,7 +16,7 @@ const LogoutButton = () => {
         type="submit"
         variant="ghost"
         size="sm"
-        className="w-full justify-start gap-2.5 text-slate-400 hover:bg-slate-900 hover:text-rose-400"
+        className="h-10 w-full justify-start gap-3 text-slate-400 hover:bg-slate-800/60 hover:text-rose-400"
       >
         <FontAwesomeIcon icon={faRightFromBracket} className="size-4" />
         <span>{t("logout")}</span>

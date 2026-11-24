@@ -1,49 +1,25 @@
-import { faServer } from "@fortawesome/free-solid-svg-icons/faServer";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { getTranslations } from "next-intl/server";
-import LogoutButton from "~/components/LogoutButton";
-import { Link } from "~/i18n/navigation";
+import MobileHeader from "~/components/layout/MobileHeader";
+import Sidebar from "~/components/layout/Sidebar";
 
 export default async function({ children }: LayoutProps<"/[locale]">) {
   const t = await getTranslations("BaseLayout");
 
   return (
-    <div className="flex h-screen">
-      {/* Sidebar placeholder */}
-      <aside className="flex w-60 shrink-0 flex-col">
-        {/* Logo / branding */}
-        <div className="flex h-16 shrink-0 items-center px-4">
-          <span className="text-lg font-semibold tracking-tight text-slate-100">Buttler</span>
-        </div>
-        {/* Nav links placeholder */}
-        <nav className="flex flex-1 flex-col gap-1 px-2 py-2">
-          <Link
-            href="/services"
-            className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-slate-300 transition-colors hover:bg-slate-800 hover:text-white"
-          >
-            <FontAwesomeIcon icon={faServer} className="size-4 text-slate-400" />
-            <span>{t("nav.services")}</span>
-          </Link>
-        </nav>
-        {/* Avatar / user section placeholder */}
-        <div className="flex h-16 shrink-0 items-center gap-3 px-4">
-          <LogoutButton />
-        </div>
-      </aside>
-      {/* Main content area */}
-      <div className="flex flex-1 flex-col overflow-hidden">
-        {/* Top header placeholder */}
-        <header className="flex h-16 shrink-0 items-center justify-between px-6">
-          {/* page title / breadcrumb placeholder */}
-          <div />
-          {/* header actions placeholder */}
-          <div />
-        </header>
-        {/* Page content */}
-        <main className="flex-1 overflow-y-auto px-6 py-4">
+    <div className="flex min-h-dvh flex-col lg:flex-row">
+      <a
+        href="#content"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:rounded-lg focus:bg-slate-100 focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-slate-950"
+      >
+        {t("skipToContent")}
+      </a>
+      <Sidebar />
+      <MobileHeader />
+      <main id="content" className="min-w-0 flex-1 scroll-mt-14 px-4 py-6 sm:px-6 lg:px-10 lg:py-8">
+        <div className="mx-auto w-full max-w-7xl">
           {children}
-        </main>
-      </div>
+        </div>
+      </main>
     </div>
   );
 }
