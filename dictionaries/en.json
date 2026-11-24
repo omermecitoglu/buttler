@@ -271,7 +271,8 @@
       "label": "Service sections",
       "info": "Info",
       "builds": "Builds",
-      "logs": "Logs"
+      "logs": "Logs",
+      "settings": "Settings"
     },
     "notFound": {
       "title": "Service not found",
@@ -331,6 +332,13 @@
         "invalid_ports": "One or more port mappings are invalid.",
         "invalid_environment_variables": "One or more environment variables are invalid.",
         "invalid_volumes": "One or more storage mounts are invalid."
+      }
+    },
+    "settings": {
+      "systemService": "System services are managed by Buttler, they can't be deleted.",
+      "delete": {
+        "title": "Delete this service",
+        "description": "Its container and the images that Buttler built for it are deleted too. This can't be undone."
       }
     },
     "delete": {

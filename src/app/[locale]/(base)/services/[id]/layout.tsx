@@ -6,10 +6,14 @@ import Authorized from "~/components/auth/Authorized";
 import ServiceHeader from "~/components/services/ServiceHeader";
 import ServiceHeaderSkeleton from "~/components/services/ServiceHeaderSkeleton";
 import ServiceTabs from "~/components/services/ServiceTabs";
+import { getCurrentUser } from "~/core/auth";
 import { Link } from "~/i18n/navigation";
 
 export default async function({ children, params }: LayoutProps<"/[locale]/services/[id]">) {
   const t = await getTranslations("ServicePage");
+
+  // Not awaited, so that the rest of the layout can be prerendered
+  const isAdmin = getCurrentUser().then(user => user?.role === "admin");
 
   return (
     <div className="flex flex-col gap-6">
@@ -26,7 +30,7 @@ export default async function({ children, params }: LayoutProps<"/[locale]/servi
         </Authorized>
       </Suspense>
       <Suspense fallback={<div className="h-11 border-b border-slate-800" />}>
-        {params.then(({ id }) => <ServiceTabs serviceId={id} />)}
+        {params.then(({ id }) => <ServiceTabs serviceId={id} isAdmin={isAdmin} />)}
       </Suspense>
       {children}
     </div>
