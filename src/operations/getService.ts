@@ -8,6 +8,9 @@ export default async function getService(db: typeof database, serviceId: string)
       ports: true,
       environmentVariables: true,
       volumes: true,
+      domains: {
+        orderBy: { hostname: "asc" },
+      },
     },
   });
   if (!service) return null;
