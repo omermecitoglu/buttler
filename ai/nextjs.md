@@ -35,9 +35,9 @@ const nextConfig: NextConfig = {
 
 The proxy only redirects to the login page for convenience. Every entry point checks the access itself, through `src/core/auth.ts`:
 
-- **Pages** in the base layout wrap their content in `<Suspense>` and `<Authorized>`. Layouts that read data need it too, but they don't cover their pages.
+- **Pages** in the base layout wrap their content in `<Suspense>` and `<Authorized>` (`adminOnly` if only the admin can open them). Layouts that read data need it too, but they don't cover their pages.
 - **Route handlers** in `/api` start with `await requireUser()`, outside of any `try` block. Next.js responds with `401` or `403`.
-- **Form actions** use `middlewares: [userMiddleware]`. Other server actions start with `await requireUser()`.
+- **Form actions** use `middlewares: [userMiddleware]`, or `adminMiddleware`. Other server actions start with `await requireUser()`.
 - The installation starts with `await requireNotInstalled()`.
 
 `src/core/auth-coverage.test.ts` finds the entry points by their location, and fails if one of them is left open. Exceptions are listed there.
