@@ -171,6 +171,14 @@
       "keyPlaceholder": "e.g. DATABASE_URL",
       "valueLabel": "Value",
       "valuePlaceholder": "Value",
+      "scopeLabel": "Available in",
+      "scopes": {
+        "build": "Build",
+        "runtime": "Runtime",
+        "both": "Both"
+      },
+      "scopeHelp": "Build variables are passed as build arguments and can be seen in the image history. Build secrets are not, the Dockerfile reads them with RUN --mount=type=secret,id=KEY.",
+      "secretLabel": "Secret",
       "emptyMessage": "No environment variables configured."
     },
     "volumesSection": {

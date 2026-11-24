@@ -62,6 +62,8 @@ const NewServiceForm = ({ action }: NewServiceFormProps) => {
     .map(e => ({
       key: e.key.trim(),
       value: e.value,
+      scope: e.scope,
+      isSecret: e.isSecret,
     }));
 
   const cleanVolumes = volumes
@@ -92,6 +94,14 @@ const NewServiceForm = ({ action }: NewServiceFormProps) => {
     keyPlaceholder: t("envSection.keyPlaceholder"),
     valueLabel: t("envSection.valueLabel"),
     valuePlaceholder: t("envSection.valuePlaceholder"),
+    scopeLabel: t("envSection.scopeLabel"),
+    scopes: {
+      build: t("envSection.scopes.build"),
+      runtime: t("envSection.scopes.runtime"),
+      both: t("envSection.scopes.both"),
+    },
+    scopeHelp: t("envSection.scopeHelp"),
+    secretLabel: t("envSection.secretLabel"),
     emptyMessage: t("envSection.emptyMessage"),
   };
 
@@ -217,6 +227,7 @@ const NewServiceForm = ({ action }: NewServiceFormProps) => {
       <EnvironmentVariablesRepeater
         items={envVars}
         onChange={setEnvVars}
+        hasBuild={sourceType === "github"}
         labels={envLabels}
       />
       {/* Volume Mounts Section */}
