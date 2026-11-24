@@ -258,3 +258,14 @@ Wide screens (lg and up)             Narrow screens
 - Navigation items are listed in `MainNav`, which is shared by the sidebar and the mobile drawer. An item is active on its own page and on the pages below it.
 - `CurrentUser` shows the GitHub account of the session. It reads cookies, so the layout streams it in a `<Suspense>` boundary and passes it to the sidebar and the mobile drawer.
 - Dark mode is activated by default via `data-theme="dark"` on `<body>`. `scheme-dark` on `<html>` covers scrollbars and native controls.
+- `MainNav` reads the pathname, which is not known while prerendering dynamic routes. It has its own `<Suspense>` boundary, and other components that call `usePathname` need one too.
+
+## Service Page
+
+`/services/[id]` is the only place where a service is managed, the cards of the list only show it. Each tab is a page under the same layout, which renders the name, the status, the power buttons and the tabs:
+
+- **Info** (`/services/[id]`): everything about the service. The edit button opens a modal.
+- **Builds** (`/services/[id]/builds`)
+- **Logs** (`/services/[id]/logs`)
+
+The layout is not rendered again while switching between the tabs, and its `notFound()` is handled by `services/not-found.tsx`.
