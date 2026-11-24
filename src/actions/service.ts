@@ -140,12 +140,14 @@ function isServiceBeingDeployed(serviceId: string) {
 }
 
 /** The service itself is deleted last, so a deletion that fails can be tried again. Returns false if it's kept. */
-async function removeService({ id, volumes }: { id: string, volumes: { name: string }[] }, deleteVolumes: boolean) {
+async function removeService({ id, volumes }: { id: string, volumes: { name: string }[] }, chosenVolumes: string[]) {
   await removeServiceContainers(id);
   await removeServiceImages(id);
-  if (deleteVolumes) {
+  if (chosenVolumes.length > 0) {
     const sharedVolumes = await getSharedVolumes(db, id);
-    await removeVolumes(volumes.map(volume => volume.name).filter(name => !sharedVolumes.includes(name)));
+    // Only its own volumes can be chosen
+    const names = volumes.map(volume => volume.name).filter(name => chosenVolumes.includes(name));
+    await removeVolumes(names.filter(name => !sharedVolumes.includes(name)));
   }
   // A push may have started a build in the meantime
   if (isServiceBeingDeployed(id)) return false;
@@ -156,15 +158,15 @@ async function removeService({ id, volumes }: { id: string, volumes: { name: str
 export const deleteServiceAction = defineFormAction({
   middlewares: [adminMiddleware],
   schema: z.object({
-    // Unchecked boxes are not submitted
-    deleteVolumes: z.literal("on").optional(),
+    // Names of the volumes to be deleted, the others are kept
+    volumes: jsonField("invalid_volumes", z.array(z.string())).optional().default([]),
   }),
   action: input => async (serviceId: string, locale: AppLocale): Promise<Record<string, string>> => {
     const service = await getService(db, serviceId);
     if (!service || service.type === "system") return displayMessage("error", "delete_failed");
     const { status } = await getServiceRuntimeState(service);
     if (status === "building" || status === "pulling") return displayMessage("error", "service_busy");
-    const isRemoved = await removeService(service, input.deleteVolumes === "on").catch((error: unknown) => {
+    const isRemoved = await removeService(service, input.volumes).catch((error: unknown) => {
       // eslint-disable-next-line no-console
       console.error(`Failed to delete service ${serviceId}:`, error);
       return displayMessage("error", "delete_failed");

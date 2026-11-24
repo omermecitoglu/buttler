@@ -5,25 +5,22 @@ import { useId, useState } from "react";
 import Button from "~/components/ui/button";
 import Form from "~/components/ui/form";
 import Label from "~/components/ui/label";
-
-export type DeletableVolume = {
-  name: string,
-  isShared: boolean,
-};
+import type { ServiceVolume } from "~/data/services";
 
 export type DeleteServiceFormProps = {
   action: (initialState: unknown, formData: FormData) => Promise<Record<string, string>>,
-  volumes: DeletableVolume[],
+  volumes: ServiceVolume[],
   onClose: () => void,
 };
 
 const DeleteServiceForm = ({ action, volumes, onClose }: DeleteServiceFormProps) => {
   const t = useTranslations("ServicePage.delete");
-  const checkboxId = useId();
+  const idPrefix = useId();
   const [isDeleting, setIsDeleting] = useState(false);
-  const hasDeletableVolume = volumes.some(volume => !volume.isShared);
 
   const handleAction = async (state: unknown, formData: FormData) => {
+    // Read from the form, because it's reset after a failure. What is submitted must be what is seen.
+    formData.set("volumes", JSON.stringify(formData.getAll("chosenVolume")));
     setIsDeleting(true);
     try {
       return await action(state, formData);
@@ -41,32 +38,32 @@ const DeleteServiceForm = ({ action, volumes, onClose }: DeleteServiceFormProps)
     <Form action={handleAction} messages={messages} className="flex w-full flex-col items-stretch gap-6">
       <p className="text-sm text-slate-300">{t("description")}</p>
       {volumes.length > 0 && (
-        <div className="space-y-3 rounded-lg border border-slate-800 bg-slate-950/50 p-4">
-          <h3 className="text-sm font-semibold text-slate-200">{t("volumes")}</h3>
-          <ul className="space-y-1">
-            {volumes.map(volume => (
-              <li key={volume.name} className="flex flex-wrap items-baseline gap-x-2 text-xs">
-                <span className="font-mono break-all text-slate-300">{volume.name}</span>
-                {volume.isShared && <span className="text-slate-500">{t("sharedVolume")}</span>}
-              </li>
-            ))}
+        <fieldset disabled={isDeleting} className="rounded-lg border border-slate-800 bg-slate-950/50 p-4">
+          <legend className="sr-only">{t("volumes")}</legend>
+          <p aria-hidden className="text-sm font-semibold text-slate-200">{t("volumes")}</p>
+          <p className="mt-1 text-xs text-slate-500">{t("volumesHelp")}</p>
+          <ul className="mt-3 space-y-2">
+            {volumes.map(({ name, keptAs }, index) => {
+              const id = `${idPrefix}-${index}`;
+              return (
+                <li key={name} className="flex items-start gap-2">
+                  <input
+                    id={id}
+                    type="checkbox"
+                    name="chosenVolume"
+                    value={name}
+                    disabled={keptAs !== null}
+                    className="mt-0.5 size-4 shrink-0 rounded border-slate-700 bg-slate-900 accent-rose-500"
+                  />
+                  <Label htmlFor={id} className="min-w-0 font-mono font-normal tracking-normal break-all normal-case">
+                    {name}
+                    {keptAs && <span className="ml-2 font-sans text-slate-500">{t(`keptAs.${keptAs}`)}</span>}
+                  </Label>
+                </li>
+              );
+            })}
           </ul>
-          {hasDeletableVolume && (
-            <div className="space-y-1.5 border-t border-slate-800 pt-3">
-              <div className="flex items-center gap-2">
-                <input
-                  id={checkboxId}
-                  name="deleteVolumes"
-                  type="checkbox"
-                  disabled={isDeleting}
-                  className="size-4 rounded border-slate-700 bg-slate-900 accent-rose-500"
-                />
-                <Label htmlFor={checkboxId}>{t("deleteVolumes")}</Label>
-              </div>
-              <p className="text-xs text-slate-500">{t("deleteVolumesHelp")}</p>
-            </div>
-          )}
-        </div>
+        </fieldset>
       )}
       <div className="flex justify-end gap-2">
         <Button type="button" variant="ghost" size="sm" onClick={onClose}>{t("cancel")}</Button>

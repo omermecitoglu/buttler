@@ -6,8 +6,12 @@ const NOT_MODIFIED = 304;
 const NOT_FOUND = 404;
 const CONFLICT = 409;
 
-/** Other names are either paths on the host, or not accepted by Docker */
 const volumeNamePattern = /^[a-zA-Z0-9][a-zA-Z0-9_.-]+$/;
+
+/** Other names are either paths on the host, or not accepted by Docker */
+export function isVolumeName(name: string) {
+  return volumeNamePattern.test(name);
+}
 
 async function ignoreStatus(promise: Promise<unknown>, ...statusCodes: number[]) {
   try {
@@ -43,7 +47,7 @@ export async function removeServiceImages(serviceId: string) {
 /** Removes volumes with their data, except the ones that other containers use */
 export async function removeVolumes(names: string[]) {
   for (const name of new Set(names)) {
-    if (!volumeNamePattern.test(name)) continue;
+    if (!isVolumeName(name)) continue;
     await ignoreStatus(docker.getVolume(name).remove(), NOT_FOUND, CONFLICT);
   }
 }

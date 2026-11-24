@@ -416,14 +416,14 @@ describe("deleteServiceAction", () => {
   beforeEach(() => {
     vi.resetAllMocks();
     vi.spyOn(console, "error").mockImplementation(() => undefined);
-    mockGetService.mockResolvedValue({ id: "srv", type: "github", volumes: [{ name: "data" }, { name: "shared" }] });
+    mockGetService.mockResolvedValue({ id: "srv", type: "github", volumes: [{ name: "data" }, { name: "cache" }, { name: "shared" }] });
     mockGetServiceRuntimeState.mockResolvedValue({ status: "running" });
     mockGetSharedVolumes.mockResolvedValue(["shared"]);
   });
 
-  function submit(deleteVolumes = false) {
+  function submit(volumes?: string[]) {
     const formData = new FormData();
-    if (deleteVolumes) formData.append("deleteVolumes", "on");
+    if (volumes) formData.append("volumes", JSON.stringify(volumes));
     return deleteServiceAction("srv", "en", {}, formData);
   }
 
@@ -439,10 +439,28 @@ describe("deleteServiceAction", () => {
     expect(mockRedirect).toHaveBeenCalledWith({ locale: "en", href: "/services" });
   });
 
-  it("deletes the volumes that are not shared, if it's asked to", async () => {
-    await submit(true);
+  it("only deletes the chosen volumes", async () => {
+    await submit(["data"]);
     expect(mockRemoveVolumes).toHaveBeenCalledWith(["data"]);
     expect(mockDeleteService).toHaveBeenCalled();
+  });
+
+  it("keeps all volumes if none of them is chosen", async () => {
+    await submit([]);
+    expect(mockRemoveVolumes).not.toHaveBeenCalled();
+    expect(mockDeleteService).toHaveBeenCalled();
+  });
+
+  it("keeps the chosen volumes that are shared, or that belong to other services", async () => {
+    await submit(["cache", "shared", "other"]);
+    expect(mockRemoveVolumes).toHaveBeenCalledWith(["cache"]);
+  });
+
+  it("rejects invalid volumes before anything is deleted", async () => {
+    const formData = new FormData();
+    formData.append("volumes", "data");
+    expect(await deleteServiceAction("srv", "en", {}, formData)).toEqual({ volumes: "INVALID_VOLUMES" });
+    expect(mockRemoveServiceContainers).not.toHaveBeenCalled();
   });
 
   it("ignores a build log that can't be deleted", async () => {
@@ -453,7 +471,7 @@ describe("deleteServiceAction", () => {
 
   it("rejects the users who are not the admin", async () => {
     mockRequireAdmin.mockRejectedValue(new Error("403"));
-    await expect(submit(true)).rejects.toThrow("403");
+    await expect(submit(["data"])).rejects.toThrow("403");
     expect(mockRemoveServiceContainers).not.toHaveBeenCalled();
     expect(mockDeleteService).not.toHaveBeenCalled();
   });
@@ -484,7 +502,7 @@ describe("deleteServiceAction", () => {
     mockRemoveVolumes,
   ])("keeps the service if Docker fails", async mock => {
     mock.mockRejectedValue(new Error("boom"));
-    expect(await submit(true)).toEqual({ "[error]": "delete_failed" });
+    expect(await submit(["data"])).toEqual({ "[error]": "delete_failed" });
     expect(mockDeleteService).not.toHaveBeenCalled();
     expect(mockRedirect).not.toHaveBeenCalled();
   });
