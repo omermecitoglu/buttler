@@ -1,12 +1,14 @@
 import { connection } from "next/server";
-import { getTranslations } from "next-intl/server";
-import { updateServiceAction } from "~/actions/service";
+import { getLocale, getTranslations } from "next-intl/server";
+import { deleteServiceAction, updateServiceAction } from "~/actions/service";
 import ServiceActions from "~/components/ServiceActions";
 import ServiceTypeBadge from "~/components/ServiceTypeBadge";
 import ServicesPoller from "~/components/ServicesPoller";
 import StatusBadge from "~/components/StatusBadge";
+import DeleteServiceModal from "~/components/services/DeleteServiceModal";
 import EditServiceModal from "~/components/services/EditServiceModal";
-import { getServiceWithLiveStatus } from "~/data/services";
+import { getCurrentUser } from "~/core/auth";
+import { getServiceWithLiveStatus, getVolumesOfService } from "~/data/services";
 import { notFound } from "~/i18n/navigation";
 
 export type ServiceHeaderProps = {
@@ -18,14 +20,19 @@ const ServiceHeader = async ({ params }: ServiceHeaderProps) => {
   const { id } = await params;
   const [
     service,
+    user,
+    locale,
     t,
   ] = await Promise.all([
     getServiceWithLiveStatus(id),
+    getCurrentUser(),
+    getLocale(),
     getTranslations("DashboardPage.service"),
   ]);
   if (!service) notFound();
 
   const { status } = service.runtime;
+  const isDeletable = user?.role === "admin" && service.type !== "system";
   const isBusy = status === "pulling" || status === "building" || status === "restarting";
 
   return (
@@ -47,7 +54,17 @@ const ServiceHeader = async ({ params }: ServiceHeaderProps) => {
           <StatusBadge status={status} label={t(`status.${status}`)} />
         </div>
       </div>
-      <ServiceActions serviceId={service.id} type={service.type} status={status} />
+      <div className="flex flex-wrap items-center gap-2">
+        <ServiceActions serviceId={service.id} type={service.type} status={status} />
+        {isDeletable && (
+          <DeleteServiceModal
+            action={deleteServiceAction.bind(null, service.id, locale)}
+            name={service.name}
+            volumes={await getVolumesOfService(service)}
+            disabled={status === "pulling" || status === "building"}
+          />
+        )}
+      </div>
     </div>
   );
 };

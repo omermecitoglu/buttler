@@ -7,6 +7,7 @@ import db from "~/database";
 import type { ServiceDTO } from "~/models/service";
 import getService from "~/operations/getService";
 import getServices from "~/operations/getServices";
+import getSharedVolumes from "~/operations/getSharedVolumes";
 
 export type ServiceWithRuntime = Awaited<ReturnType<typeof getServices>>[number] & {
   runtime: ServiceRuntimeState,
@@ -72,6 +73,13 @@ export const getServiceWithLiveStatus = cache(async (serviceId: ServiceDTO["id"]
 });
 
 export type ServiceDetails = NonNullable<Awaited<ReturnType<typeof getServiceWithLiveStatus>>>;
+
+/** Returns the volumes of a service with whether other services use them too */
+export async function getVolumesOfService(service: Pick<ServiceDetails, "id" | "volumes">) {
+  const sharedNames = await getSharedVolumes(db, service.id);
+  const names = [...new Set(service.volumes.map(volume => volume.name))];
+  return names.map(name => ({ name, isShared: sharedNames.includes(name) }));
+}
 
 /** Returns null if the builds are not available */
 export async function getBuildsOfService(serviceId: ServiceDTO["id"]) {
