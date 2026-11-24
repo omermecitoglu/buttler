@@ -58,6 +58,7 @@
     }
   },
   "BaseLayout": {
+    "dismissNotification": "Dismiss notification",
     "skipToContent": "Skip to content",
     "menu": "Menu",
     "openMenu": "Open menu",
