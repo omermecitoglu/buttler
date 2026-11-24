@@ -25,8 +25,19 @@ const nextConfig: NextConfig = {
 ## Data Fetching
 
 - Do not use server actions for fetching data; use API route handlers (`src/app/api/...`).
-- The proxy doesn't run for `/api`, so route handlers must check the session themselves (`getSession`).
+- The proxy doesn't run for `/api`, so route handlers must call `requireUser` themselves.
 
 ## In-Memory State
 
 - Pages (with their server actions) and route handlers are bundled separately, so module-level variables are not shared between them. Use `getSharedState` (`src/core/shared-state.ts`) for in-memory state.
+
+## Authorization
+
+The proxy only redirects to the login page for convenience. Every entry point checks the access itself, through `src/core/auth.ts`:
+
+- **Pages** in the base layout wrap their content in `<Suspense>` and `<Authorized>`. Layouts that read data need it too, but they don't cover their pages.
+- **Route handlers** in `/api` start with `await requireUser()`, outside of any `try` block. Next.js responds with `401` or `403`.
+- **Form actions** use `middlewares: [userMiddleware]`. Other server actions start with `await requireUser()`.
+- The installation starts with `await requireNotInstalled()`.
+
+`src/core/auth-coverage.test.ts` finds the entry points by their location, and fails if one of them is left open. Exceptions are listed there.
