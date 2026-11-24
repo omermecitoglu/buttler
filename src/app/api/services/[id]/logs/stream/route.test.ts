@@ -9,7 +9,11 @@ import type { NextRequest } from "next/server";
 vi.mock("~/core/session", () => ({ getSession: vi.fn() }));
 vi.mock("~/data/services", () => ({ getSingleService: vi.fn() }));
 vi.mock("~/core/docker/status", () => ({ findServiceContainer: vi.fn() }));
-vi.mock("~/core/docker/logs", () => ({ readContainerLogs: vi.fn(), isContainerRunning: vi.fn() }));
+vi.mock("~/core/docker/logs", async importOriginal => ({
+  ...await importOriginal<object>(),
+  readContainerLogs: vi.fn(),
+  isContainerRunning: vi.fn(),
+}));
 
 const line: LogLine = { stream: "stdout", timestamp: "2026-11-24T10:00:00.100000000Z", text: "hello" };
 
@@ -74,6 +78,8 @@ describe("GET /api/services/[id]/logs/stream", () => {
   it("should limit the tail and ignore invalid values", async () => {
     await GET(request("?tail=100&since=nonsense"), context);
     expect(vi.mocked(readContainerLogs).mock.lastCall?.[1]).toMatchObject({ tail: 100, since: null });
+    await GET(request("?since=2026-11-24"), context);
+    expect(vi.mocked(readContainerLogs).mock.lastCall?.[1]).toMatchObject({ since: null });
     await GET(request("?tail=999999"), context);
     expect(vi.mocked(readContainerLogs).mock.lastCall?.[1]).toMatchObject({ tail: 2000 });
     await GET(request("?tail=abc"), context);

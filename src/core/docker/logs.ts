@@ -6,7 +6,7 @@ export type LogStreamName = "stdout" | "stderr";
 
 export type LogLine = {
   stream: LogStreamName,
-  /** RFC 3339 with nanoseconds, fixed width, so it can be compared as text */
+  /** RFC 3339 with nanoseconds */
   timestamp: string | null,
   text: string,
 };
@@ -22,6 +22,19 @@ export type ReadContainerLogsOptions = {
 const FRAME_HEADER_SIZE = 8;
 const STDERR_FRAME = 2;
 const TIMESTAMP_PATTERN = /^(\d{4}-\d{2}-\d{2}T[\d:.]+(?:Z|[+-]\d{2}:\d{2})) ?/;
+const RFC3339_PATTERN = /^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})(?:\.(\d{1,9}))?(Z|[+-]\d{2}:\d{2})$/;
+const NANOSECONDS_PER_MILLISECOND = BigInt(1_000_000);
+const NANOSECONDS_PER_SECOND = BigInt(1_000_000_000);
+
+/** Returns the nanoseconds since the epoch, or null if it's not an RFC 3339 timestamp */
+export function parseTimestamp(timestamp: string): bigint | null {
+  const match = RFC3339_PATTERN.exec(timestamp);
+  if (!match) return null;
+  const [, dateTime, fraction = "", offset] = match as unknown as [string, string, string | undefined, string];
+  const milliseconds = Date.parse(dateTime + offset);
+  if (isNaN(milliseconds)) return null;
+  return (BigInt(milliseconds) * NANOSECONDS_PER_MILLISECOND) + BigInt(fraction.padEnd(9, "0"));
+}
 
 function parseLine(stream: LogStreamName, rawLine: string): LogLine {
   const timestamp = TIMESTAMP_PATTERN.exec(rawLine);
@@ -91,6 +104,7 @@ export async function * readContainerLogs(
   container: Docker.Container,
   { tail, since, signal }: ReadContainerLogsOptions,
 ): AsyncGenerator<LogLine[], void> {
+  const sinceTime = since ? parseTimestamp(since) : null;
   const { Config: config } = await container.inspect();
   const output = await container.logs({
     follow: true,
@@ -99,11 +113,15 @@ export async function * readContainerLogs(
     timestamps: true,
     tail,
     // It has a precision of seconds here, the rest is filtered below
-    ...since ? { since: Math.floor(Date.parse(since) / 1000) } : {},
+    ...sinceTime === null ? {} : { since: Number(sinceTime / NANOSECONDS_PER_SECOND) },
   });
   addAbortSignal(signal, output);
 
-  const isNew = (line: LogLine) => !since || !line.timestamp || line.timestamp > since;
+  const isNew = (line: LogLine) => {
+    if (sinceTime === null || !line.timestamp) return true;
+    const time = parseTimestamp(line.timestamp);
+    return time === null || time > sinceTime;
+  };
   const parser = new LogParser(config.Tty);
   try {
     for await (const chunk of output) {

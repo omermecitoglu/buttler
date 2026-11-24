@@ -1,4 +1,4 @@
-import { isContainerRunning, readContainerLogs } from "~/core/docker/logs";
+import { isContainerRunning, parseTimestamp, readContainerLogs } from "~/core/docker/logs";
 import { findServiceContainer } from "~/core/docker/status";
 import { getSession } from "~/core/session";
 import { getSingleService } from "~/data/services";
@@ -15,7 +15,7 @@ function parseTail(value: string | null) {
 }
 
 function parseSince(value: string | null) {
-  return value && !isNaN(Date.parse(value)) ? value : null;
+  return value && parseTimestamp(value) !== null ? value : null;
 }
 
 export async function GET(request: NextRequest, { params }: RouteContext<"/api/services/[id]/logs/stream">) {

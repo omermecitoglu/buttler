@@ -1,6 +1,6 @@
 import { PassThrough } from "node:stream";
 import { describe, expect, it, vi } from "vitest";
-import { type LogLine, LogParser, isContainerRunning, readContainerLogs } from "./logs";
+import { type LogLine, LogParser, isContainerRunning, parseTimestamp, readContainerLogs } from "./logs";
 import type Docker from "dockerode";
 
 function frame(type: 1 | 2, content: Buffer | string) {
@@ -66,6 +66,26 @@ describe("LogParser", () => {
   });
 });
 
+describe("parseTimestamp", () => {
+  it("should keep the nanoseconds", () => {
+    const first = parseTimestamp("2026-11-24T10:00:00.100000001Z");
+    const second = parseTimestamp("2026-11-24T10:00:00.100000002Z");
+    expect(second).toBe((first ?? BigInt(0)) + BigInt(1));
+  });
+
+  it("should treat the same moment in different forms as equal", () => {
+    const expected = parseTimestamp("2026-11-24T10:00:00.500000000Z");
+    expect(parseTimestamp("2026-11-24T10:00:00.5Z")).toBe(expected);
+    expect(parseTimestamp("2026-11-24T13:00:00.5+03:00")).toBe(expected);
+  });
+
+  it("should return null for anything else", () => {
+    expect(parseTimestamp("2026-11-24")).toBeNull();
+    expect(parseTimestamp("nonsense")).toBeNull();
+    expect(parseTimestamp("2026-13-45T10:00:00Z")).toBeNull();
+  });
+});
+
 describe("readContainerLogs", () => {
   it("should read until the output ends", async () => {
     const output = new PassThrough();
@@ -85,6 +105,17 @@ describe("readContainerLogs", () => {
     const lines = await collect(readContainerLogs(container, { tail: 10, since, signal: new AbortController().signal }));
     expect(lines.map(line => line.text)).toEqual(["new"]);
     expect(logs).toHaveBeenCalledWith(expect.objectContaining({ since: Date.parse("2026-11-24T10:00:00Z") / 1000 }));
+  });
+
+  it.each([
+    "2026-11-24T10:00:00Z",
+    "2026-11-24T13:00:00+03:00",
+  ])("should compare the lines with %s as a moment in time", async since => {
+    const output = new PassThrough();
+    const { container } = mockContainer(output);
+    output.end("2026-11-24T10:00:00.000000000Z old\n2026-11-24T10:00:00.100000000Z new\n");
+    const lines = await collect(readContainerLogs(container, { tail: 10, since, signal: new AbortController().signal }));
+    expect(lines.map(line => line.text)).toEqual(["new"]);
   });
 
   it("should close the output when it's aborted", async () => {
