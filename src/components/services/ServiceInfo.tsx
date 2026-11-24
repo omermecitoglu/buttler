@@ -1,6 +1,7 @@
 import { connection } from "next/server";
 import { getFormatter, getTranslations } from "next-intl/server";
 import { updateServiceAction } from "~/actions/service";
+import type { ServiceEdit } from "~/components/services/EditServiceFields";
 import EditServiceModal from "~/components/services/EditServiceModal";
 import ServiceInfoList from "~/components/services/ServiceInfoList";
 import ServiceInfoSection from "~/components/services/ServiceInfoSection";
@@ -63,32 +64,31 @@ const ServiceInfo = async ({ params }: ServiceInfoProps) => {
     ] : [],
   ];
 
+  const renderEdit = (edit: ServiceEdit) => service.type !== "system" && (
+    <EditServiceModal action={updateServiceAction.bind(null, service.id)} edit={edit} />
+  );
+
   return (
     <div className="flex flex-col gap-4">
-      {service.type !== "system" && (
-        <div className="flex justify-end">
-          <EditServiceModal
-            action={updateServiceAction.bind(null, service.id)}
-            service={{
-              name: service.name,
-              type: service.type,
-              repository: service.repository ?? "",
-              branch: service.branch ?? "",
-              ports: service.ports,
-              environmentVariables: service.environmentVariables,
-              volumes: service.volumes,
-            }}
-          />
-        </div>
-      )}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <ServiceInfoSection title={t("runtime")}>
           <ServiceInfoList items={runtimeItems} />
         </ServiceInfoSection>
-        <ServiceInfoSection title={t("source")}>
+        <ServiceInfoSection
+          title={t("source")}
+          action={renderEdit({
+            section: "source",
+            isGitHub,
+            repository: service.repository ?? "",
+            branch: service.branch ?? "",
+          })}
+        >
           <ServiceInfoList items={sourceItems} />
         </ServiceInfoSection>
-        <ServiceInfoSection title={t("ports")}>
+        <ServiceInfoSection
+          title={t("ports")}
+          action={renderEdit({ section: "ports", ports: service.ports })}
+        >
           {service.ports.length === 0 ? (
             <p className="text-sm text-slate-500">{t("noPorts")}</p>
           ) : (
@@ -99,7 +99,10 @@ const ServiceInfo = async ({ params }: ServiceInfoProps) => {
             </ul>
           )}
         </ServiceInfoSection>
-        <ServiceInfoSection title={t("volumes")}>
+        <ServiceInfoSection
+          title={t("volumes")}
+          action={renderEdit({ section: "volumes", volumes: service.volumes })}
+        >
           {service.volumes.length === 0 ? (
             <p className="text-sm text-slate-500">{t("noVolumes")}</p>
           ) : (
@@ -111,7 +114,10 @@ const ServiceInfo = async ({ params }: ServiceInfoProps) => {
           )}
         </ServiceInfoSection>
       </div>
-      <ServiceInfoSection title={t("variables")}>
+      <ServiceInfoSection
+        title={t("variables")}
+        action={renderEdit({ section: "variables", isGitHub, variables: service.environmentVariables })}
+      >
         {service.environmentVariables.length === 0 ? (
           <p className="text-sm text-slate-500">{t("noVariables")}</p>
         ) : (

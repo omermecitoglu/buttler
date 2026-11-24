@@ -3,12 +3,16 @@ import type { ReactNode } from "react";
 
 export type ServiceInfoSectionProps = {
   title: string,
+  action?: ReactNode,
   children: ReactNode,
 };
 
-const ServiceInfoSection = ({ title, children }: ServiceInfoSectionProps) => (
+const ServiceInfoSection = ({ title, action, children }: ServiceInfoSectionProps) => (
   <Card className="p-6">
-    <h2 className="mb-4 text-base font-semibold text-slate-100">{title}</h2>
+    <div className="mb-4 flex min-h-8 items-center justify-between gap-4">
+      <h2 className="text-base font-semibold text-slate-100">{title}</h2>
+      {action}
+    </div>
     {children}
   </Card>
 );

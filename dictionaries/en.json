@@ -244,15 +244,24 @@
     },
     "edit": {
       "button": "Edit",
-      "title": "Edit service",
+      "titles": {
+        "name": "Edit name",
+        "source": "Edit source",
+        "ports": "Edit port mappings",
+        "variables": "Edit environment variables",
+        "volumes": "Edit storage mounts"
+      },
+      "help": {
+        "restart": "Restart the service to apply the changes.",
+        "build": "The changes are applied with the next build.",
+        "variables": "Restart the service to apply the changes. Changes to the build variables need a new build."
+      },
       "close": "Close",
       "cancel": "Cancel",
       "save": "Save changes",
       "saving": "Saving...",
       "name": "Service Name",
       "secretPlaceholder": "Leave empty to keep the saved value",
-      "applyHelp": "Restart the service to apply the changes.",
-      "applyHelpWithBuild": "Restart the service to apply the changes. Changes to the source and to the build variables need a new build.",
       "messages": {
         "update_failed": "Failed to save the changes. Check that host ports and variable keys are unique, and try again.",
         "secret_value_required": "Enter the value again for secrets that are renamed or no longer secret.",

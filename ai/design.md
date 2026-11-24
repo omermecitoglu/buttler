@@ -264,7 +264,7 @@ Wide screens (lg and up)             Narrow screens
 
 `/services/[id]` is the only place where a service is managed, the cards of the list only show it. Each tab is a page under the same layout, which renders the name, the status, the power buttons and the tabs:
 
-- **Info** (`/services/[id]`): everything about the service. The edit button opens a modal.
+- **Info** (`/services/[id]`): everything about the service. Each editable section has its own edit button, whose modal only saves that section. The name is edited next to the title.
 - **Builds** (`/services/[id]/builds`)
 - **Logs** (`/services/[id]/logs`)
 
