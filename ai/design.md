@@ -240,16 +240,20 @@ import { Tdx } from "@omer-x/tailwind-ui-kit/table";
 
 ## App Shell Layout
 
-The root layout (`src/app/layout.tsx`) establishes the two-pane shell:
+The base layout (`src/app/[locale]/(base)/layout.tsx`) establishes the shell from the components in `src/components/layout/`:
 
 ```
-┌──────────────────────────────────────────────────┐
-│  Sidebar (w-60)   │  Header (h-16)               │
-│  ├─ Logo (h-16)   ├──────────────────────────────│
-│  ├─ Nav items     │  <main> (flex-1, scrollable) │
-│  └─ Avatar (h-16) │                              │
-└──────────────────────────────────────────────────┘
+Wide screens (lg and up)             Narrow screens
+┌────────────┬─────────────────────┐ ┌─────────────────────┐
+│ Brand      │                     │ │ Brand          Menu │ MobileHeader (h-14, sticky)
+│ MainNav    │  <main>             │ ├─────────────────────┤
+│            │  (max-w-7xl inside) │ │  <main>             │
+│ Log out    │                     │ │                     │
+└────────────┴─────────────────────┘ └─────────────────────┘
+ Sidebar (w-60, sticky)
 ```
 
-- Dark mode is activated by default via `data-theme="dark"` on `<body>`.
-- Sidebar and header are placeholder shells — fill in with real nav/avatar components in subsequent phases.
+- The document scrolls, not `<main>`. The sidebar and the mobile header are sticky.
+- There is no desktop header. Pages render their own title and actions.
+- Navigation items are listed in `MainNav`, which is shared by the sidebar and the mobile drawer. An item is active on its own page and on the pages below it.
+- Dark mode is activated by default via `data-theme="dark"` on `<body>`. `scheme-dark` on `<html>` covers scrollbars and native controls.
