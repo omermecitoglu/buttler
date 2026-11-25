@@ -104,6 +104,38 @@
         "github_unreachable": "Could not reach GitHub to look up the handle. Please try again.",
         "remove_failed": "This user could not be removed."
       }
+    },
+    "domain": {
+      "title": "Dashboard domain",
+      "description": "The public hostname of this Buttler dashboard.",
+      "warning": "The login page is public at this domain. When you change or remove it, the dashboard is no longer reachable at the old one.",
+      "label": "Domain",
+      "placeholder": "e.g. buttler.example.com",
+      "save": "Save domain",
+      "saving": "Saving...",
+      "github": {
+        "title": "Update the GitHub App",
+        "description": "Buttler can't change these addresses. Without the callback URL, nobody can log in at this domain.",
+        "callback": "Callback URL",
+        "webhook": "Webhook URL",
+        "setup": "Setup URL",
+        "open": "Open the GitHub App"
+      },
+      "removal": {
+        "button": "Remove domain",
+        "title": "Remove {hostname}",
+        "description": "The dashboard will no longer be reachable at {hostname}. If you are using it right now, you will lose access until you open Buttler at another address.",
+        "close": "Close",
+        "cancel": "Cancel",
+        "submit": "Remove domain",
+        "submitting": "Removing..."
+      },
+      "messages": {
+        "hostname_taken": "This domain is already used by a service.",
+        "invalid_hostname": "Enter an exact domain like buttler.example.com, without a wildcard, a port or a path.",
+        "reload_failed": "The change was undone, because Nginx could not be reloaded with it. The reason is in the server log.",
+        "remove_failed": "There is no domain to remove."
+      }
     }
   },
   "DashboardPage": {
@@ -354,7 +386,7 @@
         "messages": {
           "add_failed": "The domain could not be added.",
           "connect_failed": "The domain was not added, because the service could not be connected to Nginx. The reason is in the server log.",
-          "hostname_taken": "This domain is already used by a service.",
+          "hostname_taken": "This domain is already in use.",
           "invalid_hostname": "Enter an exact domain like app.example.com, without a wildcard, a port or a path.",
           "invalid_port": "The port must be a number between 1 and 65535.",
           "reload_failed": "The change was undone, because Nginx could not be reloaded with it. The reason is in the server log.",
