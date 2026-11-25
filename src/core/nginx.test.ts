@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   REVERSE_PROXY_CONTAINER_NAME,
   REVERSE_PROXY_IMAGE,
@@ -12,6 +12,7 @@ const mockContainer = {
   id: "test-container-id",
   inspect: vi.fn(),
   start: vi.fn(),
+  remove: vi.fn(),
 };
 
 const mockImage = {
@@ -29,6 +30,7 @@ const mockSyncIngressNetworks = vi.fn();
 const mockExecuteCommand = vi.fn();
 const mockEnsureReverseProxyService = vi.fn();
 const mockGetDomains = vi.fn();
+const mockGetDashboardDomain = vi.fn();
 
 /** The content of default.conf, null if it doesn't exist */
 let savedConfig: string | null = null;
@@ -54,6 +56,10 @@ vi.mock("~/operations/ensureReverseProxyService", () => ({
   default: (...args: unknown[]) => mockEnsureReverseProxyService(...args),
 }));
 
+vi.mock("~/operations/getDashboardDomain", () => ({
+  default: (...args: unknown[]) => mockGetDashboardDomain(...args),
+}));
+
 vi.mock("~/operations/getDomains", () => ({
   default: (...args: unknown[]) => mockGetDomains(...args),
 }));
@@ -72,6 +78,10 @@ vi.mock("./storage", () => ({
 }));
 
 const notFoundError = Object.assign(new Error("No such container"), { statusCode: 404 });
+const currentContainer = {
+  Config: { Labels: { "buttler.service-id": "srv-proxy" } },
+  HostConfig: { ExtraHosts: ["host.docker.internal:host-gateway"] },
+};
 const testCommand = [REVERSE_PROXY_CONTAINER_NAME, ["nginx", "-t"]];
 const reloadCommand = [REVERSE_PROXY_CONTAINER_NAME, ["nginx", "-s", "reload"]];
 
@@ -82,6 +92,7 @@ describe("Reverse proxy system service management", () => {
     mockDocker.getContainer.mockReturnValue(mockContainer);
     mockDocker.getImage.mockReturnValue(mockImage);
     mockGetDomains.mockResolvedValue([]);
+    mockGetDashboardDomain.mockResolvedValue(null);
     mockExecuteCommand.mockResolvedValue({ exitCode: 0, output: "" });
     mockEnsureReverseProxyService.mockResolvedValue({
       id: "srv-proxy",
@@ -92,7 +103,7 @@ describe("Reverse proxy system service management", () => {
 
   describe("provisionReverseProxy", () => {
     it("starts container if it exists but is stopped", async () => {
-      mockContainer.inspect.mockResolvedValue({ State: { Running: false, Status: "exited" } });
+      mockContainer.inspect.mockResolvedValue({ ...currentContainer, State: { Running: false, Status: "exited" } });
       mockContainer.start.mockResolvedValue({});
 
       const result = await provisionReverseProxy();
@@ -103,7 +114,7 @@ describe("Reverse proxy system service management", () => {
     });
 
     it("does not start container if already running", async () => {
-      mockContainer.inspect.mockResolvedValue({ State: { Running: true, Status: "running" } });
+      mockContainer.inspect.mockResolvedValue({ ...currentContainer, State: { Running: true, Status: "running" } });
 
       const result = await provisionReverseProxy();
       expect(mockContainer.start).not.toHaveBeenCalled();
@@ -133,6 +144,7 @@ describe("Reverse proxy system service management", () => {
           "buttler.service-id": "srv-proxy",
         },
         HostConfig: expect.objectContaining({
+          ExtraHosts: ["host.docker.internal:host-gateway"],
           PortBindings: {
             "80/tcp": [{ HostPort: "80" }],
             "443/tcp": [{ HostPort: "443" }],
@@ -149,14 +161,14 @@ describe("Reverse proxy system service management", () => {
     it("replaces the config of existing instances", async () => {
       savedConfig = "old config";
       mockGetDomains.mockResolvedValue([{ hostname: "app.example.com", serviceId: "a", port: 3000 }]);
-      mockContainer.inspect.mockResolvedValue({ State: { Running: true } });
+      mockContainer.inspect.mockResolvedValue({ ...currentContainer, State: { Running: true } });
       await provisionReverseProxy();
       expect(savedConfig).toContain("server_name app.example.com;");
       expect(mockExecuteCommand.mock.calls).toEqual([testCommand, reloadCommand]);
     });
 
     it("generates the config before a stopped container is started", async () => {
-      mockContainer.inspect.mockResolvedValue({ State: { Running: false } });
+      mockContainer.inspect.mockResolvedValue({ ...currentContainer, State: { Running: false } });
       mockContainer.start.mockImplementation(() => {
         expect(savedConfig).toContain("default_server");
       });
@@ -175,10 +187,47 @@ describe("Reverse proxy system service management", () => {
     });
 
     it("connects the networks even if the config doesn't work", async () => {
-      mockContainer.inspect.mockResolvedValue({ State: { Running: true } });
+      mockContainer.inspect.mockResolvedValue({ ...currentContainer, State: { Running: true } });
       mockExecuteCommand.mockResolvedValue({ exitCode: 1, output: "broken" });
       await expect(provisionReverseProxy()).rejects.toThrow("broken");
       expect(mockSyncIngressNetworks).toHaveBeenCalledTimes(1);
+    });
+
+    describe("with a container that can't reach the host", () => {
+      const newContainer = { start: vi.fn() };
+
+      beforeEach(() => {
+        mockContainer.inspect.mockResolvedValueOnce({
+          ...currentContainer,
+          HostConfig: { ExtraHosts: null },
+          State: { Running: true },
+        }).mockRejectedValue(notFoundError);
+        mockDocker.createContainer.mockResolvedValue(newContainer);
+      });
+
+      it("replaces the container", async () => {
+        expect(await provisionReverseProxy()).toBe(newContainer);
+        expect(mockContainer.remove).toHaveBeenCalledWith({ force: true });
+        expect(mockContainer.remove).toHaveBeenCalledBefore(mockDocker.createContainer);
+        expect(mockSyncIngressNetworks).toHaveBeenCalledBefore(newContainer.start);
+      });
+
+      it("keeps the container if the image can't be pulled", async () => {
+        mockImage.inspect.mockRejectedValue(new Error("Image not found"));
+        mockPullImage.mockRejectedValue(new Error("offline"));
+        await expect(provisionReverseProxy()).rejects.toThrow("offline");
+        expect(mockContainer.remove).not.toHaveBeenCalled();
+      });
+    });
+
+    it("never replaces a container from outside of Buttler", async () => {
+      mockContainer.inspect.mockResolvedValue({
+        Config: { Labels: {} },
+        HostConfig: {},
+        State: { Running: true },
+      });
+      expect(await provisionReverseProxy()).toBe(mockContainer);
+      expect(mockContainer.remove).not.toHaveBeenCalled();
     });
   });
 
@@ -223,6 +272,24 @@ describe("Reverse proxy system service management", () => {
       await syncReverseProxyConfig();
       expect(savedConfig).toMatch(/server_name app\.example\.com;[^}]*"service-a:3000";/);
       expect(mockExecuteCommand.mock.calls).toEqual([testCommand, reloadCommand]);
+    });
+
+    describe("with a domain for the dashboard", () => {
+      afterEach(() => {
+        vi.unstubAllEnvs();
+      });
+
+      it.each([
+        ["2083", 2083],
+        ["", 3000],
+      ])("proxies it to Buttler (PORT: \"%s\")", async (value, port) => {
+        vi.stubEnv("PORT", value);
+        mockGetDashboardDomain.mockResolvedValue("buttler.example.com");
+        await syncReverseProxyConfig();
+        expect(savedConfig).toContain("server_name buttler.example.com;");
+        expect(savedConfig).toContain(`proxy_pass http://host.docker.internal:${port};`);
+        expect(savedConfig).toContain("server_name app.example.com;");
+      });
     });
 
     it("restores the previous config if the test fails", async () => {
@@ -293,6 +360,12 @@ describe("Reverse proxy system service management", () => {
       expect(isDeleted).toBe(true);
       expect(savedConfig).not.toContain("app.example.com");
       expect(savedConfig).toContain("api.example.com");
+    });
+
+    it("keeps serving the dashboard", async () => {
+      mockGetDashboardDomain.mockResolvedValue("buttler.example.com");
+      await deleteFromReverseProxy("a", () => Promise.resolve(true));
+      expect(savedConfig).toContain("server_name buttler.example.com;");
     });
 
     it("keeps the service if the config doesn't work", async () => {
