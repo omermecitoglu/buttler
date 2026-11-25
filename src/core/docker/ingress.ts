@@ -1,6 +1,6 @@
 import os from "node:os";
 import { docker } from "~/core/docker";
-import { getSharedState } from "~/core/shared-state";
+import { createQueue } from "~/core/queue";
 import db from "~/database";
 import getServicesWithDomains from "~/operations/getServicesWithDomains";
 import { REVERSE_PROXY_CONTAINER_NAME, isOwnContainer } from "./containers";
@@ -17,14 +17,8 @@ const SUBNET_PREFIX = 28;
 
 type IngressNetwork = Pick<Docker.NetworkInspectInfo, "Id" | "Name">;
 
-const queue = getSharedState("ingress-queue", () => ({ tail: Promise.resolve() }));
-
 /** Changes never overlap, otherwise they could pick the same subnet or undo each other */
-function enqueue(task: () => Promise<void>): Promise<void> {
-  const result = queue.tail.then(task);
-  queue.tail = result.catch(() => undefined);
-  return result;
-}
+const enqueue = createQueue("ingress-queue");
 
 export function getIngressNetworkName(serviceId: string) {
   return `buttler-ingress-${serviceId}`;
