@@ -64,7 +64,8 @@ export async function GET(request: Request) {
   await session.save();
 
   if (pending.expiresAt < Date.now()) return redirect("/settings?cloudflare=invalid_state");
-  if (searchParams.has("error")) return redirect("/settings?cloudflare=access_denied");
+  const error = searchParams.get("error");
+  if (error !== null) return redirect(`/settings?cloudflare=${error === "access_denied" ? "access_denied" : "failed"}`);
 
   const code = searchParams.get("code");
   const isConnected = code !== null && await completeAuthorization(code, pending.verifier);

@@ -88,6 +88,11 @@ describe("GET /auth/cloudflare", () => {
     expect(mocks.connectCloudflare).not.toHaveBeenCalled();
   });
 
+  it("should not call other errors a denied consent", async () => {
+    expect(await call("error=invalid_scope&state=state")).toBe("redirect /settings?cloudflare=failed");
+    expect(mocks.connectCloudflare).not.toHaveBeenCalled();
+  });
+
   it("should report a connection that fails", async () => {
     mocks.connectCloudflare.mockRejectedValue(new Error("offline"));
     expect(await call("code=abc&state=state")).toBe("redirect /settings?cloudflare=failed");
