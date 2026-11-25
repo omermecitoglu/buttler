@@ -6,6 +6,7 @@ const mocks = vi.hoisted(() => ({
   requireAdmin: vi.fn(),
   connectCloudflare: vi.fn(),
   setUpTunnelAfterConnecting: vi.fn(),
+  syncDomains: vi.fn(),
   revalidateTag: vi.fn(),
   getDashboardDomain: vi.fn(),
 }));
@@ -18,6 +19,7 @@ vi.mock("next/navigation", () => ({
 }));
 vi.mock("~/core/auth", () => ({ requireAdmin: mocks.requireAdmin }));
 vi.mock("~/core/cloudflare/connection", () => ({ connectCloudflare: mocks.connectCloudflare }));
+vi.mock("~/core/cloudflare/domains", () => ({ syncDomains: mocks.syncDomains }));
 vi.mock("~/core/cloudflare/tunnel", () => ({ setUpTunnelAfterConnecting: mocks.setUpTunnelAfterConnecting }));
 vi.mock("~/core/headers", () => ({ getPublicOrigin: mocks.getPublicOrigin }));
 vi.mock("~/core/session", () => ({ getSession: mocks.getSession }));
@@ -54,6 +56,7 @@ describe("GET /auth/cloudflare", () => {
   it("should set the tunnel up after connecting", async () => {
     await call("code=abc&state=state");
     expect(mocks.setUpTunnelAfterConnecting).toHaveBeenCalledAfter(mocks.connectCloudflare);
+    expect(mocks.syncDomains).toHaveBeenCalledAfter(mocks.setUpTunnelAfterConnecting);
     expect(mocks.revalidateTag).toHaveBeenCalledWith("getAllServices()", { expire: 0 });
   });
 

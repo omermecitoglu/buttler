@@ -3,6 +3,7 @@ import { revalidateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireAdmin } from "~/core/auth";
 import { connectCloudflare } from "~/core/cloudflare/connection";
+import { syncDomains } from "~/core/cloudflare/domains";
 import { setUpTunnelAfterConnecting } from "~/core/cloudflare/tunnel";
 import { getPublicOrigin } from "~/core/headers";
 import { getSession } from "~/core/session";
@@ -56,6 +57,7 @@ async function setUpTunnel() {
     // eslint-disable-next-line no-console
     console.error("Failed to set up the Cloudflare tunnel:", error);
   }
+  await syncDomains({ verify: true });
   revalidateTag("getAllServices()", { expire: 0 });
 }
 
