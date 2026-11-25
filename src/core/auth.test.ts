@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { getCurrentUser, requireAdmin, requireSetup, requireUser } from "./auth";
+import { getCurrentUser, requireAdmin, requireSetup, requireSetupOrAdmin, requireUser } from "./auth";
 
 const mocks = vi.hoisted(() => ({
   getSession: vi.fn(),
@@ -73,6 +73,27 @@ describe("auth", () => {
     await expect(requireSetup()).resolves.toBeUndefined();
     mocks.isInstalled.mockResolvedValue(true);
     await expect(requireSetup()).rejects.toThrow("403");
+  });
+
+  it("should let the setup do what the admin does afterwards", async () => {
+    mocks.getSession.mockResolvedValue({});
+    mocks.getAccess.mockResolvedValue(null);
+    mocks.isSetupSession.mockResolvedValue(true);
+    mocks.isInstalled.mockResolvedValue(false);
+    await expect(requireSetupOrAdmin()).resolves.toBeUndefined();
+    mocks.isInstalled.mockResolvedValue(true);
+    await expect(requireSetupOrAdmin()).rejects.toThrow("401");
+    mocks.isInstalled.mockResolvedValue(false);
+    mocks.isSetupSession.mockResolvedValue(false);
+    await expect(requireSetupOrAdmin()).rejects.toThrow("401");
+  });
+
+  it("should only let the admin do it outside of the setup", async () => {
+    mocks.isSetupSession.mockResolvedValue(false);
+    mocks.isInstalled.mockResolvedValue(true);
+    await expect(requireSetupOrAdmin()).resolves.toBeUndefined();
+    mocks.getAccess.mockResolvedValue("member");
+    await expect(requireSetupOrAdmin()).rejects.toThrow("403");
   });
 
   it("should reject the installation without the setup link", async () => {

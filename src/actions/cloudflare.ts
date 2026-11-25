@@ -10,11 +10,12 @@ import { getAccounts, removeTunnel, setUpTunnel } from "~/core/cloudflare/tunnel
 import { getZones } from "~/core/cloudflare/zones";
 import { getSession } from "~/core/session";
 import { adminMiddleware } from "./middlewares/admin";
+import { setupMiddleware } from "./middlewares/setup";
 
 const AUTHORIZATION_LIFETIME = 10 * 60 * 1000;
 
 export const connectCloudflareAction = defineFormAction({
-  middlewares: [adminMiddleware],
+  middlewares: [setupMiddleware],
   schema: z.object({}),
   action: () => async (): Promise<Record<string, string>> => {
     const { url, state, verifier } = createAuthorization();
@@ -26,7 +27,7 @@ export const connectCloudflareAction = defineFormAction({
 });
 
 export const setUpTunnelAction = defineFormAction({
-  middlewares: [adminMiddleware],
+  middlewares: [setupMiddleware],
   schema: z.object({
     accountId: z.string(),
   }),

@@ -1,10 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { adminMiddleware } from "./admin";
+import { setupMiddleware } from "./setup";
 import { userMiddleware } from "./user";
 
 const mocks = vi.hoisted(() => ({
   requireUser: vi.fn(),
   requireAdmin: vi.fn(),
+  requireSetupOrAdmin: vi.fn(),
 }));
 
 vi.mock("server-only", () => ({}));
@@ -13,6 +15,7 @@ vi.mock("~/core/auth", () => mocks);
 describe.each([
   { name: "userMiddleware", middleware: userMiddleware, check: mocks.requireUser },
   { name: "adminMiddleware", middleware: adminMiddleware, check: mocks.requireAdmin },
+  { name: "setupMiddleware", middleware: setupMiddleware, check: mocks.requireSetupOrAdmin },
 ])("$name", ({ middleware, check }) => {
   beforeEach(() => {
     vi.resetAllMocks();

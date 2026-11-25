@@ -3,12 +3,13 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   getSession: vi.fn(),
   getPublicOrigin: vi.fn(),
-  requireAdmin: vi.fn(),
+  requireSetupOrAdmin: vi.fn(),
   connectCloudflare: vi.fn(),
   setUpTunnelAfterConnecting: vi.fn(),
   syncDomains: vi.fn(),
   revalidateTag: vi.fn(),
   getDashboardDomain: vi.fn(),
+  isInstalled: vi.fn(),
 }));
 
 vi.mock("next/cache", () => ({ revalidateTag: mocks.revalidateTag }));
@@ -17,12 +18,16 @@ vi.mock("next/navigation", () => ({
     throw new Error(`redirect ${url}`);
   },
 }));
-vi.mock("~/core/auth", () => ({ requireAdmin: mocks.requireAdmin }));
+vi.mock("~/core/auth", () => ({ requireSetupOrAdmin: mocks.requireSetupOrAdmin }));
 vi.mock("~/core/cloudflare/connection", () => ({ connectCloudflare: mocks.connectCloudflare }));
 vi.mock("~/core/cloudflare/domains", () => ({ syncDomains: mocks.syncDomains }));
 vi.mock("~/core/cloudflare/tunnel", () => ({ setUpTunnelAfterConnecting: mocks.setUpTunnelAfterConnecting }));
-vi.mock("~/core/headers", () => ({ getPublicOrigin: mocks.getPublicOrigin }));
+vi.mock("~/core/headers", () => ({
+  getPublicOrigin: mocks.getPublicOrigin,
+  isLoopbackOrigin: (origin: string) => origin.startsWith("http://localhost"),
+}));
 vi.mock("~/core/session", () => ({ getSession: mocks.getSession }));
+vi.mock("~/core/settings", () => ({ isInstalled: mocks.isInstalled }));
 vi.mock("~/database", () => ({ default: {} }));
 vi.mock("~/operations/getDashboardDomain", () => ({ default: mocks.getDashboardDomain }));
 
@@ -46,6 +51,7 @@ describe("GET /auth/cloudflare", () => {
     mocks.getSession.mockResolvedValue(createSession());
     mocks.getPublicOrigin.mockResolvedValue("http://localhost:7777");
     mocks.getDashboardDomain.mockResolvedValue(null);
+    mocks.isInstalled.mockResolvedValue(true);
   });
 
   it("should connect, and not keep the code in the address bar", async () => {
@@ -96,9 +102,18 @@ describe("GET /auth/cloudflare", () => {
   });
 
   it("should reject the users who are not the admin", async () => {
-    mocks.requireAdmin.mockRejectedValue(new Error("403"));
+    mocks.requireSetupOrAdmin.mockRejectedValue(new Error("403"));
     expect(await call("code=abc&state=state")).toBe("403");
     expect(mocks.connectCloudflare).not.toHaveBeenCalled();
+  });
+
+  it("should return to the installation while it's not complete", async () => {
+    mocks.isInstalled.mockResolvedValue(false);
+    expect(await call("state=state&error=access_denied")).toBe("redirect /install?cloudflare=access_denied");
+    expect(await call("code=abc&state=state")).toBe("redirect /install?cloudflare=invalid_state");
+    mocks.getSession.mockResolvedValue(createSession());
+    expect(await call("code=abc&state=state")).toBe("redirect /install");
+    expect(mocks.requireSetupOrAdmin).toHaveBeenCalled();
   });
 
   it("should report a denied consent", async () => {

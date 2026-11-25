@@ -42,7 +42,17 @@ export async function requireAdmin() {
   return user;
 }
 
+/** Whoever opened the setup link isn't a user yet */
+async function isSetup() {
+  return await isSetupSession() && !await isInstalled();
+}
+
 /** Rejects the installation with 403 if the instance is already installed, or the setup link wasn't opened */
 export async function requireSetup() {
-  if (await isInstalled() || !await isSetupSession()) forbidden();
+  if (!await isSetup()) forbidden();
+}
+
+/** For what is done during the installation, and by the admin afterwards */
+export async function requireSetupOrAdmin() {
+  if (!await isSetup()) await requireAdmin();
 }

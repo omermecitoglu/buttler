@@ -13,6 +13,7 @@ import createDomain from "~/operations/createDomain";
 import deleteDomain from "~/operations/deleteDomain";
 import getService from "~/operations/getService";
 import { adminMiddleware } from "./middlewares/admin";
+import { setupMiddleware } from "./middlewares/setup";
 
 /** Another change may have used a domain before it was reverted, so everything is synced again */
 async function syncRevertedDomain(serviceId: ServiceDTO["id"]) {
@@ -101,7 +102,7 @@ export const removeDomainAction = defineFormAction({
 
 /** Tries the domains that failed again, and checks the others */
 export const syncDomainsAction = defineFormAction({
-  middlewares: [adminMiddleware],
+  middlewares: [setupMiddleware],
   schema: z.object({}),
   action: () => async (): Promise<Record<string, string>> => {
     await syncDomains({ verify: true });
@@ -112,7 +113,7 @@ export const syncDomainsAction = defineFormAction({
 
 /** Replaces the DNS records of a domain that Buttler didn't create, only if they are still the same */
 export const takeOverDomainAction = defineFormAction({
-  middlewares: [adminMiddleware],
+  middlewares: [setupMiddleware],
   schema: z.object({}),
   action: () => async (hostname: DomainDTO["hostname"], records: string): Promise<Record<string, string>> => {
     await syncDomains({ takeover: { hostname, records } });
