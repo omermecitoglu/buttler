@@ -6,6 +6,7 @@ import getDomains from "~/operations/getDomains";
 import { docker, executeCommandInContainer, pullImage } from "./docker";
 import { REVERSE_PROXY_CONTAINER_NAME } from "./docker/containers";
 import { getIngressAlias, syncIngressNetworks } from "./docker/ingress";
+import { connectProxyToTunnel } from "./docker/tunnel";
 import { HOST_GATEWAY, generateProxyConfig } from "./nginx-conf";
 import { createQueue } from "./queue";
 import { getFilePath, readFileContent, removeFile, saveFile } from "./storage";
@@ -146,6 +147,17 @@ function isOutdated({ Config: config, HostConfig: hostConfig }: ContainerInspect
   return !extraHosts.includes(EXTRA_HOST);
 }
 
+/** Nginx also has to run while the tunnel can't reach it */
+async function syncNetworks() {
+  await syncIngressNetworks();
+  try {
+    await connectProxyToTunnel();
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error("Failed to connect the reverse proxy to the tunnel:", error);
+  }
+}
+
 async function ensureImage() {
   try {
     await docker.getImage(REVERSE_PROXY_IMAGE).inspect();
@@ -162,7 +174,7 @@ export async function provisionReverseProxy(options?: { db?: typeof db }) {
   try {
     const info = await container.inspect();
     if (!isOutdated(info)) {
-      await syncIngressNetworks();
+      await syncNetworks();
       await syncReverseProxyConfig(databaseInstance);
       if (!info.State.Running) {
         await container.start();
@@ -210,7 +222,7 @@ export async function provisionReverseProxy(options?: { db?: typeof db }) {
     Tty: false,
   });
 
-  await syncIngressNetworks();
+  await syncNetworks();
   await created.start();
   return created;
 }
