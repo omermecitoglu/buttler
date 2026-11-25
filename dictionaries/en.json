@@ -67,12 +67,38 @@
         "missingClientSecret": "Please enter the client secret.",
         "invalidCredentials": "GitHub rejected the App ID and private key. Check that they belong to the same app.",
         "appIdMismatch": "The private key belongs to a different GitHub App.",
-        "githubUnreachable": "Could not reach GitHub to verify the credentials. Please try again."
+        "githubUnreachable": "Could not reach GitHub to verify the credentials. Please try again.",
+        "domainUnreachable": "The domain is not reachable anymore. Reload the page to see the reason."
       }
     },
     "linkRequired": {
       "title": "Open the setup link",
       "description": "Only the person who started Buttler can set it up. Open the link that <command>buttler start</command> has printed. If you don't have it anymore, run the command again."
+    },
+    "loading": "Checking the setup...",
+    "steps": {
+      "item": "{number}. {name}",
+      "cloudflare": "Cloudflare",
+      "domain": "Domain",
+      "github": "GitHub App",
+      "login": "Log in"
+    },
+    "domain": {
+      "description": "Choose the address that Buttler will be reachable at. GitHub needs it too.",
+      "checking": "Buttler keeps checking the domain while this page is open.",
+      "moving": "The domain is reachable. The setup continues at",
+      "change": "Choose another domain",
+      "keep": "Continue with {hostname}",
+      "problems": {
+        "unknown_host": "{hostname} doesn't exist yet. It can take a few minutes after the DNS record is created.",
+        "no_connection": "{hostname} could not be reached: {details}",
+        "no_tunnel": "The Cloudflare tunnel is not connected yet.",
+        "no_dashboard": "The tunnel is connected, but Buttler can't be reached through it (status {details}). A firewall may block the Docker containers from reaching port 7777 of this computer.",
+        "other_response": "{hostname} doesn't lead to this Buttler instance (status {details}). A rule or an Access policy in Cloudflare may block the requests."
+      }
+    },
+    "github": {
+      "origin": "The app will use {origin}."
     }
   },
   "BaseLayout": {

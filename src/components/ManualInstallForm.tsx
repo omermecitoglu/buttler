@@ -2,7 +2,7 @@
 
 import { cn } from "@omer-x/tailwind-ui-kit/utils";
 import { useTranslations } from "next-intl";
-import { type ChangeEvent, useActionState, useEffect, useState } from "react";
+import { type ChangeEvent, useActionState, useState } from "react";
 import { type InstallState, installApp } from "~/actions/install";
 import Button from "~/components/ui/button";
 import Input from "~/components/ui/input";
@@ -11,25 +11,18 @@ import Label from "~/components/ui/label";
 const initialState: InstallState = {};
 
 type ManualInstallFormProps = {
-  publicOrigin?: string,
+  publicOrigin: string,
 };
 
 const ManualInstallForm = ({ publicOrigin }: ManualInstallFormProps) => {
   const t = useTranslations("InstallPage.manual");
-  const [origin, setOrigin] = useState(publicOrigin ?? "");
   const [state, formAction, pending] = useActionState(installApp, initialState);
   const [appId, setAppId] = useState("");
   const [privateKey, setPrivateKey] = useState("");
   const [clientSecret, setClientSecret] = useState("");
   const [webhookSecret, setWebhookSecret] = useState("");
 
-  useEffect(() => {
-    if (!origin && typeof window !== "undefined") {
-      setOrigin(window.location.origin);
-    }
-  }, [origin]);
-
-  const setupUrl = `${origin}/services/new`;
+  const setupUrl = `${publicOrigin}/services/new`;
 
   const handlePrivateKeyFile = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];

@@ -5,6 +5,7 @@ const mocks = vi.hoisted(() => ({
   isSetupSession: vi.fn(),
   setSetting: vi.fn(),
   redirect: vi.fn(),
+  getDashboardDomain: vi.fn(),
 }));
 
 vi.mock("server-only", () => ({}));
@@ -19,6 +20,8 @@ vi.mock("~/core/access", () => ({}));
 vi.mock("~/core/session", () => ({}));
 vi.mock("~/core/setup", () => ({ isSetupSession: mocks.isSetupSession }));
 vi.mock("~/core/settings", () => ({ isInstalled: mocks.isInstalled, setSetting: mocks.setSetting }));
+vi.mock("~/database", () => ({ default: {} }));
+vi.mock("~/operations/getDashboardDomain", () => ({ default: mocks.getDashboardDomain }));
 
 import { GET } from "./route";
 
@@ -34,6 +37,7 @@ describe("GET /auth/github-install", () => {
     vi.stubGlobal("fetch", fetchMock);
     mocks.isInstalled.mockResolvedValue(false);
     mocks.isSetupSession.mockResolvedValue(true);
+    mocks.getDashboardDomain.mockResolvedValue("buttler.example.com");
     mocks.redirect.mockImplementation(() => {
       throw new Error("NEXT_REDIRECT");
     });
@@ -65,6 +69,14 @@ describe("GET /auth/github-install", () => {
     expect(mocks.setSetting).not.toHaveBeenCalled();
   });
 
+  it("should not install before the domain is chosen", async () => {
+    mocks.getDashboardDomain.mockResolvedValue(null);
+    await expect(install()).rejects.toThrow("NEXT_REDIRECT");
+    expect(mocks.redirect).toHaveBeenCalledExactlyOnceWith("/install");
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(mocks.setSetting).not.toHaveBeenCalled();
+  });
+
   it("should save the credentials and lead to the login", async () => {
     await expect(install()).rejects.toThrow("NEXT_REDIRECT");
     expect(mocks.setSetting.mock.calls).toEqual([
@@ -74,6 +86,7 @@ describe("GET /auth/github-install", () => {
       ["github_app_slug", "my-buttler"],
       ["github_private_key", "pem"],
       ["github_webhook_secret", "whsec"],
+      ["github_app_domain", "buttler.example.com"],
       ["installed", "true"],
     ]);
     expect(mocks.redirect).toHaveBeenCalledExactlyOnceWith("/login");

@@ -64,6 +64,11 @@ describe("setup code", () => {
     const code = ensureSetupCode();
     expect(getSetupLink()).toBe(`http://localhost:7777/auth/setup?code=${code}`);
   });
+
+  it("should have a link for the domain too", () => {
+    const code = ensureSetupCode();
+    expect(getSetupLink("https://buttler.example.com")).toBe(`https://buttler.example.com/auth/setup?code=${code}`);
+  });
 });
 
 describe("log file", () => {

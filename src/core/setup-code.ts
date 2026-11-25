@@ -5,7 +5,7 @@ import { getFilePath } from "./storage";
 
 // Also used by the CLI, which prints the link
 
-const DASHBOARD_URL = "http://localhost:7777";
+export const DASHBOARD_URL = "http://localhost:7777";
 const CODE_LENGTH = 32;
 
 function getSetupCodePath() {
@@ -46,8 +46,8 @@ export function isSetupCode(value: string | null | undefined) {
   return crypto.timingSafeEqual(hash(code), hash(value));
 }
 
-/** Returns null if there is nothing to set up */
-export function getSetupLink() {
+/** Returns null if there is nothing to set up. The origins don't share the session, so each of them needs the link. */
+export function getSetupLink(origin = DASHBOARD_URL) {
   const code = readSetupCode();
-  return code === null ? null : `${DASHBOARD_URL}/auth/setup?code=${code}`;
+  return code === null ? null : `${origin}/auth/setup?code=${code}`;
 }

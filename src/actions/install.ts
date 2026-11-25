@@ -5,9 +5,10 @@ import { requireSetup } from "~/core/auth";
 import { type GitHubAppInfo, getGitHubApp } from "~/core/github/app";
 import { GitHubAuthError } from "~/core/github/errors";
 import { setSetting } from "~/core/settings";
+import { getSetupProgress } from "~/core/setup-progress";
 
 export type InstallError = "invalidAppId" | "missingPrivateKey" | "invalidPrivateKey" | "missingClientSecret" |
-  "invalidCredentials" | "appIdMismatch" | "githubUnreachable";
+  "invalidCredentials" | "appIdMismatch" | "githubUnreachable" | "domainUnreachable";
 
 export type InstallState = {
   error?: InstallError,
@@ -50,6 +51,12 @@ export async function installApp(_prevState: InstallState, formData: FormData): 
     return { error: "missingClientSecret" };
   }
 
+  // The app needs the domain, which may have changed since the form was opened
+  const progress = await getSetupProgress();
+  if (progress.step !== "github") {
+    return { error: "domainUnreachable" };
+  }
+
   let app: GitHubAppInfo;
   try {
     app = await getGitHubApp(appId, privateKey);
@@ -67,6 +74,7 @@ export async function installApp(_prevState: InstallState, formData: FormData): 
     setSetting("github_client_id", app.clientId),
     setSetting("github_client_secret", clientSecret),
     setSetting("github_app_slug", app.slug),
+    setSetting("github_app_domain", progress.hostname),
     ...(webhookSecret ? [setSetting("github_webhook_secret", webhookSecret)] : []),
   ]);
   await setSetting("installed", "true");
