@@ -34,6 +34,7 @@ const mockRemoveServiceImages = vi.fn();
 const mockRemoveIngressNetwork = vi.fn();
 const mockDeleteFromReverseProxy = vi.fn();
 const mockRemoveVolumes = vi.fn();
+const mockSyncDomains = vi.fn();
 const mockDeleteBuildLog = vi.fn();
 const mockRequireAdmin = vi.fn();
 const mockRefresh = vi.fn();
@@ -74,6 +75,10 @@ vi.mock("~/operations/deleteService", () => ({
 
 vi.mock("~/operations/getSharedVolumes", () => ({
   default: (...args: unknown[]) => mockGetSharedVolumes(...args),
+}));
+
+vi.mock("~/core/cloudflare/domains", () => ({
+  syncDomains: (...args: unknown[]) => mockSyncDomains(...args),
 }));
 
 vi.mock("~/core/docker/ingress", () => ({
@@ -430,6 +435,7 @@ describe("deleteServiceAction", () => {
       id: "srv",
       type: "github",
       volumes: [{ name: "data" }, { name: "cache" }, { name: "shared" }],
+      domains: [{ hostname: "app.example.com" }],
     });
     mockGetServiceRuntimeState.mockResolvedValue({ status: "running" });
     mockGetSharedVolumes.mockResolvedValue(["shared"]);
@@ -472,6 +478,30 @@ describe("deleteServiceAction", () => {
     expect(await submit()).toEqual({ "[error]": "delete_failed" });
     expect(mockDeleteFromReverseProxy).toHaveBeenCalledWith("srv", expect.any(Function));
     expect(mockDeleteService).not.toHaveBeenCalled();
+  });
+
+  it("withdraws its domains before they are not served anymore", async () => {
+    await submit();
+    expect(mockSyncDomains.mock.calls).toEqual([[{ withoutService: "srv" }], []]);
+    expect(mockSyncDomains).toHaveBeenCalledBefore(mockRemoveServiceContainers);
+  });
+
+  it("makes its domains public again if it's kept", async () => {
+    mockRemoveServiceImages.mockRejectedValue(new Error("boom"));
+    await submit();
+    expect(mockSyncDomains).toHaveBeenLastCalledWith();
+    const [
+      ,
+      restored,
+    ] = mockSyncDomains.mock.invocationCallOrder;
+    expect(restored).toBeGreaterThan(mockRemoveServiceImages.mock.invocationCallOrder[0]);
+  });
+
+  it("doesn't need Cloudflare without domains", async () => {
+    mockGetService.mockResolvedValue({ id: "srv", type: "github", volumes: [], domains: [] });
+    await submit();
+    expect(mockSyncDomains).not.toHaveBeenCalled();
+    expect(mockDeleteService).toHaveBeenCalled();
   });
 
   it("only deletes the chosen volumes", async () => {
