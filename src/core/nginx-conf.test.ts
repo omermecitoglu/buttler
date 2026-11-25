@@ -45,14 +45,14 @@ describe("generateProxyConfig", () => {
   });
 
   it("should proxy the domain of the dashboard to the host", () => {
-    const config = generateProxyConfig([app], { hostname: "buttler.example.com", port: 2083 });
+    const config = generateProxyConfig([app], { hostname: "buttler.example.com", port: 7777 });
     expect(config.match(/server \{/g)).toHaveLength(3);
-    expect(config).toMatch(/server_name buttler\.example\.com;[^}]*proxy_pass http:\/\/host\.docker\.internal:2083;/);
+    expect(config).toMatch(/server_name buttler\.example\.com;[^}]*proxy_pass http:\/\/host\.docker\.internal:7777;/);
     expect(config).toMatch(/server_name app\.example\.com;[^}]*"service-a:3000";/);
   });
 
   it("should not buffer the dashboard", () => {
-    const config = generateProxyConfig([], { hostname: "buttler.example.com", port: 2083 });
+    const config = generateProxyConfig([], { hostname: "buttler.example.com", port: 7777 });
     expect(config).toMatch(/server_name buttler\.example\.com;[^}]*proxy_buffering off;/);
   });
 
