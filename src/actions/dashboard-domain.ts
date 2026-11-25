@@ -10,6 +10,7 @@ import deleteDashboardDomain from "~/operations/deleteDashboardDomain";
 import getDashboardDomain from "~/operations/getDashboardDomain";
 import setDashboardDomain from "~/operations/setDashboardDomain";
 import { adminMiddleware } from "./middlewares/admin";
+import { setupMiddleware } from "./middlewares/setup";
 
 async function restoreDashboardDomain(hostname: string | null) {
   try {
@@ -28,7 +29,7 @@ async function restoreDashboardDomain(hostname: string | null) {
 }
 
 export const setDashboardDomainAction = defineFormAction({
-  middlewares: [adminMiddleware],
+  middlewares: [setupMiddleware],
   schema: z.object({
     subdomain: z.string().transform(normalizeHostname),
     zoneId: z.string(),
