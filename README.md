@@ -72,10 +72,9 @@ You can see the known bugs [here](https://github.com/omermecitoglu/buttler/issue
 
 To use `Buttler`, you'll need the following dependencies installed in your machine:
 
-- [Node.js](https://nodejs.org) >= v19
+- [Node.js](https://nodejs.org) >= v22.5
 - [NPM](https://www.npmjs.com)
 - [Docker](https://www.docker.com)
-- [SQLite](https://www.sqlite.org)
 
 ## Installation
 
@@ -95,7 +94,7 @@ You can set up the GitHub App using either the automated Manifest flow or by con
 
 The recommended setup is the streamlined 1-click manifest flow:
 
-1. Launch Buttler and navigate to the setup wizard at `http://localhost:7777/install` (or `https://<your-host>/install`).
+1. Run `buttler start` and open the setup link that it prints.
 2. Follow the prompt to automatically register the GitHub App with pre-configured settings, URLs, and permissions.
 3. Complete the app registration on GitHub and install the app to your account or organization.
 4. Buttler will automatically receive and store the required credentials (`Client ID`, `Client Secret`, etc.).
@@ -133,10 +132,10 @@ When installing the GitHub App onto your personal account or organization:
 
 ### First Login
 
-Everyone is denied by default. The first person who logs in after the installation becomes the **admin** of the instance.
+Everyone is denied by default. The person who opened the setup link and logs in becomes the **admin** of the instance.
 
 > [!IMPORTANT]
-> Log in right after the installation. Until the first login, anyone who can reach the instance can become its admin. This also applies to instances that were installed before this version.
+> Whoever has the setup link can become the admin, so don't share it. It stops working after the first login. If you lose it, run `buttler start` again. Instances that were installed before this version and don't have an admin need it too.
 
 The admin can let other people in by adding their GitHub handles in **Settings**.
 
@@ -148,11 +147,9 @@ To launch the application
 buttler start
 ```
 
-Then open your browser and navigate to:
+It prints the setup link during the first start, and the address of the dashboard (`http://localhost:7777`) afterwards.
 
-```arduino
-http://localhost:7777
-```
+The server log is at `~/.buttler/buttler.log`.
 
 To terminate the application
 

@@ -49,6 +49,6 @@
 ## Users & Access
 
 - The `users` table lists the people who have access, by their GitHub user ID. Everyone else is denied.
-- The first user who logs in becomes the admin (`claimAdmin`). A partial unique index allows only one admin.
+- The user who logs in with the setup link becomes the admin (`claimAdmin`), see `ai/setup.md`. A partial unique index allows only one admin.
 - The other users are `member`s, whitelisted by the admin. Handles and avatars are only for display, they are updated on login (`updateUser`).
 - `getAccess` (`src/core/access.ts`) is the only function that decides whether a user has access. A session is never enough on its own.
