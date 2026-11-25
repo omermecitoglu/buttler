@@ -27,6 +27,7 @@ const mockDocker = {
 
 const mockPullImage = vi.fn();
 const mockSyncIngressNetworks = vi.fn();
+const mockConnectProxyToTunnel = vi.fn<() => Promise<void>>();
 const mockExecuteCommand = vi.fn();
 const mockEnsureReverseProxyService = vi.fn();
 const mockGetDomains = vi.fn();
@@ -50,6 +51,10 @@ vi.mock("~/database", () => ({ default: {} }));
 vi.mock("./docker/ingress", () => ({
   getIngressAlias: (serviceId: string) => `service-${serviceId}`,
   syncIngressNetworks: (...args: unknown[]) => mockSyncIngressNetworks(...args),
+}));
+
+vi.mock("./docker/tunnel", () => ({
+  connectProxyToTunnel: () => mockConnectProxyToTunnel(),
 }));
 
 vi.mock("~/operations/ensureReverseProxyService", () => ({
@@ -218,6 +223,14 @@ describe("Reverse proxy system service management", () => {
         await expect(provisionReverseProxy()).rejects.toThrow("offline");
         expect(mockContainer.remove).not.toHaveBeenCalled();
       });
+    });
+
+    it("runs without the tunnel", async () => {
+      vi.spyOn(console, "error").mockImplementation(() => undefined);
+      mockContainer.inspect.mockResolvedValue({ ...currentContainer, State: { Running: false } });
+      mockConnectProxyToTunnel.mockRejectedValue(new Error("no network"));
+      await provisionReverseProxy();
+      expect(mockContainer.start).toHaveBeenCalledTimes(1);
     });
 
     it("never replaces a container from outside of Buttler", async () => {
