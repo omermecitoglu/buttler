@@ -176,28 +176,29 @@ export async function removeContainer(containerId: string) {
   await docker.getContainer(containerId).remove({ force: true });
 }
 
-export function executeCommandInContainer(containerId: string, command: string[]) {
-  return new Promise<string>((resolve, reject) => {
-    const container = docker.getContainer(containerId);
-    container.exec({
-      Cmd: command,
-      AttachStdout: true,
-      AttachStderr: true,
-      Tty: true,
-    }, (execError, exec) => {
-      if (execError || !exec) return reject(execError);
-      exec.start({ Tty: true }, (startError, stream) => {
-        if (startError || !stream) return reject(startError);
-        let output = "";
-        stream.on("data", data => {
-          output += data.toString();
-        });
-        stream.on("end", () => {
-          resolve(output);
-        });
-      });
-    });
+export type CommandResult = {
+  exitCode: number | null,
+  /** Both stdout and stderr */
+  output: string,
+};
+
+export async function executeCommandInContainer(containerId: string, command: string[]): Promise<CommandResult> {
+  const exec = await docker.getContainer(containerId).exec({
+    Cmd: command,
+    AttachStdout: true,
+    AttachStderr: true,
+    Tty: true,
   });
+  const stream = await exec.start({ Tty: true });
+  const chunks: Buffer[] = [];
+  for await (const chunk of stream) {
+    chunks.push(Buffer.from(chunk as Buffer));
+  }
+  const { ExitCode: exitCode } = await exec.inspect();
+  return {
+    exitCode,
+    output: Buffer.concat(chunks).toString("utf-8").replaceAll("\r\n", "\n").trim(),
+  };
 }
 
 export async function createVolume(name: string) {
