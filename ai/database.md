@@ -43,6 +43,7 @@
 - The `domains` table holds the desired public hostnames. The hostname is the primary key, so it can only belong to one service.
 - Only exact hostnames are stored, in lowercase (`src/core/domains.ts`). The port is the one inside the container, it doesn't need to be published.
 - System services can't have domains.
+- The domain of the dashboard is the `dashboard_domain` setting. `createDomain` and `setDashboardDomain` check both places in a transaction, so a service and the dashboard can't have the same hostname.
 
 ## Users & Access
 
