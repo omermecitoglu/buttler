@@ -26,7 +26,7 @@ Docker is the single source of truth for builds, nothing about them is stored in
 ## Deletion
 
 - Only the admin can delete a service (`deleteServiceAction`), from the "Settings" tab of its page. System services can't be deleted, and neither can services that are being built or pulled, because they would be deployed again.
-- The container, its ingress network, the built images and the chosen volumes are removed before the database row, so a deletion that fails can be tried again (`src/core/docker/removal.ts`).
+- The container, its ingress network, the built images, the chosen volumes and the domains in the Nginx config are removed before the database row, so a deletion that fails can be tried again (`src/core/docker/removal.ts`).
 - Containers are matched by the label or the `buttler-service-<id>` name only. `matchContainerForService` also matches by the service name, which may find an unrelated container.
 - Volumes are kept, except the ones that are chosen in the dialog. The ones that other services or containers use are always kept. Stopped services have no container, so the `volumes` table is checked too (`getSharedVolumes`).
 - Docker Hub images are never removed, other containers may use them.
@@ -42,6 +42,17 @@ Docker is the single source of truth for builds, nothing about them is stored in
 - The networks are internal, so the default network stays the gateway of the containers. Their subnets are `/28` blocks of `172.30.0.0/16` that no other network of Docker or the host overlaps.
 - Networks are only found by their labels (`buttler.network=ingress` and `buttler.service-id`). Others are never used, changed or removed, and a network that is used by an unrelated container is kept.
 - The container is connected after it's created, because networks that are given at creation would replace the default one.
+
+## Nginx Config
+
+- `generateProxyConfig` (`src/core/nginx-conf.ts`) generates `default.conf` from the domains in SQLite, with one server per hostname. The default server has the health check (`/healthz`), and answers unknown hostnames with a 404.
+- `syncReverseProxyConfig` (`src/core/nginx.ts`) writes it, tests it with `nginx -t` and reloads Nginx. If that fails, the previous config is restored and the error is thrown. It runs after a domain is added or removed, and in `provisionReverseProxy`, at startup too.
+- Nginx reads the config when it starts, so it's only written while Nginx isn't running. A domain change never starts Nginx.
+- A domain change is undone if Nginx can't be reloaded. A domain that can't be removed is still served, so it stays in SQLite.
+- `deleteFromReverseProxy` removes the domains of a service from the config right before its row is deleted. They are served again if the service is kept.
+- Changes run one after another, and read the domains when it's their turn.
+- The upstream is in a variable and resolved by Docker (`127.0.0.11`), so a service that isn't running leads to a 502 instead of a config that can't be loaded. The answers are only cached for 5 seconds, because a new container can have a new IP.
+- HTTPS ends at Cloudflare, so `X-Forwarded-Proto` is always `https`.
 
 ## Container Logs
 
