@@ -10,11 +10,20 @@ export type SessionUser = {
   avatar: string,
 };
 
+/** The Cloudflare authorization that this browser has started */
+export type PendingCloudflareAuthorization = {
+  state: string,
+  verifier: string,
+  /** Timestamp in milliseconds */
+  expiresAt: number,
+};
+
 type SessionData = {
   userId?: number,
   /** Missing in the sessions that were created before it was introduced */
   user?: SessionUser,
   githubToken?: string,
+  cloudflare?: PendingCloudflareAuthorization,
 };
 
 const SESSION_COOKIE_NAME = "buttler_session";
