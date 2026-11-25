@@ -20,6 +20,8 @@ const START_TIMEOUT = 5 * 60_000;
 
 const STOP_TIMEOUT = 10_000;
 
+const SERVER_ERROR = 500;
+
 async function checkFile(filePath: string) {
   try {
     await fs.access(filePath);
@@ -52,22 +54,25 @@ function spawnChildProcess(detached: boolean, debug: boolean) {
   return child;
 }
 
-async function isResponding() {
+/** Returns null if there is no response */
+async function getStatus() {
   try {
-    await fetch(DASHBOARD_URL, { redirect: "manual", signal: AbortSignal.timeout(POLL_INTERVAL) });
-    return true;
+    const { status } = await fetch(DASHBOARD_URL, { redirect: "manual", signal: AbortSignal.timeout(POLL_INTERVAL) });
+    return status;
   } catch {
-    return false;
+    return null;
   }
 }
 
-async function waitUntilReady(child: ChildProcess): Promise<"ready" | "crashed" | "slow"> {
+async function waitUntilReady(child: ChildProcess): Promise<"ready" | "broken" | "crashed" | "slow"> {
   const deadline = Date.now() + START_TIMEOUT;
   while (Date.now() < deadline) {
     // Another application may use the port, a child that can't listen needs some time to exit
     await wait(POLL_INTERVAL);
     if (child.exitCode !== null || child.signalCode !== null) return "crashed";
-    if (await isResponding()) return "ready";
+    const status = await getStatus();
+    // The server also listens if it couldn't be prepared, but then it only responds with errors
+    if (status !== null) return status < SERVER_ERROR ? "ready" : "broken";
   }
   return "slow";
 }
@@ -95,6 +100,9 @@ async function start(development: boolean) {
   if (result === "crashed") {
     await fs.rm(pidFilePath, { force: true });
     console.error("the application could not start");
+    process.exitCode = 1;
+  } else if (result === "broken") {
+    console.error("the application is running, but it doesn't work");
     process.exitCode = 1;
   } else if (result === "slow") {
     console.warn("the application is still starting");
