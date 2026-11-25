@@ -32,6 +32,7 @@ const mockGetServiceRuntimeState = vi.fn();
 const mockRemoveServiceContainers = vi.fn();
 const mockRemoveServiceImages = vi.fn();
 const mockRemoveIngressNetwork = vi.fn();
+const mockDeleteFromReverseProxy = vi.fn();
 const mockRemoveVolumes = vi.fn();
 const mockDeleteBuildLog = vi.fn();
 const mockRequireAdmin = vi.fn();
@@ -77,6 +78,10 @@ vi.mock("~/operations/getSharedVolumes", () => ({
 
 vi.mock("~/core/docker/ingress", () => ({
   removeIngressNetwork: (...args: unknown[]) => mockRemoveIngressNetwork(...args),
+}));
+
+vi.mock("~/core/nginx", () => ({
+  deleteFromReverseProxy: (...args: unknown[]) => mockDeleteFromReverseProxy(...args),
 }));
 
 vi.mock("~/core/docker/removal", () => ({
@@ -428,6 +433,7 @@ describe("deleteServiceAction", () => {
     });
     mockGetServiceRuntimeState.mockResolvedValue({ status: "running" });
     mockGetSharedVolumes.mockResolvedValue(["shared"]);
+    mockDeleteFromReverseProxy.mockImplementation((_id: string, remove: () => Promise<boolean>) => remove());
   });
 
   function submit(volumes?: string[]) {
@@ -458,6 +464,13 @@ describe("deleteServiceAction", () => {
   it("keeps the service if its ingress network can't be removed", async () => {
     mockRemoveIngressNetwork.mockRejectedValue(new Error("no docker"));
     expect(await submit()).toEqual({ "[error]": "delete_failed" });
+    expect(mockDeleteService).not.toHaveBeenCalled();
+  });
+
+  it("keeps the service if Nginx can't be reloaded without its domains", async () => {
+    mockDeleteFromReverseProxy.mockRejectedValue(new Error("broken"));
+    expect(await submit()).toEqual({ "[error]": "delete_failed" });
+    expect(mockDeleteFromReverseProxy).toHaveBeenCalledWith("srv", expect.any(Function));
     expect(mockDeleteService).not.toHaveBeenCalled();
   });
 

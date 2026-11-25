@@ -21,6 +21,7 @@ import {
 } from "~/core/docker/status";
 import { getServiceImageTag } from "~/core/dockerhub";
 import { environmentVariableScopes } from "~/core/environment-variables";
+import { deleteFromReverseProxy } from "~/core/nginx";
 import db from "~/database";
 import { redirect } from "~/i18n/navigation";
 import type { AppLocale } from "~/i18n/routing";
@@ -151,10 +152,12 @@ async function removeService({ id, volumes }: { id: string, volumes: { name: str
     const names = volumes.map(volume => volume.name).filter(name => chosenVolumes.includes(name));
     await removeVolumes(names.filter(name => !sharedVolumes.includes(name)));
   }
-  // A push may have started a build in the meantime
-  if (isServiceBeingDeployed(id)) return false;
-  await deleteService(db, id);
-  return true;
+  return deleteFromReverseProxy(id, async () => {
+    // A push may have started a build in the meantime
+    if (isServiceBeingDeployed(id)) return false;
+    await deleteService(db, id);
+    return true;
+  });
 }
 
 export const deleteServiceAction = defineFormAction({
