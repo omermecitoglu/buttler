@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
   startTunnelContainer: vi.fn(),
   removeTunnelContainer: vi.fn(),
   deleteService: vi.fn(),
+  deleteAllRecords: vi.fn(),
 }));
 
 let saved: CloudflareTunnel | null = null;
@@ -19,6 +20,7 @@ vi.mock("server-only", () => ({}));
 vi.mock("~/database", () => ({ default: {} }));
 vi.mock("./client", () => ({ cloudflareFetch: mocks.cloudflareFetch }));
 vi.mock("./connection", () => ({ getConnectionState: mocks.getConnectionState }));
+vi.mock("./records", () => ({ deleteAllRecords: mocks.deleteAllRecords }));
 vi.mock("./zones", () => ({ getZones: mocks.getZones }));
 vi.mock("~/core/docker/tunnel", () => ({
   startTunnelContainer: mocks.startTunnelContainer,
@@ -134,6 +136,12 @@ describe("Cloudflare tunnel", () => {
       expect(saved).toMatchObject({ id: "new", accountId: "other" });
     });
 
+    it("should delete the DNS records before another account is used", async () => {
+      saved = tunnel;
+      await setUpTunnel("other");
+      expect(mocks.deleteAllRecords).toHaveBeenCalledBefore(mocks.removeTunnelContainer);
+    });
+
     it("should not leave a tunnel behind if it can't be deleted", async () => {
       saved = tunnel;
       mocks.cloudflareFetch.mockRejectedValueOnce(new CloudflareApiError("down", 503));
@@ -226,6 +234,18 @@ describe("Cloudflare tunnel", () => {
       ]);
       expect(saved).toBeNull();
       expect(mocks.deleteService).toHaveBeenCalledWith({}, "srv");
+    });
+
+    it("should delete the DNS records first", async () => {
+      await removeTunnel();
+      expect(mocks.deleteAllRecords).toHaveBeenCalledBefore(mocks.removeTunnelContainer);
+    });
+
+    it("should keep the tunnel if the DNS records can't be deleted", async () => {
+      mocks.deleteAllRecords.mockRejectedValue(new CloudflareApiError("down", 503));
+      await expect(removeTunnel()).rejects.toThrow("down");
+      expect(mocks.removeTunnelContainer).not.toHaveBeenCalled();
+      expect(saved).toEqual(tunnel);
     });
 
     it("should be possible to try again", async () => {
