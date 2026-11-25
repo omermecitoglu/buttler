@@ -70,7 +70,7 @@ describe("checkReachability", () => {
     });
   });
 
-  it.each(["ENOTFOUND", "ENODATA"])("should not ask the resolver of the computer for a hostname that doesn't exist yet (%s)", async code => {
+  it.each(["ENOTFOUND", "ENODATA"])("should not ask the computer for a new hostname (%s)", async code => {
     mocks.resolve4.mockImplementation((name: string) => (
       name === HOSTNAME ? Promise.reject(createError(code)) : Promise.resolve(["173.245.0.1"])
     ));

@@ -7,6 +7,7 @@ const mockSetSetting = vi.fn();
 const mockGetGitHubApp = vi.fn();
 const mockRedirect = vi.fn();
 const mockRequireSetup = vi.fn();
+const mockGetSetupProgress = vi.fn();
 
 vi.mock("~/core/auth", () => ({
   requireSetup: () => mockRequireSetup(),
@@ -14,6 +15,10 @@ vi.mock("~/core/auth", () => ({
 
 vi.mock("~/core/settings", () => ({
   setSetting: (key: string, value: string) => mockSetSetting(key, value),
+}));
+
+vi.mock("~/core/setup-progress", () => ({
+  getSetupProgress: () => mockGetSetupProgress(),
 }));
 
 vi.mock("~/core/github/app", () => ({
@@ -47,6 +52,7 @@ const validFields = {
 describe("installApp action", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockGetSetupProgress.mockResolvedValue({ step: "github", hostname: "buttler.example.com" });
     mockGetGitHubApp.mockResolvedValue({
       id: 123,
       slug: "my-buttler",
@@ -58,6 +64,12 @@ describe("installApp action", () => {
   it("should be rejected outside of the setup", async () => {
     mockRequireSetup.mockRejectedValueOnce(new Error("forbidden"));
     await expect(installApp({}, makeFormData(validFields))).rejects.toThrow("forbidden");
+    expect(mockSetSetting).not.toHaveBeenCalled();
+  });
+
+  it.each(["cloudflare", "domain"])("should not be possible in the step of the %s", async step => {
+    mockGetSetupProgress.mockResolvedValue({ step, hostname: "buttler.example.com" });
+    expect(await installApp({}, makeFormData(validFields))).toEqual({ error: "domainUnreachable" });
     expect(mockSetSetting).not.toHaveBeenCalled();
   });
 
@@ -104,6 +116,7 @@ describe("installApp action", () => {
     expect(mockSetSetting).toHaveBeenCalledWith("github_client_id", "Iv1.abc");
     expect(mockSetSetting).toHaveBeenCalledWith("github_client_secret", "secret");
     expect(mockSetSetting).toHaveBeenCalledWith("github_app_slug", "my-buttler");
+    expect(mockSetSetting).toHaveBeenCalledWith("github_app_domain", "buttler.example.com");
     expect(mockSetSetting).toHaveBeenCalledWith("github_webhook_secret", "whsec");
     expect(mockSetSetting).toHaveBeenLastCalledWith("installed", "true");
     expect(mockRedirect).toHaveBeenCalledWith("/login");

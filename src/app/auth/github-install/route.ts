@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation";
 import { requireSetup } from "~/core/auth";
 import { setSetting } from "~/core/settings";
+import db from "~/database";
+import getDashboardDomain from "~/operations/getDashboardDomain";
 
 type ManifestConversionResponse = {
   id: number,
@@ -15,6 +17,10 @@ export async function GET(request: Request) {
   await requireSetup();
   const { searchParams } = new URL(request.url);
   const code = searchParams.get("code");
+
+  // The app can only be created with the domain
+  const domain = await getDashboardDomain(db);
+  if (domain === null) return redirect("/install");
 
   if (!code) {
     return redirect("/install?error=missing_code");
@@ -41,6 +47,7 @@ export async function GET(request: Request) {
       ...(data.slug ? [setSetting("github_app_slug", data.slug)] : []),
       ...(data.pem ? [setSetting("github_private_key", data.pem)] : []),
       ...(data.webhook_secret ? [setSetting("github_webhook_secret", data.webhook_secret)] : []),
+      setSetting("github_app_domain", domain),
       setSetting("installed", "true"),
     ]);
 

@@ -35,7 +35,7 @@ async function findNameServers(zoneName: string) {
   const resolver = new Resolver({ timeout: DNS_TIMEOUT, tries: 1 });
   const names = await resolver.resolveNs(zoneName);
   const addresses = await Promise.allSettled(names.map(name => resolver.resolve4(name)));
-  return addresses.flatMap(result => result.status === "fulfilled" ? result.value : []);
+  return addresses.filter(result => result.status === "fulfilled").flatMap(({ value }) => value);
 }
 
 /**

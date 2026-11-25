@@ -1,38 +1,34 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Button from "~/components/ui/button";
 import Input from "~/components/ui/input";
 import Label from "~/components/ui/label";
 
 type ManifestFormProps = {
-  publicOrigin?: string,
+  /** The domain, which the requests from GitHub need */
+  publicOrigin: string,
+  /** The login also works without the tunnel */
+  localOrigin: string,
 };
 
-const ManifestForm = ({ publicOrigin }: ManifestFormProps) => {
+const ManifestForm = ({ publicOrigin, localOrigin }: ManifestFormProps) => {
   const t = useTranslations("InstallPage.manifest");
-  const [origin, setOrigin] = useState(publicOrigin ?? "");
   const [appName, setAppName] = useState("Buttler");
   const [organization, setOrganization] = useState("");
   const [isPublic, setIsPublic] = useState(false);
 
-  useEffect(() => {
-    if (!origin && typeof window !== "undefined") {
-      setOrigin(window.location.origin);
-    }
-  }, [origin]);
-
   const manifest = {
     name: appName,
-    url: origin,
+    url: publicOrigin,
     hook_attributes: {
-      url: `${origin}/webhooks/github`,
+      url: `${publicOrigin}/webhooks/github`,
     },
-    redirect_url: `${origin}/auth/github-install`,
-    setup_url: `${origin}/services/new`,
+    redirect_url: `${publicOrigin}/auth/github-install`,
+    setup_url: `${publicOrigin}/services/new`,
     setup_on_update: true,
-    callback_urls: [`${origin}/auth/github`],
+    callback_urls: [publicOrigin, localOrigin].map(origin => `${origin}/auth/github`),
     default_permissions: {
       contents: "read",
       metadata: "read",
