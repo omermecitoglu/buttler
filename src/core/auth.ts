@@ -5,6 +5,7 @@ import { cache } from "react";
 import { getAccess } from "./access";
 import { getSession } from "./session";
 import { isInstalled } from "./settings";
+import { isSetupSession } from "./setup";
 
 /** The access is read from the database on every request, so it ends before the session does */
 const getVisitor = cache(async () => {
@@ -41,7 +42,7 @@ export async function requireAdmin() {
   return user;
 }
 
-/** Rejects the installation of an instance that is already installed with 403 */
-export async function requireNotInstalled() {
-  if (await isInstalled()) forbidden();
+/** Rejects the installation with 403 if the instance is already installed, or the setup link wasn't opened */
+export async function requireSetup() {
+  if (await isInstalled() || !await isSetupSession()) forbidden();
 }

@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { requireNotInstalled } from "~/core/auth";
+import { requireSetup } from "~/core/auth";
 import { setSetting } from "~/core/settings";
 
 type ManifestConversionResponse = {
@@ -12,7 +12,7 @@ type ManifestConversionResponse = {
 };
 
 export async function GET(request: Request) {
-  await requireNotInstalled();
+  await requireSetup();
   const { searchParams } = new URL(request.url);
   const code = searchParams.get("code");
 

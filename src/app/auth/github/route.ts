@@ -5,9 +5,21 @@ import { getPublicOrigin } from "~/core/headers";
 import { getHomePath } from "~/core/home";
 import { getSession } from "~/core/session";
 import { getSetting } from "~/core/settings";
+import { isSetupSession } from "~/core/setup";
+import { deleteSetupCode } from "~/core/setup-code";
 import db from "~/database";
+import type { NewUserDTO } from "~/models/user";
 import claimAdmin from "~/operations/claimAdmin";
+import hasAdmin from "~/operations/hasAdmin";
 import updateUser from "~/operations/updateUser";
+
+/** Only the browser that the setup link was opened in can become the admin */
+async function completeSetup(account: NewUserDTO) {
+  if (!await isSetupSession()) return false;
+  await claimAdmin(db, account);
+  deleteSetupCode();
+  return true;
+}
 
 export async function GET(request: Request) {
   const { searchParams, pathname } = new URL(request.url);
@@ -56,10 +68,10 @@ export async function GET(request: Request) {
     const data = await tokenRes.json();
     const user = await getUser(data.access_token);
     const account = { id: user.id, login: user.login, avatar: user.avatar };
-    await claimAdmin(db, account);
+    if (await completeSetup(account)) delete session.setupCode;
     if (!await getAccess(user.id)) {
       session.destroy();
-      return redirect("/login?error=not_allowed");
+      return redirect(await hasAdmin(db) ? "/login?error=not_allowed" : "/login?error=setup_link");
     }
     await updateUser(db, account);
     session.userId = user.id;
