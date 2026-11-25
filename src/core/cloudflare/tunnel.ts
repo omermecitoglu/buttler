@@ -53,6 +53,14 @@ async function createTunnel(accountId: string): Promise<CloudflareTunnel> {
   return tunnel;
 }
 
+/** Stops cloudflared first, it would keep the tunnel in use. Tunnels that are gone or not accessible are ignored. */
+async function deleteTunnel(tunnel: CloudflareTunnel) {
+  await removeTunnelContainer();
+  // Connections that were closed just now would prevent the deletion
+  await ignoreApiStatus(cloudflareFetch(`${getPath(tunnel)}/connections`, { method: "DELETE" }), NOT_FOUND, FORBIDDEN);
+  await ignoreApiStatus(cloudflareFetch(getPath(tunnel), { method: "DELETE" }), NOT_FOUND, FORBIDDEN);
+}
+
 async function isDeleted(tunnel: CloudflareTunnel) {
   try {
     const { result } = await cloudflareFetch<TunnelApiResponse>(getPath(tunnel));
@@ -66,7 +74,14 @@ async function isDeleted(tunnel: CloudflareTunnel) {
 /** Only uses the tunnel that Buttler has created, others are never looked up */
 async function ensureTunnel(accountId: string) {
   const existing = await getCloudflareTunnel(db);
-  if (existing?.accountId === accountId && !await isDeleted(existing)) return existing;
+  if (existing) {
+    if (existing.accountId !== accountId) {
+      // It couldn't be found anymore after it's replaced
+      await deleteTunnel(existing);
+    } else if (!await isDeleted(existing)) {
+      return existing;
+    }
+  }
   return createTunnel(accountId);
 }
 
@@ -128,12 +143,11 @@ export function provisionTunnel(): Promise<boolean> {
 export function removeTunnel(): Promise<void> {
   return enqueue(async () => {
     const tunnel = await getCloudflareTunnel(db);
-    await removeTunnelContainer();
     // A tunnel stays in the account if the connection is lost, or doesn't include the account anymore
     if (tunnel && await getConnectionState() === "connected") {
-      // Connections that were closed just now would prevent the deletion
-      await ignoreApiStatus(cloudflareFetch(`${getPath(tunnel)}/connections`, { method: "DELETE" }), NOT_FOUND, FORBIDDEN);
-      await ignoreApiStatus(cloudflareFetch(getPath(tunnel), { method: "DELETE" }), NOT_FOUND, FORBIDDEN);
+      await deleteTunnel(tunnel);
+    } else {
+      await removeTunnelContainer();
     }
     await deleteCloudflareTunnel(db);
     const service = await getTunnelService(db);
