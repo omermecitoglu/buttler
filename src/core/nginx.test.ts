@@ -150,13 +150,11 @@ describe("Reverse proxy system service management", () => {
         },
         HostConfig: expect.objectContaining({
           ExtraHosts: ["host.docker.internal:host-gateway"],
-          PortBindings: {
-            "80/tcp": [{ HostPort: "80" }],
-            "443/tcp": [{ HostPort: "443" }],
-          },
         }),
         Tty: false,
       }));
+      const [[{ HostConfig: hostConfig }]] = mockDocker.createContainer.mock.calls as [[{ HostConfig: object }]];
+      expect(hostConfig).not.toHaveProperty("PortBindings");
       expect(newContainer.start).toHaveBeenCalledTimes(1);
       expect(mockSyncIngressNetworks).toHaveBeenCalledAfter(mockDocker.createContainer);
       expect(mockSyncIngressNetworks).toHaveBeenCalledBefore(newContainer.start);
@@ -223,6 +221,17 @@ describe("Reverse proxy system service management", () => {
         await expect(provisionReverseProxy()).rejects.toThrow("offline");
         expect(mockContainer.remove).not.toHaveBeenCalled();
       });
+    });
+
+    it("replaces a container that publishes its ports", async () => {
+      mockContainer.inspect.mockResolvedValueOnce({
+        ...currentContainer,
+        HostConfig: { ...currentContainer.HostConfig, PortBindings: { "80/tcp": [{ HostPort: "80" }] } },
+        State: { Running: true },
+      }).mockRejectedValue(notFoundError);
+      mockDocker.createContainer.mockResolvedValue({ start: vi.fn() });
+      await provisionReverseProxy();
+      expect(mockContainer.remove).toHaveBeenCalledWith({ force: true });
     });
 
     it("runs without the tunnel", async () => {
