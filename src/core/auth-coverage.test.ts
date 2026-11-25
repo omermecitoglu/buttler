@@ -28,6 +28,7 @@ const publicActions = ["session.ts: logout", "install.ts: installApp"];
 
 /** They have their own checks instead of a session, which are covered by their own tests */
 const routesWithOwnCheck = [
+  "auth/cloudflare/route.ts",
   "auth/github-install/route.ts",
   "auth/github/route.ts",
   "webhooks/github/route.ts",
