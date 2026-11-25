@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => ({
   removeTunnel: vi.fn(),
   setUpTunnel: vi.fn(),
   getZones: vi.fn(),
+  syncDomains: vi.fn(),
   refresh: vi.fn(),
   updateTag: vi.fn(),
 }));
@@ -31,6 +32,7 @@ vi.mock("~/core/session", () => ({ getSession: mocks.getSession }));
 vi.mock("~/core/access", () => ({ getAccess: mocks.getAccess }));
 vi.mock("~/core/settings", () => ({}));
 vi.mock("~/core/cloudflare/connection", () => ({ disconnectCloudflare: mocks.disconnectCloudflare }));
+vi.mock("~/core/cloudflare/domains", () => ({ syncDomains: mocks.syncDomains }));
 vi.mock("~/core/cloudflare/zones", () => ({ getZones: mocks.getZones }));
 vi.mock("~/core/cloudflare/tunnel", () => ({
   getAccounts: (zones: { accountId: string }[]) => zones.map(({ accountId }) => ({ id: accountId })),
@@ -54,6 +56,12 @@ describe("Cloudflare actions", () => {
     mocks.getSession.mockResolvedValue(session);
     mocks.getAccess.mockResolvedValue("admin");
     mocks.getZones.mockResolvedValue([{ accountId: "acc" }]);
+  });
+
+  it("should make the domains reachable after the tunnel is set up", async () => {
+    expect(await setUp("acc")).toEqual({});
+    expect(mocks.syncDomains).toHaveBeenCalledWith({ verify: true });
+    expect(mocks.syncDomains).toHaveBeenCalledAfter(mocks.setUpTunnel);
   });
 
   it("should remember the authorization in the session before leaving", async () => {

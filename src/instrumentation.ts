@@ -15,5 +15,9 @@ export async function register() {
       // eslint-disable-next-line no-console
       console.error("Failed to provision the Cloudflare tunnel at startup:", error);
     });
+
+    // Buttler must start even if Cloudflare can't be reached, so it's not waited for
+    const { syncDomains } = await import("./core/cloudflare/domains");
+    void syncDomains({ verify: true });
   }
 }

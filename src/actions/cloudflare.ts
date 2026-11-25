@@ -4,6 +4,7 @@ import { refresh, updateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import z from "zod";
 import { disconnectCloudflare } from "~/core/cloudflare/connection";
+import { syncDomains } from "~/core/cloudflare/domains";
 import { createAuthorization } from "~/core/cloudflare/oauth";
 import { getAccounts, removeTunnel, setUpTunnel } from "~/core/cloudflare/tunnel";
 import { getZones } from "~/core/cloudflare/zones";
@@ -39,6 +40,7 @@ export const setUpTunnelAction = defineFormAction({
       console.error("Failed to set up the Cloudflare tunnel:", error);
       return displayMessage("error", "setup_failed");
     }
+    await syncDomains({ verify: true });
     updateTag("getAllServices()");
     refresh();
     return {};
