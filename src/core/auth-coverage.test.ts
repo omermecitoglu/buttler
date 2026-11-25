@@ -26,11 +26,12 @@ vi.mock("~/core/access", () => ({ getAccess: mocks.getAccess }));
 /** They must work without a user */
 const publicActions = ["session.ts: logout", "install.ts: installApp"];
 
-/** They have their own checks instead of a session, which are covered by their own tests */
-const routesWithOwnCheck = [
+/** They must work without a session, or have their own checks, which are covered by their own tests */
+const routesWithoutSession = [
   "auth/cloudflare/route.ts",
   "auth/github-install/route.ts",
   "auth/github/route.ts",
+  "auth/instance/route.ts",
   "auth/setup/route.ts",
   "webhooks/github/route.ts",
 ];
@@ -75,7 +76,7 @@ describe("authorization of the entry points", () => {
 
   it("should not find other route handlers outside of /api", () => {
     const names = findFiles("app", /(^|[/\\])route\.ts$/).map(({ name }) => name.replaceAll("\\", "/"));
-    expect(names.filter(name => !name.startsWith("api/")).sort()).toEqual(routesWithOwnCheck);
+    expect(names.filter(name => !name.startsWith("api/")).sort()).toEqual(routesWithoutSession);
   });
 
   const protectedEntryPoints = [...actions.filter(({ name }) => !publicActions.includes(name)), ...routes];
