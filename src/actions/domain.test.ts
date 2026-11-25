@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => ({
   createDomain: vi.fn(),
   deleteDomain: vi.fn(),
   syncIngressNetwork: vi.fn(),
+  syncReverseProxyConfig: vi.fn(),
   updateTag: vi.fn(),
 }));
 
@@ -27,6 +28,7 @@ vi.mock("~/core/session", () => ({ getSession: mocks.getSession }));
 vi.mock("~/core/access", () => ({ getAccess: mocks.getAccess }));
 vi.mock("~/core/settings", () => ({}));
 vi.mock("~/core/docker/ingress", () => ({ syncIngressNetwork: mocks.syncIngressNetwork }));
+vi.mock("~/core/nginx", () => ({ syncReverseProxyConfig: mocks.syncReverseProxyConfig }));
 vi.mock("~/operations/getService", () => ({ default: mocks.getService }));
 vi.mock("~/operations/createDomain", () => ({ default: mocks.createDomain }));
 vi.mock("~/operations/deleteDomain", () => ({ default: mocks.deleteDomain }));
@@ -38,6 +40,8 @@ function add(hostname: string, port = "3000") {
   return addDomainAction("srv", {}, formData);
 }
 
+const domain = { hostname: "app.example.com", serviceId: "srv", port: 3000, createdAt: "2026-11-25 10:00:00" };
+
 describe("domain actions", () => {
   beforeEach(() => {
     vi.resetAllMocks();
@@ -45,7 +49,7 @@ describe("domain actions", () => {
     mocks.getAccess.mockResolvedValue("admin");
     mocks.getService.mockResolvedValue({ id: "srv", type: "github" });
     mocks.createDomain.mockResolvedValue(true);
-    mocks.deleteDomain.mockResolvedValue(true);
+    mocks.deleteDomain.mockResolvedValue(domain);
   });
 
   it("should add a domain in lowercase", async () => {
@@ -65,6 +69,23 @@ describe("domain actions", () => {
     mocks.syncIngressNetwork.mockRejectedValue(new Error("no docker"));
     expect(await add("app.example.com")).toEqual({ "[error]": "connect_failed" });
     expect(mocks.deleteDomain).toHaveBeenCalledWith({}, "srv", "app.example.com");
+    expect(mocks.updateTag).not.toHaveBeenCalled();
+  });
+
+  it("should reload Nginx after a domain is added", async () => {
+    await add("app.example.com");
+    expect(mocks.syncReverseProxyConfig).toHaveBeenCalledTimes(1);
+    expect(mocks.syncReverseProxyConfig).toHaveBeenCalledAfter(mocks.createDomain);
+  });
+
+  it("should not keep the domain if Nginx can't be reloaded", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+    mocks.syncReverseProxyConfig.mockRejectedValue(new Error("broken"));
+    expect(await add("app.example.com")).toEqual({ "[error]": "reload_failed" });
+    expect(mocks.deleteDomain).toHaveBeenCalledWith({}, "srv", "app.example.com");
+    // Once for the new domain, once without it
+    expect(mocks.syncIngressNetwork).toHaveBeenCalledTimes(2);
+    expect(mocks.syncReverseProxyConfig).toHaveBeenCalledTimes(2);
     expect(mocks.updateTag).not.toHaveBeenCalled();
   });
 
@@ -109,8 +130,22 @@ describe("domain actions", () => {
     expect(mocks.updateTag).toHaveBeenCalledWith("getSingleService(srv)");
   });
 
+  it("should reload Nginx before the service is disconnected", async () => {
+    await removeDomainAction("srv", "app.example.com", {}, new FormData());
+    expect(mocks.syncReverseProxyConfig).toHaveBeenCalledAfter(mocks.deleteDomain);
+    expect(mocks.syncReverseProxyConfig).toHaveBeenCalledBefore(mocks.syncIngressNetwork);
+  });
+
+  it("should keep the domain if Nginx can't be reloaded without it", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+    mocks.syncReverseProxyConfig.mockRejectedValue(new Error("broken"));
+    expect(await removeDomainAction("srv", "app.example.com", {}, new FormData())).toEqual({ "[error]": "reload_failed" });
+    expect(mocks.createDomain).toHaveBeenCalledWith({}, domain);
+    expect(mocks.updateTag).not.toHaveBeenCalled();
+  });
+
   it("should report the domains that can't be removed", async () => {
-    mocks.deleteDomain.mockResolvedValue(false);
+    mocks.deleteDomain.mockResolvedValue(undefined);
     expect(await removeDomainAction("srv", "app.example.com", {}, new FormData())).toEqual({ "[error]": "remove_failed" });
     expect(mocks.updateTag).not.toHaveBeenCalled();
   });

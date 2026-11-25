@@ -38,6 +38,7 @@ const AddDomainForm = ({ action, defaultPort }: AddDomainFormProps) => {
     add_failed: t("messages.add_failed"),
     connect_failed: t("messages.connect_failed"),
     hostname_taken: t("messages.hostname_taken"),
+    reload_failed: t("messages.reload_failed"),
     INVALID_HOSTNAME: t("messages.invalid_hostname"),
     INVALID_PORT: t("messages.invalid_port"),
   };

@@ -23,8 +23,13 @@ const RemoveDomainForm = ({ action, hostname }: RemoveDomainFormProps) => {
     }
   };
 
+  const messages = {
+    reload_failed: t("messages.reload_failed"),
+    remove_failed: t("messages.remove_failed"),
+  };
+
   return (
-    <Form action={handleAction} messages={{ remove_failed: t("messages.remove_failed") }} className="gap-2">
+    <Form action={handleAction} messages={messages} className="gap-2">
       <Button
         type="submit"
         variant="ghost"
