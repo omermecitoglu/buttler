@@ -17,6 +17,16 @@
 - Tokens that were replaced or revoked are rejected with a 403, the same as a missing permission. `cloudflareFetch` gets a new token and tries once more.
 - Disconnecting revokes the tokens before they are removed, so a failure can be tried again.
 
+## Tunnel
+
+- Buttler creates one tunnel, in one account (`src/core/cloudflare/tunnel.ts`). It's created after connecting if there is only one account, otherwise the admin chooses the account on the settings page. A tunnel that Buttler didn't create is never looked up or changed.
+- The tunnel and its token are in the `cloudflare_tunnel` setting, encrypted like the tokens of the connection. It's saved right after it's created, so a setup that fails can be continued.
+- `cloudflared` runs in the `buttler-cloudflared` container, which is the system service "Cloudflare Tunnel". The service only exists while there is a tunnel. `provisionTunnel` starts it at startup, and only needs the token, so the tunnel also runs while the connection is lost.
+- Its network (`buttler-tunnel`) is only shared with Nginx, so it can't reach the services. It's not internal, because `cloudflared` connects to Cloudflare through it. Nginx is connected by `provisionReverseProxy` too, which may have replaced the container.
+- The container has the label `buttler.tunnel-id`, and is replaced if it runs another tunnel. Containers without the label of Buttler are never replaced or removed.
+- Disconnecting removes the container, deletes the tunnel and then revokes the tokens. If the connection is lost, the tunnel stays in the Cloudflare account.
+- There are no ingress rules yet, everything is answered with a 404.
+
 ## API
 
 - `GET /accounts` is empty with the scopes of Buttler. The account IDs are in the zones (`getZones`).
