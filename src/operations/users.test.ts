@@ -8,6 +8,7 @@ import createUser from "./createUser";
 import deleteUser from "./deleteUser";
 import getUser from "./getUser";
 import getUsers from "./getUsers";
+import hasAdmin from "./hasAdmin";
 import updateUser from "./updateUser";
 
 const admin = { id: 9, login: "admin", avatar: "https://avatars.githubusercontent.com/u/9" };
@@ -21,6 +22,13 @@ describe("whitelist operations", () => {
   beforeEach(async () => {
     client.exec("DELETE FROM users");
     await claimAdmin(db, admin);
+  });
+
+  it("should know whether there is an admin", async () => {
+    expect(await hasAdmin(db)).toBe(true);
+    client.exec("DELETE FROM users");
+    await createUser(db, member);
+    expect(await hasAdmin(db)).toBe(false);
   });
 
   it("should add users and list them after the admin", async () => {
