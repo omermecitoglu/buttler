@@ -1,7 +1,18 @@
 import "server-only";
 import { cache } from "react";
 import { getDomainZones } from "~/core/cloudflare/domains";
-import type { CloudflareZone } from "~/core/cloudflare/zones";
+import { type CloudflareZone, getZones } from "~/core/cloudflare/zones";
+
+/** All zones of the connection, or null if they couldn't be loaded */
+export const loadZones = cache(async () => {
+  try {
+    return await getZones();
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error("Failed to load the zones of Cloudflare:", error);
+    return null;
+  }
+});
 
 export type DomainZones = {
   state: "ready",

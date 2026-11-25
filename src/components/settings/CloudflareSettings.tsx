@@ -1,6 +1,7 @@
 import { connection } from "next/server";
 import { getTranslations } from "next-intl/server";
 import { connectCloudflareAction, disconnectCloudflareAction } from "~/actions/cloudflare";
+import CloudflareError from "~/components/settings/CloudflareError";
 import CloudflareTunnel from "~/components/settings/CloudflareTunnel";
 import CloudflareZones from "~/components/settings/CloudflareZones";
 import ConnectCloudflareForm from "~/components/settings/ConnectCloudflareForm";
@@ -8,23 +9,7 @@ import DisconnectCloudflareForm from "~/components/settings/DisconnectCloudflare
 import LeftoverDomains from "~/components/settings/LeftoverDomains";
 import Card from "~/components/ui/card";
 import { getConnectionState } from "~/core/cloudflare/connection";
-import { getZones } from "~/core/cloudflare/zones";
-
-type KnownError = "access_denied" | "invalid_state" | "failed";
-
-const isKnownError = (value: unknown): value is KnownError => (
-  value === "access_denied" || value === "invalid_state" || value === "failed"
-);
-
-async function loadZones() {
-  try {
-    return await getZones();
-  } catch (error) {
-    // eslint-disable-next-line no-console
-    console.error("Failed to load the zones of Cloudflare:", error);
-    return null;
-  }
-}
+import { loadZones } from "~/data/cloudflare";
 
 export type CloudflareSettingsProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>,
@@ -56,11 +41,7 @@ const CloudflareSettings = async ({ searchParams }: CloudflareSettingsProps) => 
           </span>
         )}
       </div>
-      {isKnownError(error) && state !== "connected" && (
-        <p className="rounded-md border border-rose-500/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-400">
-          {t(`errors.${error}`)}
-        </p>
-      )}
+      {state !== "connected" && <CloudflareError error={error} />}
       {state === "lost" && (
         <p className="rounded-md border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-400">{t("lost")}</p>
       )}
