@@ -299,3 +299,14 @@ export async function getDomainZones(): Promise<CloudflareZone[] | null> {
   if (!tunnel?.token) return null;
   return (await getZones()).filter(({ accountId }) => accountId === tunnel.accountId);
 }
+
+/** Returns nothing if the zone can't be used, or Cloudflare can't be reached */
+export async function findDomainZone(zoneId: string): Promise<CloudflareZone | undefined> {
+  try {
+    const zones = await getDomainZones();
+    return zones?.find(({ id }) => id === zoneId);
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error("Failed to load the zones of Cloudflare:", error);
+  }
+}

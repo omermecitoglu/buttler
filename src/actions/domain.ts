@@ -1,9 +1,10 @@
 "use server";
 import { defineFormAction, displayMessage } from "@omer-x/next-form-actions";
-import { updateTag } from "next/cache";
+import { refresh, updateTag } from "next/cache";
 import z from "zod";
+import { findDomainZone, syncDomains } from "~/core/cloudflare/domains";
 import { syncIngressNetwork } from "~/core/docker/ingress";
-import { isHostname, isPort, normalizeHostname } from "~/core/domains";
+import { isHostname, isPort, joinHostname, normalizeHostname } from "~/core/domains";
 import { syncReverseProxyConfig } from "~/core/nginx";
 import db from "~/database";
 import type { DomainDTO } from "~/models/domain";
@@ -22,17 +23,23 @@ async function syncRevertedDomain(serviceId: ServiceDTO["id"]) {
     // eslint-disable-next-line no-console
     console.error(`Failed to revert the domain change of service ${serviceId}:`, error);
   }
+  await syncDomains();
 }
 
 export const addDomainAction = defineFormAction({
   middlewares: [adminMiddleware],
   schema: z.object({
-    hostname: z.string().transform(normalizeHostname).refine(isHostname, "invalid_hostname"),
+    subdomain: z.string().transform(normalizeHostname),
+    zoneId: z.string(),
     port: z.string().transform(Number).refine(isPort, "invalid_port"),
   }),
-  action: ({ hostname, port }) => async (serviceId: ServiceDTO["id"]): Promise<Record<string, string>> => {
+  action: ({ subdomain, zoneId, port }) => async (serviceId: ServiceDTO["id"]): Promise<Record<string, string>> => {
     const service = await getService(db, serviceId);
     if (!service || service.type === "system") return displayMessage("error", "add_failed");
+    const zone = await findDomainZone(zoneId);
+    if (!zone) return displayMessage("error", "zone_unavailable");
+    const hostname = joinHostname(subdomain, zone.name);
+    if (!isHostname(hostname)) return displayMessage("error", "invalid_hostname");
     if (!createDomain(db, { hostname, serviceId, port })) return displayMessage("error", "hostname_taken");
     try {
       await syncIngressNetwork(serviceId);
@@ -52,6 +59,8 @@ export const addDomainAction = defineFormAction({
       await syncRevertedDomain(serviceId);
       return displayMessage("error", "reload_failed");
     }
+    // It's only public after it can be served
+    await syncDomains();
     updateTag(`getSingleService(${serviceId})`);
     return {};
   },
@@ -66,6 +75,8 @@ export const removeDomainAction = defineFormAction({
   ): Promise<Record<string, string>> => {
     const domain = await deleteDomain(db, serviceId, hostname);
     if (!domain) return displayMessage("error", "remove_failed");
+    // It's not served anymore even if Cloudflare can't be reached, the rest is tried again later
+    await syncDomains();
     try {
       await syncReverseProxyConfig();
     } catch (error) {
@@ -84,6 +95,28 @@ export const removeDomainAction = defineFormAction({
       console.error(`Failed to disconnect service ${serviceId} from the reverse proxy:`, error);
     }
     updateTag(`getSingleService(${serviceId})`);
+    return {};
+  },
+});
+
+/** Tries the domains that failed again, and checks the others */
+export const syncDomainsAction = defineFormAction({
+  middlewares: [adminMiddleware],
+  schema: z.object({}),
+  action: () => async (): Promise<Record<string, string>> => {
+    await syncDomains({ verify: true });
+    refresh();
+    return {};
+  },
+});
+
+/** Replaces the DNS records of a domain that Buttler didn't create, only if they are still the same */
+export const takeOverDomainAction = defineFormAction({
+  middlewares: [adminMiddleware],
+  schema: z.object({}),
+  action: () => async (hostname: DomainDTO["hostname"], records: string): Promise<Record<string, string>> => {
+    await syncDomains({ takeover: { hostname, records } });
+    refresh();
     return {};
   },
 });
