@@ -280,7 +280,7 @@ describe("Reverse proxy system service management", () => {
       });
 
       it.each([
-        ["2083", 2083],
+        ["7777", 7777],
         ["", 3000],
       ])("proxies it to Buttler (PORT: \"%s\")", async (value, port) => {
         vi.stubEnv("PORT", value);

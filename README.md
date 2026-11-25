@@ -95,7 +95,7 @@ You can set up the GitHub App using either the automated Manifest flow or by con
 
 The recommended setup is the streamlined 1-click manifest flow:
 
-1. Launch Buttler and navigate to the setup wizard at `http://localhost:2083/install` (or `https://<your-host>/install`).
+1. Launch Buttler and navigate to the setup wizard at `http://localhost:7777/install` (or `https://<your-host>/install`).
 2. Follow the prompt to automatically register the GitHub App with pre-configured settings, URLs, and permissions.
 3. Complete the app registration on GitHub and install the app to your account or organization.
 4. Buttler will automatically receive and store the required credentials (`Client ID`, `Client Secret`, etc.).
@@ -107,7 +107,7 @@ If you prefer to create and configure the GitHub App manually:
 1. Go to **GitHub Settings** > **Developer settings** > **GitHub Apps** > **New GitHub App** (or your organization's settings).
 2. Configure the following **App settings**:
    - **GitHub App name**: Choose a unique name (e.g., `Buttler-<your-name>`).
-   - **Homepage URL**: `https://<your-host>` (e.g., `http://localhost:2083`).
+   - **Homepage URL**: `https://<your-host>` (e.g., `http://localhost:7777`).
    - **Authorization callback URL**: `https://<your-host>/auth/github`
    - **Webhook URL**: `https://<your-host>/webhooks/github`
    - **Webhook secret**: Enter a secret token. Deliveries are rejected unless the same secret is configured in Buttler.
@@ -151,7 +151,7 @@ buttler start
 Then open your browser and navigate to:
 
 ```arduino
-http://localhost:2083
+http://localhost:7777
 ```
 
 To terminate the application
