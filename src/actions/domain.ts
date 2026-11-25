@@ -33,7 +33,7 @@ export const addDomainAction = defineFormAction({
   action: ({ hostname, port }) => async (serviceId: ServiceDTO["id"]): Promise<Record<string, string>> => {
     const service = await getService(db, serviceId);
     if (!service || service.type === "system") return displayMessage("error", "add_failed");
-    if (!await createDomain(db, { hostname, serviceId, port })) return displayMessage("error", "hostname_taken");
+    if (!createDomain(db, { hostname, serviceId, port })) return displayMessage("error", "hostname_taken");
     try {
       await syncIngressNetwork(serviceId);
     } catch (error) {
@@ -72,7 +72,7 @@ export const removeDomainAction = defineFormAction({
       // The domain is still served, so it must stay visible
       // eslint-disable-next-line no-console
       console.error(`Failed to remove ${hostname} from the reverse proxy:`, error);
-      await createDomain(db, domain);
+      createDomain(db, domain);
       await syncRevertedDomain(serviceId);
       return displayMessage("error", "reload_failed");
     }

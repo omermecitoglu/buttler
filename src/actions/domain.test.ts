@@ -48,7 +48,7 @@ describe("domain actions", () => {
     mocks.getSession.mockResolvedValue({ userId: 1 });
     mocks.getAccess.mockResolvedValue("admin");
     mocks.getService.mockResolvedValue({ id: "srv", type: "github" });
-    mocks.createDomain.mockResolvedValue(true);
+    mocks.createDomain.mockReturnValue(true);
     mocks.deleteDomain.mockResolvedValue(domain);
   });
 
@@ -100,7 +100,7 @@ describe("domain actions", () => {
   });
 
   it("should reject hostnames that are already taken", async () => {
-    mocks.createDomain.mockResolvedValue(false);
+    mocks.createDomain.mockReturnValue(false);
     expect(await add("app.example.com")).toEqual({ "[error]": "hostname_taken" });
     expect(mocks.updateTag).not.toHaveBeenCalled();
   });
