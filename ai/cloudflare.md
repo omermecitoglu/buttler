@@ -20,7 +20,7 @@
 ## Tunnel
 
 - Buttler creates one tunnel, in one account (`src/core/cloudflare/tunnel.ts`). It's created after connecting if there is only one account, otherwise the admin chooses the account on the settings page. A tunnel that Buttler didn't create is never looked up or changed.
-- The tunnel and its token are in the `cloudflare_tunnel` setting, encrypted like the tokens of the connection. It's saved right after it's created, so a setup that fails can be continued.
+- The tunnel and its token are in the `cloudflare_tunnel` setting, encrypted like the tokens of the connection. It's saved right after it's created, so a setup that fails can be continued. Choosing another account deletes the previous tunnel first.
 - `cloudflared` runs in the `buttler-cloudflared` container, which is the system service "Cloudflare Tunnel". The service only exists while there is a tunnel. `provisionTunnel` starts it at startup, and only needs the token, so the tunnel also runs while the connection is lost.
 - Its network (`buttler-tunnel`) is only shared with Nginx, so it can't reach the services. It's not internal, because `cloudflared` connects to Cloudflare through it. Nginx is connected by `provisionReverseProxy` too, which may have replaced the container.
 - The container has the label `buttler.tunnel-id`, and is replaced if it runs another tunnel. Containers without the label of Buttler are never replaced or removed.
