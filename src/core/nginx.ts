@@ -139,12 +139,16 @@ export function deleteFromReverseProxy(serviceId: string, deleteService: () => P
   });
 }
 
-/** The containers that were created before the dashboard could have a domain can't reach the host by its name */
+/**
+ * The containers that were created before the dashboard could have a domain can't reach the host by its name.
+ * The ones that were created before the tunnel publish their ports.
+ */
 function isOutdated({ Config: config, HostConfig: hostConfig }: ContainerInspectInfo) {
   // Containers from outside of Buttler are never replaced
   if (!config.Labels[BUTTLER_SERVICE_LABEL]) return false;
   const extraHosts = (hostConfig.ExtraHosts ?? []) as string[];
-  return !extraHosts.includes(EXTRA_HOST);
+  const publishedPorts = Object.keys((hostConfig.PortBindings ?? {}) as Record<string, unknown>);
+  return !extraHosts.includes(EXTRA_HOST) || publishedPorts.length > 0;
 }
 
 /** Nginx also has to run while the tunnel can't reach it */
@@ -195,6 +199,7 @@ export async function provisionReverseProxy(options?: { db?: typeof db }) {
   // Docker would create a missing directory as root
   await syncReverseProxyConfig(databaseInstance);
 
+  // No ports are published, the tunnel is the only way in
   const created = await docker.createContainer({
     name: REVERSE_PROXY_CONTAINER_NAME,
     Image: REVERSE_PROXY_IMAGE,
@@ -207,17 +212,9 @@ export async function provisionReverseProxy(options?: { db?: typeof db }) {
         `${getReverseProxyConfDir()}:/etc/nginx/conf.d`,
       ],
       ExtraHosts: [EXTRA_HOST],
-      PortBindings: {
-        "80/tcp": [{ HostPort: process.env.NODE_ENV === "development" ? "8080" : "80" }],
-        "443/tcp": [{ HostPort: process.env.NODE_ENV === "development" ? "8443" : "443" }],
-      },
       RestartPolicy: {
         Name: "always",
       },
-    },
-    ExposedPorts: {
-      "80/tcp": {},
-      "443/tcp": {},
     },
     Tty: false,
   });
