@@ -5,6 +5,7 @@ import { after } from "next/server";
 import z from "zod";
 import { requireUser } from "~/core/auth";
 import { deleteBuildLog, findLatestImage, startBuilding } from "~/core/build";
+import { syncDomains } from "~/core/cloudflare/domains";
 import { removeIngressNetwork } from "~/core/docker/ingress";
 import { removeServiceContainers, removeServiceImages, removeVolumes } from "~/core/docker/removal";
 import {
@@ -171,11 +172,17 @@ export const deleteServiceAction = defineFormAction({
     if (!service || service.type === "system") return displayMessage("error", "delete_failed");
     const { status } = await getServiceRuntimeState(service);
     if (status === "building" || status === "pulling") return displayMessage("error", "service_busy");
+    // The domains must not be public longer than they are served
+    const hasDomains = service.domains.length > 0;
+    if (hasDomains) await syncDomains({ withoutService: serviceId });
     const isRemoved = await removeService(service, input.volumes).catch((error: unknown) => {
       // eslint-disable-next-line no-console
       console.error(`Failed to delete service ${serviceId}:`, error);
-      return displayMessage("error", "delete_failed");
+      return null;
     });
+    // They are public again if the service is kept
+    if (hasDomains) await syncDomains();
+    if (isRemoved === null) return displayMessage("error", "delete_failed");
     if (!isRemoved) return displayMessage("error", "service_busy");
     try {
       await deleteBuildLog(serviceId);
