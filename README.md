@@ -17,6 +17,7 @@
   - [Known bugs](#known-bugs)
 - [Requirements](#requirements)
 - [Installation](#installation)
+- [Setup](#setup)
 - [GitHub App Setup](#github-app-setup)
   - [Option A: GitHub App Manifest Flow (Recommended)](#option-a-github-app-manifest-flow-recommended)
   - [Option B: Manual GitHub App Configuration](#option-b-manual-github-app-configuration)
@@ -76,6 +77,8 @@ To use `Buttler`, you'll need the following dependencies installed in your machi
 - [NPM](https://www.npmjs.com)
 - [Docker](https://www.docker.com)
 
+You also need a [Cloudflare](https://www.cloudflare.com) account with a domain. Your computer doesn't need a public IP address or an open port.
+
 ## Installation
 
 Install `Buttler` globally using npm:
@@ -83,6 +86,17 @@ Install `Buttler` globally using npm:
 ```bash
 npm i -g @omer-x/buttler
 ```
+
+## Setup
+
+Run `buttler start`, and open the link that it prints in a browser on the same computer.
+
+1. **Connect Cloudflare**: approve the connection on Cloudflare. Buttler creates a tunnel in your account.
+2. **Choose the domain**: type a subdomain and pick one of your domains. The setup continues there when the domain is reachable, otherwise you see the reason.
+3. **Create the GitHub App**: its URLs use your domain. You can still choose another domain before this step.
+4. **Log in with GitHub**: you become the admin.
+
+An interrupted setup continues where it stopped, open the link again.
 
 ## GitHub App Setup
 
@@ -94,10 +108,9 @@ You can set up the GitHub App using either the automated Manifest flow or by con
 
 The recommended setup is the streamlined 1-click manifest flow:
 
-1. Run `buttler start` and open the setup link that it prints.
-2. Follow the prompt to automatically register the GitHub App with pre-configured settings, URLs, and permissions.
-3. Complete the app registration on GitHub and install the app to your account or organization.
-4. Buttler will automatically receive and store the required credentials (`Client ID`, `Client Secret`, etc.).
+1. In the third step of the [setup](#setup), follow the prompt to automatically register the GitHub App with pre-configured settings, URLs, and permissions.
+2. Complete the app registration on GitHub and install the app to your account or organization.
+3. Buttler will automatically receive and store the required credentials (`Client ID`, `Client Secret`, etc.).
 
 ### Option B: Manual GitHub App Configuration
 
@@ -106,9 +119,9 @@ If you prefer to create and configure the GitHub App manually:
 1. Go to **GitHub Settings** > **Developer settings** > **GitHub Apps** > **New GitHub App** (or your organization's settings).
 2. Configure the following **App settings**:
    - **GitHub App name**: Choose a unique name (e.g., `Buttler-<your-name>`).
-   - **Homepage URL**: `https://<your-host>` (e.g., `http://localhost:7777`).
-   - **Authorization callback URL**: `https://<your-host>/auth/github`
-   - **Webhook URL**: `https://<your-host>/webhooks/github`
+   - **Homepage URL**: `https://<your-domain>`, the domain that you chose in the setup.
+   - **Authorization callback URLs**: `https://<your-domain>/auth/github` and `http://localhost:7777/auth/github`, so you can log in without the tunnel too
+   - **Webhook URL**: `https://<your-domain>/webhooks/github`
    - **Webhook secret**: Enter a secret token. Deliveries are rejected unless the same secret is configured in Buttler.
 3. Configure the required **Permissions**:
    - **Repository permissions**:
