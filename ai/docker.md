@@ -49,11 +49,12 @@ Docker is the single source of truth for builds, nothing about them is stored in
 - `syncReverseProxyConfig` (`src/core/nginx.ts`) writes it, tests it with `nginx -t` and reloads Nginx. If that fails, the previous config is restored and the error is thrown. It runs after a domain is added or removed, and in `provisionReverseProxy`, at startup too.
 - Nginx reads the config when it starts, so while it isn't running the config is only written, without a test or a reload. A domain change never starts Nginx.
 - A domain change is undone if Nginx can't be reloaded. A domain that can't be removed is still served, so it stays in SQLite.
-- `deleteFromReverseProxy` removes the domains of a service from the config right before its row is deleted. They are served again if the service is kept.
+- `deleteFromReverseProxy` removes the domains of a service from the config right before its row is deleted. They are served again if the service is kept. The tunnel and the DNS records are cleaned up before, see `ai/cloudflare.md`.
 - Changes run one after another, and read the domains when it's their turn.
 - The upstream is in a variable and resolved by Docker (`127.0.0.11`), so a service that isn't running leads to a 502 instead of a config that can't be loaded. The answers are only cached for 5 seconds, because a new container can have a new IP.
 - The dashboard is served at the domain that the admin sets on the settings page. Buttler runs on the host, so Nginx reaches it at `host.docker.internal`, on the port in `PORT`. The firewall of the host must let the Docker network reach that port, and Buttler must not only listen on the loopback interface.
 - `host.docker.internal` is in the hosts file of the container (`ExtraHosts`). The embedded DNS of Docker isn't expected to know it, so it's not in a variable. `provisionReverseProxy` replaces the containers of older versions, which don't have it.
+- Nginx publishes no ports, the Cloudflare tunnel is the only way to reach the domains from outside. The containers of older versions, which publish them, are replaced.
 - The port of Buttler stays open on the host, for the installation and for the instances without a domain.
 - GitHub only knows the address that was used for the installation. The settings page shows the URLs that have to be changed in the GitHub App.
 - HTTPS ends at Cloudflare, so `X-Forwarded-Proto` is always `https`.
