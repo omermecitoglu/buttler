@@ -1,7 +1,7 @@
-import { pick } from "@omer/object";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages } from "next-intl/server";
 import { routing } from "~/i18n/routing";
+import { pick } from "~/utils/object";
 import type { Metadata } from "next";
 import "../globals.css";
 
