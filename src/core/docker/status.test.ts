@@ -41,6 +41,7 @@ const mockDocker = {
 };
 
 const mockPullImage = vi.fn();
+const mockProvisionTunnel = vi.fn<() => Promise<boolean>>();
 const mockProvisionReverseProxy = vi.fn();
 const mockStartGitHubService = vi.fn();
 const mockGetBuildingServiceIds = vi.fn();
@@ -69,6 +70,10 @@ vi.mock("~/core/build", () => ({
   startGitHubService: (...args: unknown[]) => mockStartGitHubService(...args),
 }));
 
+vi.mock("~/core/cloudflare/tunnel", () => ({
+  provisionTunnel: () => mockProvisionTunnel(),
+}));
+
 vi.mock("~/core/nginx", () => ({
   provisionReverseProxy: (...args: unknown[]) => mockProvisionReverseProxy(...args),
 }));
@@ -80,6 +85,21 @@ describe("Docker status aggregator", () => {
     markServiceBuilding("srv-b", false);
     markServicePulling("srv-pulling", false);
     markServicePulling("srv-p", false);
+  });
+
+  describe("Cloudflare tunnel", () => {
+    const service = { id: "srv-tunnel", name: "Cloudflare Tunnel", type: "system" };
+
+    it("is started with its own settings", async () => {
+      mockProvisionTunnel.mockResolvedValue(true);
+      await startServiceContainer(service);
+      expect(mockProvisionTunnel).toHaveBeenCalledTimes(1);
+    });
+
+    it("can't be started without a tunnel", async () => {
+      mockProvisionTunnel.mockResolvedValue(false);
+      await expect(startServiceContainer(service)).rejects.toThrow("no Cloudflare tunnel");
+    });
   });
 
   describe("Building tracker", () => {

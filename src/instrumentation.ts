@@ -9,5 +9,11 @@ export async function register() {
       // eslint-disable-next-line no-console
       console.error("Failed to provision reverse proxy service at startup:", error);
     });
+
+    const { provisionTunnel } = await import("./core/cloudflare/tunnel");
+    await provisionTunnel().catch((error: unknown) => {
+      // eslint-disable-next-line no-console
+      console.error("Failed to provision the Cloudflare tunnel at startup:", error);
+    });
   }
 }
