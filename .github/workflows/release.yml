@@ -37,6 +37,20 @@ jobs:
       - name: Build package
         run: npm run build
 
+      # Installs the package like a user does. The command fails if the server doesn't work.
+      - name: Check package
+        env:
+          BUTTLER_HOME: ${{ runner.temp }}/buttler-home
+          BUTTLER_DB_PATH: ${{ runner.temp }}/buttler-home/database.sqlite
+          # The check doesn't need containers
+          DOCKER_HOST: unix:///nonexistent.sock
+        run: |
+          npm pack --ignore-scripts --pack-destination "$RUNNER_TEMP"
+          npm install --global --prefix "$RUNNER_TEMP/buttler" "$RUNNER_TEMP"/*.tgz
+          cd "$RUNNER_TEMP"
+          "$RUNNER_TEMP/buttler/bin/buttler" start || { cat "$BUTTLER_HOME/buttler.log"; exit 1; }
+          "$RUNNER_TEMP/buttler/bin/buttler" stop
+
       - name: Run semantic-release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
