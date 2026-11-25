@@ -2,10 +2,11 @@ import { getTranslations } from "next-intl/server";
 import { Suspense } from "react";
 import Authorized from "~/components/auth/Authorized";
 import ServicePanelSkeleton from "~/components/services/ServicePanelSkeleton";
+import CloudflareSettings from "~/components/settings/CloudflareSettings";
 import DashboardDomain from "~/components/settings/DashboardDomain";
 import UserWhitelist from "~/components/settings/UserWhitelist";
 
-export default async function(_page: PageProps<"/[locale]/settings">) {
+export default async function({ searchParams }: PageProps<"/[locale]/settings">) {
   const t = await getTranslations("SettingsPage");
 
   return (
@@ -17,6 +18,9 @@ export default async function(_page: PageProps<"/[locale]/settings">) {
       <Suspense fallback={<ServicePanelSkeleton />}>
         <Authorized adminOnly>
           <div className="flex flex-col gap-6">
+            <Suspense fallback={<ServicePanelSkeleton />}>
+              <CloudflareSettings searchParams={searchParams} />
+            </Suspense>
             <DashboardDomain />
             <UserWhitelist />
           </div>

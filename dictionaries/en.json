@@ -136,6 +136,30 @@
         "reload_failed": "The change was undone, because Nginx could not be reloaded with it. The reason is in the server log.",
         "remove_failed": "There is no domain to remove."
       }
+    },
+    "cloudflare": {
+      "title": "Cloudflare",
+      "description": "Buttler uses your Cloudflare account to make your domains reachable.",
+      "access": "Buttler can manage the tunnels of the accounts you choose, and the DNS records of all their domains.",
+      "localhost": "Cloudflare returns you to localhost, so connect on the computer that Buttler runs on.",
+      "connect": "Connect Cloudflare",
+      "connectAgain": "Connect again",
+      "connecting": "Connecting...",
+      "connected": "Connected",
+      "lost": "Cloudflare doesn't accept the connection anymore. Connect again to change your domains.",
+      "zones": "Domains in Cloudflare",
+      "noZones": "There are no domains in the accounts you chose.",
+      "zonesFailed": "Could not load the domains from Cloudflare. Please try again.",
+      "disconnect": "Disconnect",
+      "disconnecting": "Disconnecting...",
+      "messages": {
+        "disconnect_failed": "Cloudflare could not be disconnected. Please try again."
+      },
+      "errors": {
+        "access_denied": "The connection was not approved on Cloudflare.",
+        "invalid_state": "The connection was not started in this browser, or it took too long. Please try again.",
+        "failed": "Cloudflare could not be connected. Please try again."
+      }
     }
   },
   "DashboardPage": {
