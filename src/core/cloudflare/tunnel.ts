@@ -13,6 +13,7 @@ import saveCloudflareTunnel from "~/operations/saveCloudflareTunnel";
 import { cloudflareFetch } from "./client";
 import { getConnectionState } from "./connection";
 import { isCloudflareApiError } from "./errors";
+import { deleteAllRecords } from "./records";
 import { type CloudflareZone, getZones } from "./zones";
 
 type TunnelApiResponse = {
@@ -23,7 +24,7 @@ type TunnelApiResponse = {
 const NOT_FOUND = 404;
 const FORBIDDEN = 403;
 
-/** Changes never overlap, otherwise they could create multiple tunnels */
+/** Changes never overlap, otherwise they could create multiple tunnels. Shared with the sync of the domains. */
 const enqueue = createQueue("cloudflare-tunnel-queue");
 
 function getPath({ accountId, id }: Pick<CloudflareTunnel, "accountId" | "id">) {
@@ -53,8 +54,12 @@ async function createTunnel(accountId: string): Promise<CloudflareTunnel> {
   return tunnel;
 }
 
-/** Stops cloudflared first, it would keep the tunnel in use. Tunnels that are gone or not accessible are ignored. */
+/**
+ * The domains must not lead to a tunnel that is gone. Then cloudflared is stopped, it would keep the tunnel in use.
+ * Tunnels that are gone or not accessible are ignored.
+ */
 async function deleteTunnel(tunnel: CloudflareTunnel) {
+  await deleteAllRecords();
   await removeTunnelContainer();
   // Connections that were closed just now would prevent the deletion
   await ignoreApiStatus(cloudflareFetch(`${getPath(tunnel)}/connections`, { method: "DELETE" }), NOT_FOUND, FORBIDDEN);
@@ -87,7 +92,7 @@ async function ensureTunnel(accountId: string) {
 
 async function ensureToken(tunnel: CloudflareTunnel) {
   if (tunnel.token !== null) return tunnel.token;
-  // There are no domains yet
+  // The domains are added by the sync
   await cloudflareFetch(`${getPath(tunnel)}/configurations`, {
     method: "PUT",
     body: JSON.stringify({ config: { ingress: [{ service: "http_status:404" }] } }),
