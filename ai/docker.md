@@ -47,7 +47,7 @@ Docker is the single source of truth for builds, nothing about them is stored in
 
 - `generateProxyConfig` (`src/core/nginx-conf.ts`) generates `default.conf` from the domains in SQLite, with one server per hostname. The default server has the health check (`/healthz`), and answers unknown hostnames with a 404.
 - `syncReverseProxyConfig` (`src/core/nginx.ts`) writes it, tests it with `nginx -t` and reloads Nginx. If that fails, the previous config is restored and the error is thrown. It runs after a domain is added or removed, and in `provisionReverseProxy`, at startup too.
-- Nginx reads the config when it starts, so it's only written while Nginx isn't running. A domain change never starts Nginx.
+- Nginx reads the config when it starts, so while it isn't running the config is only written, without a test or a reload. A domain change never starts Nginx.
 - A domain change is undone if Nginx can't be reloaded. A domain that can't be removed is still served, so it stays in SQLite.
 - `deleteFromReverseProxy` removes the domains of a service from the config right before its row is deleted. They are served again if the service is kept.
 - Changes run one after another, and read the domains when it's their turn.
