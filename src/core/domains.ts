@@ -19,3 +19,26 @@ export function isHostname(hostname: string) {
 export function isPort(port: number) {
   return Number.isInteger(port) && port >= 1 && port <= 65535;
 }
+
+/** Returns the most specific zone that the hostname belongs to */
+export function findZone<T extends { name: string }>(hostname: string, zones: T[]): T | undefined {
+  return zones
+    .filter(({ name }) => hostname === name || hostname.endsWith(`.${name}`))
+    .sort((a, b) => b.name.length - a.name.length)
+    .at(0);
+}
+
+/** The subdomain is empty for the zone itself */
+export function joinHostname(subdomain: string, zoneName: string) {
+  return subdomain === "" ? zoneName : `${subdomain}.${zoneName}`;
+}
+
+/** The reverse of joining them */
+export function getSubdomain(hostname: string, zoneName: string) {
+  return hostname === zoneName ? "" : hostname.slice(0, -(zoneName.length + 1));
+}
+
+/** The free certificate of Cloudflare only covers the zone and one level of its subdomains */
+export function isCoveredByCertificate(subdomain: string) {
+  return !subdomain.includes(".");
+}
