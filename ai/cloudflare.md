@@ -6,7 +6,7 @@
 - Cloudflare always returns to `http://localhost:7777/auth/cloudflare`, because the redirect URL must be registered exactly and the instances don't have a common domain. Connecting only works in a browser on the computer that Buttler runs on.
 - The state and the PKCE verifier are in the session of the browser that started the connection. They can be used once, for 10 minutes.
 - `localhost` doesn't have the session of the dashboard domain. A callback that wasn't started at `localhost` is passed to the same path of the domain, where the state is verified.
-- `connectCloudflare` doesn't check who may connect. The callers do, the route needs the admin.
+- `connectCloudflare` doesn't check who may connect. The callers do, the route needs the setup or the admin.
 
 ## Tokens
 
