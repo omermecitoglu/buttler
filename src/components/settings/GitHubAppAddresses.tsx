@@ -1,19 +1,24 @@
 import { getTranslations } from "next-intl/server";
 import { getGitHubAppMetadata } from "~/core/github/app";
+import { getSetting } from "~/core/settings";
 
 export type GitHubAppAddressesProps = {
   hostname: string,
 };
 
-/** GitHub only knows the address that was used for the installation */
+/** GitHub only knows the domain that the app was created with, so nothing has to be done while it's the same */
 const GitHubAppAddresses = async ({ hostname }: GitHubAppAddressesProps) => {
   const [
     app,
+    appDomain,
     t,
   ] = await Promise.all([
     getGitHubAppMetadata(),
+    getSetting("github_app_domain"),
     getTranslations("SettingsPage.domain.github"),
   ]);
+
+  if (appDomain === hostname) return null;
 
   const addresses = [
     { label: t("callback"), path: "/auth/github" },
