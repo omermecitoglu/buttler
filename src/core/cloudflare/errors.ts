@@ -20,3 +20,7 @@ export class CloudflareApiError extends Error {
 export function isCloudflareConnectionError(error: unknown): error is CloudflareConnectionError {
   return error instanceof Error && error.name === "CloudflareConnectionError";
 }
+
+export function isCloudflareApiError(error: unknown): error is CloudflareApiError {
+  return error instanceof Error && error.name === "CloudflareApiError";
+}

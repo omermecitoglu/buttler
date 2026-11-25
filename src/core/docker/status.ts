@@ -2,6 +2,7 @@ import { docker } from "~/core/docker";
 import { getServiceImageTag } from "~/core/dockerhub";
 import { type ServiceEnvironmentVariable, getRuntimeVariables } from "~/core/environment-variables";
 import { getSharedState } from "~/core/shared-state";
+import { TUNNEL_SERVICE_NAME } from "~/operations/getTunnelService";
 import { getBuildingServiceIds } from "./builds";
 import { syncIngressNetwork } from "./ingress";
 import { BUTTLER_SERVICE_LABEL } from "./labels";
@@ -255,6 +256,12 @@ export async function startServiceContainer(service: ServiceRef): Promise<void> 
   if (service.type === "system" && service.name === "Reverse Proxy Server") {
     const { provisionReverseProxy } = await import("~/core/nginx");
     await provisionReverseProxy();
+    return;
+  }
+
+  if (service.type === "system" && service.name === TUNNEL_SERVICE_NAME) {
+    const { provisionTunnel } = await import("~/core/cloudflare/tunnel");
+    if (!await provisionTunnel()) throw new Error("There is no Cloudflare tunnel to run");
     return;
   }
 
