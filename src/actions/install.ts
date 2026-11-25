@@ -1,7 +1,7 @@
 "use server";
 import { createPrivateKey } from "node:crypto";
 import { redirect } from "next/navigation";
-import { requireNotInstalled } from "~/core/auth";
+import { requireSetup } from "~/core/auth";
 import { type GitHubAppInfo, getGitHubApp } from "~/core/github/app";
 import { GitHubAuthError } from "~/core/github/errors";
 import { setSetting } from "~/core/settings";
@@ -31,7 +31,7 @@ function isValidPrivateKey(pem: string): boolean {
 }
 
 export async function installApp(_prevState: InstallState, formData: FormData): Promise<InstallState> {
-  await requireNotInstalled();
+  await requireSetup();
   const appId = formData.get("appId")?.toString().trim() ?? "";
   const privateKey = await readPrivateKey(formData);
   const clientSecret = formData.get("clientSecret")?.toString().trim() ?? "";

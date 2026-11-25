@@ -4,6 +4,14 @@ export async function register() {
     const { default: migrate } = await import("./database/migrate");
     migrate();
 
+    const { prepareSetup } = await import("./core/setup");
+    // The CLI prints the link in production
+    if (await prepareSetup() && process.env.NODE_ENV === "development") {
+      const { getSetupLink } = await import("./core/setup-code");
+      // eslint-disable-next-line no-console
+      console.log(`Set up Buttler at ${getSetupLink()}`);
+    }
+
     const { provisionReverseProxy } = await import("./core/nginx");
     await provisionReverseProxy().catch(error => {
       // eslint-disable-next-line no-console

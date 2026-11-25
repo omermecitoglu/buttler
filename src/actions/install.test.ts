@@ -6,10 +6,10 @@ import { installApp } from "./install";
 const mockSetSetting = vi.fn();
 const mockGetGitHubApp = vi.fn();
 const mockRedirect = vi.fn();
-const mockRequireNotInstalled = vi.fn();
+const mockRequireSetup = vi.fn();
 
 vi.mock("~/core/auth", () => ({
-  requireNotInstalled: () => mockRequireNotInstalled(),
+  requireSetup: () => mockRequireSetup(),
 }));
 
 vi.mock("~/core/settings", () => ({
@@ -55,8 +55,8 @@ describe("installApp action", () => {
     });
   });
 
-  it("should be rejected once the instance is installed", async () => {
-    mockRequireNotInstalled.mockRejectedValueOnce(new Error("forbidden"));
+  it("should be rejected outside of the setup", async () => {
+    mockRequireSetup.mockRejectedValueOnce(new Error("forbidden"));
     await expect(installApp({}, makeFormData(validFields))).rejects.toThrow("forbidden");
     expect(mockSetSetting).not.toHaveBeenCalled();
   });

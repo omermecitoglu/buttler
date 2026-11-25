@@ -31,6 +31,7 @@ const routesWithOwnCheck = [
   "auth/cloudflare/route.ts",
   "auth/github-install/route.ts",
   "auth/github/route.ts",
+  "auth/setup/route.ts",
   "webhooks/github/route.ts",
 ];
 

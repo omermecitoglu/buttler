@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   isInstalled: vi.fn(),
+  isSetupSession: vi.fn(),
   setSetting: vi.fn(),
   redirect: vi.fn(),
 }));
@@ -16,6 +17,7 @@ vi.mock("next/navigation", () => ({
 vi.mock("next/server", () => ({ connection: vi.fn() }));
 vi.mock("~/core/access", () => ({}));
 vi.mock("~/core/session", () => ({}));
+vi.mock("~/core/setup", () => ({ isSetupSession: mocks.isSetupSession }));
 vi.mock("~/core/settings", () => ({ isInstalled: mocks.isInstalled, setSetting: mocks.setSetting }));
 
 import { GET } from "./route";
@@ -31,6 +33,7 @@ describe("GET /auth/github-install", () => {
     vi.resetAllMocks();
     vi.stubGlobal("fetch", fetchMock);
     mocks.isInstalled.mockResolvedValue(false);
+    mocks.isSetupSession.mockResolvedValue(true);
     mocks.redirect.mockImplementation(() => {
       throw new Error("NEXT_REDIRECT");
     });
@@ -50,6 +53,13 @@ describe("GET /auth/github-install", () => {
 
   it("should not replace the GitHub App of an installed instance", async () => {
     mocks.isInstalled.mockResolvedValue(true);
+    await expect(install()).rejects.toThrow("403");
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(mocks.setSetting).not.toHaveBeenCalled();
+  });
+
+  it("should not install without the setup link", async () => {
+    mocks.isSetupSession.mockResolvedValue(false);
     await expect(install()).rejects.toThrow("403");
     expect(fetchMock).not.toHaveBeenCalled();
     expect(mocks.setSetting).not.toHaveBeenCalled();

@@ -24,6 +24,8 @@ type SessionData = {
   user?: SessionUser,
   githubToken?: string,
   cloudflare?: PendingCloudflareAuthorization,
+  /** The code of the setup link that was opened in this browser */
+  setupCode?: string,
 };
 
 const SESSION_COOKIE_NAME = "buttler_session";
