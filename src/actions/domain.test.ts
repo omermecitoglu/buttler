@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { addDomainAction, removeDomainAction } from "./domain";
+import { addDomainAction, removeDomainAction, syncDomainsAction, takeOverDomainAction } from "./domain";
 
 const mocks = vi.hoisted(() => ({
   getSession: vi.fn(),
@@ -10,10 +10,13 @@ const mocks = vi.hoisted(() => ({
   syncIngressNetwork: vi.fn(),
   syncReverseProxyConfig: vi.fn(),
   updateTag: vi.fn(),
+  refresh: vi.fn(),
+  findDomainZone: vi.fn(),
+  syncDomains: vi.fn(),
 }));
 
 vi.mock("server-only", () => ({}));
-vi.mock("next/cache", () => ({ updateTag: mocks.updateTag }));
+vi.mock("next/cache", () => ({ refresh: mocks.refresh, updateTag: mocks.updateTag }));
 vi.mock("next/server", () => ({ connection: vi.fn() }));
 vi.mock("next/navigation", () => ({
   unauthorized: () => {
@@ -27,15 +30,17 @@ vi.mock("~/database", () => ({ default: {} }));
 vi.mock("~/core/session", () => ({ getSession: mocks.getSession }));
 vi.mock("~/core/access", () => ({ getAccess: mocks.getAccess }));
 vi.mock("~/core/settings", () => ({}));
+vi.mock("~/core/cloudflare/domains", () => ({ findDomainZone: mocks.findDomainZone, syncDomains: mocks.syncDomains }));
 vi.mock("~/core/docker/ingress", () => ({ syncIngressNetwork: mocks.syncIngressNetwork }));
 vi.mock("~/core/nginx", () => ({ syncReverseProxyConfig: mocks.syncReverseProxyConfig }));
 vi.mock("~/operations/getService", () => ({ default: mocks.getService }));
 vi.mock("~/operations/createDomain", () => ({ default: mocks.createDomain }));
 vi.mock("~/operations/deleteDomain", () => ({ default: mocks.deleteDomain }));
 
-function add(hostname: string, port = "3000") {
+function add(subdomain: string, port = "3000") {
   const formData = new FormData();
-  formData.set("hostname", hostname);
+  formData.set("subdomain", subdomain);
+  formData.set("zoneId", "z");
   formData.set("port", port);
   return addDomainAction("srv", {}, formData);
 }
@@ -48,18 +53,19 @@ describe("domain actions", () => {
     mocks.getSession.mockResolvedValue({ userId: 1 });
     mocks.getAccess.mockResolvedValue("admin");
     mocks.getService.mockResolvedValue({ id: "srv", type: "github" });
+    mocks.findDomainZone.mockResolvedValue({ id: "z", name: "example.com" });
     mocks.createDomain.mockReturnValue(true);
     mocks.deleteDomain.mockResolvedValue(domain);
   });
 
   it("should add a domain in lowercase", async () => {
-    expect(await add(" App.Example.com ")).toEqual({});
+    expect(await add(" App ")).toEqual({});
     expect(mocks.createDomain).toHaveBeenCalledWith({}, { hostname: "app.example.com", serviceId: "srv", port: 3000 });
     expect(mocks.updateTag).toHaveBeenCalledWith("getSingleService(srv)");
   });
 
   it("should connect the service after a domain is added", async () => {
-    await add("app.example.com");
+    await add("app");
     expect(mocks.syncIngressNetwork).toHaveBeenCalledWith("srv");
     expect(mocks.syncIngressNetwork).toHaveBeenCalledAfter(mocks.createDomain);
   });
@@ -67,13 +73,13 @@ describe("domain actions", () => {
   it("should not keep the domain if the service can't be connected", async () => {
     vi.spyOn(console, "error").mockImplementation(() => undefined);
     mocks.syncIngressNetwork.mockRejectedValue(new Error("no docker"));
-    expect(await add("app.example.com")).toEqual({ "[error]": "connect_failed" });
+    expect(await add("app")).toEqual({ "[error]": "connect_failed" });
     expect(mocks.deleteDomain).toHaveBeenCalledWith({}, "srv", "app.example.com");
     expect(mocks.updateTag).not.toHaveBeenCalled();
   });
 
   it("should reload Nginx after a domain is added", async () => {
-    await add("app.example.com");
+    await add("app");
     expect(mocks.syncReverseProxyConfig).toHaveBeenCalledTimes(1);
     expect(mocks.syncReverseProxyConfig).toHaveBeenCalledAfter(mocks.createDomain);
   });
@@ -81,7 +87,7 @@ describe("domain actions", () => {
   it("should not keep the domain if Nginx can't be reloaded", async () => {
     vi.spyOn(console, "error").mockImplementation(() => undefined);
     mocks.syncReverseProxyConfig.mockRejectedValue(new Error("broken"));
-    expect(await add("app.example.com")).toEqual({ "[error]": "reload_failed" });
+    expect(await add("app")).toEqual({ "[error]": "reload_failed" });
     expect(mocks.deleteDomain).toHaveBeenCalledWith({}, "srv", "app.example.com");
     // Once for the new domain, once without it
     expect(mocks.syncIngressNetwork).toHaveBeenCalledTimes(2);
@@ -89,25 +95,77 @@ describe("domain actions", () => {
     expect(mocks.updateTag).not.toHaveBeenCalled();
   });
 
+  it("should add the zone itself as a domain", async () => {
+    expect(await add("")).toEqual({});
+    expect(mocks.createDomain).toHaveBeenCalledWith({}, { hostname: "example.com", serviceId: "srv", port: 3000 });
+  });
+
+  it("should reject the zones that can't be used", async () => {
+    mocks.findDomainZone.mockResolvedValue(undefined);
+    expect(await add("app")).toEqual({ "[error]": "zone_unavailable" });
+    expect(mocks.createDomain).not.toHaveBeenCalled();
+  });
+
+  it("should make the domain public after Nginx serves it", async () => {
+    await add("app");
+    expect(mocks.syncDomains).toHaveBeenCalledTimes(1);
+    expect(mocks.syncDomains).toHaveBeenCalledAfter(mocks.syncReverseProxyConfig);
+  });
+
+  it("should not leave a reverted domain in Cloudflare", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+    mocks.syncReverseProxyConfig.mockRejectedValue(new Error("broken"));
+    await add("app");
+    expect(mocks.syncDomains).toHaveBeenCalledTimes(1);
+    expect(mocks.syncDomains).toHaveBeenCalledAfter(mocks.deleteDomain);
+  });
+
+  it("should stop the domain from being public before Nginx stops serving it", async () => {
+    await removeDomainAction("srv", "app.example.com", {}, new FormData());
+    expect(mocks.syncDomains).toHaveBeenCalledAfter(mocks.deleteDomain);
+    expect(mocks.syncDomains).toHaveBeenCalledBefore(mocks.syncReverseProxyConfig);
+  });
+
+  it("should make the domain public again if it can't be removed", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+    mocks.syncReverseProxyConfig.mockRejectedValue(new Error("broken"));
+    await removeDomainAction("srv", "app.example.com", {}, new FormData());
+    expect(mocks.syncDomains).toHaveBeenCalledTimes(2);
+  });
+
+  it("should try the failed domains again", async () => {
+    expect(await syncDomainsAction({}, new FormData())).toEqual({});
+    expect(mocks.syncDomains).toHaveBeenCalledWith({ verify: true });
+    expect(mocks.refresh).toHaveBeenCalledTimes(1);
+  });
+
+  it("should only take over the records that were shown", async () => {
+    expect(await takeOverDomainAction("app.example.com", "A 203.0.113.1", {}, new FormData())).toEqual({});
+    expect(mocks.syncDomains).toHaveBeenCalledWith({
+      takeover: { hostname: "app.example.com", records: "A 203.0.113.1" },
+    });
+    expect(mocks.refresh).toHaveBeenCalledTimes(1);
+  });
+
   it("should reject invalid hostnames", async () => {
-    expect(await add("*.example.com")).toEqual({ hostname: "INVALID_HOSTNAME" });
+    expect(await add("*")).toEqual({ "[error]": "invalid_hostname" });
     expect(mocks.createDomain).not.toHaveBeenCalled();
   });
 
   it.each(["", "0", "65536", "80.5", "http"])("should reject the port \"%s\"", async port => {
-    expect(await add("app.example.com", port)).toEqual({ port: "INVALID_PORT" });
+    expect(await add("app", port)).toEqual({ port: "INVALID_PORT" });
     expect(mocks.createDomain).not.toHaveBeenCalled();
   });
 
   it("should reject hostnames that are already taken", async () => {
     mocks.createDomain.mockReturnValue(false);
-    expect(await add("app.example.com")).toEqual({ "[error]": "hostname_taken" });
+    expect(await add("app")).toEqual({ "[error]": "hostname_taken" });
     expect(mocks.updateTag).not.toHaveBeenCalled();
   });
 
   it.each([null, { id: "srv", type: "system" }])("should not add domains to unknown and system services", async service => {
     mocks.getService.mockResolvedValue(service);
-    expect(await add("app.example.com")).toEqual({ "[error]": "add_failed" });
+    expect(await add("app")).toEqual({ "[error]": "add_failed" });
     expect(mocks.createDomain).not.toHaveBeenCalled();
   });
 
@@ -152,8 +210,11 @@ describe("domain actions", () => {
 
   it("should reject the users who are not the admin", async () => {
     mocks.getAccess.mockResolvedValue("member");
-    await expect(add("app.example.com")).rejects.toThrow("403");
+    await expect(add("app")).rejects.toThrow("403");
     await expect(removeDomainAction("srv", "app.example.com", {}, new FormData())).rejects.toThrow("403");
+    await expect(syncDomainsAction({}, new FormData())).rejects.toThrow("403");
+    await expect(takeOverDomainAction("app.example.com", "", {}, new FormData())).rejects.toThrow("403");
+    expect(mocks.syncDomains).not.toHaveBeenCalled();
     expect(mocks.createDomain).not.toHaveBeenCalled();
     expect(mocks.deleteDomain).not.toHaveBeenCalled();
   });
