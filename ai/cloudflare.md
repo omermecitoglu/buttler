@@ -11,7 +11,8 @@
 ## Tokens
 
 - They are in the `cloudflare_connection` setting, encrypted with the key file. They must never be cached, logged or sent to the browser, so only `getAccessToken` should be used. `null` instead of the tokens is a lost connection.
-- A refresh replaces both tokens, and the old ones stop working right away. Everything that uses the tokens runs one after another (`src/core/cloudflare/connection.ts`), and the new ones are saved before they are used.
+- A refresh replaces both tokens, and the old ones stop working right away. Getting, refreshing and replacing them runs one after another (`src/core/cloudflare/connection.ts`), and the new ones are saved before they are used.
+- The API requests aren't queued. A request whose token was replaced by a refresh is tried again by `cloudflareFetch`.
 - The connection is only lost if Cloudflare answers with `invalid_grant`. It's kept if Cloudflare can't be reached.
 - Tokens that were replaced or revoked are rejected with a 403, the same as a missing permission. `cloudflareFetch` gets a new token and tries once more.
 - Disconnecting revokes the tokens before they are removed, so a failure can be tried again.
