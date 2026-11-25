@@ -1,7 +1,9 @@
 import crypto from "node:crypto";
+import { revalidateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireAdmin } from "~/core/auth";
 import { connectCloudflare } from "~/core/cloudflare/connection";
+import { setUpTunnelAfterConnecting } from "~/core/cloudflare/tunnel";
 import { getPublicOrigin } from "~/core/headers";
 import { getSession } from "~/core/session";
 import db from "~/database";
@@ -46,6 +48,17 @@ async function completeAuthorization(code: string, verifier: string) {
   }
 }
 
+/** The connection is kept if it fails, the tunnel can be set up in the settings */
+async function setUpTunnel() {
+  try {
+    await setUpTunnelAfterConnecting();
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error("Failed to set up the Cloudflare tunnel:", error);
+  }
+  revalidateTag("getAllServices()", { expire: 0 });
+}
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const state = searchParams.get("state");
@@ -69,6 +82,7 @@ export async function GET(request: Request) {
 
   const code = searchParams.get("code");
   const isConnected = code !== null && await completeAuthorization(code, pending.verifier);
+  if (isConnected) await setUpTunnel();
   // The code must not stay in the address bar
   return redirect(isConnected ? "/settings" : "/settings?cloudflare=failed");
 }
