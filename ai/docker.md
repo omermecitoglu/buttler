@@ -52,6 +52,10 @@ Docker is the single source of truth for builds, nothing about them is stored in
 - `deleteFromReverseProxy` removes the domains of a service from the config right before its row is deleted. They are served again if the service is kept.
 - Changes run one after another, and read the domains when it's their turn.
 - The upstream is in a variable and resolved by Docker (`127.0.0.11`), so a service that isn't running leads to a 502 instead of a config that can't be loaded. The answers are only cached for 5 seconds, because a new container can have a new IP.
+- The dashboard is served at the domain that the admin sets on the settings page. Buttler runs on the host, so Nginx reaches it at `host.docker.internal`, on the port in `PORT`. The firewall of the host must let the Docker network reach that port, and Buttler must not only listen on the loopback interface.
+- `host.docker.internal` is in the hosts file of the container (`ExtraHosts`). The embedded DNS of Docker isn't expected to know it, so it's not in a variable. `provisionReverseProxy` replaces the containers of older versions, which don't have it.
+- The port of Buttler stays open on the host, for the installation and for the instances without a domain.
+- GitHub only knows the address that was used for the installation. The settings page shows the URLs that have to be changed in the GitHub App.
 - HTTPS ends at Cloudflare, so `X-Forwarded-Proto` is always `https`.
 
 ## Container Logs
