@@ -39,6 +39,7 @@ export default async function({ children }: LayoutProps<"/[locale]">) {
             messages,
             "BaseLayout",
             "DashboardPage",
+            "Domains",
             "InstallPage",
             "NewServicePage",
             "ServicePage",

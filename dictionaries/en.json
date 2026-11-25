@@ -109,8 +109,6 @@
       "title": "Dashboard domain",
       "description": "The public hostname of this Buttler dashboard.",
       "warning": "The login page is public at this domain. When you change or remove it, the dashboard is no longer reachable at the old one.",
-      "label": "Domain",
-      "placeholder": "e.g. buttler.example.com",
       "save": "Save domain",
       "saving": "Saving...",
       "github": {
@@ -132,9 +130,10 @@
       },
       "messages": {
         "hostname_taken": "This domain is already used by a service.",
-        "invalid_hostname": "Enter an exact domain like buttler.example.com, without a wildcard, a port or a path.",
+        "invalid_hostname": "This is not a valid domain. Wildcards, ports and paths are not allowed.",
         "reload_failed": "The change was undone, because Nginx could not be reloaded with it. The reason is in the server log.",
-        "remove_failed": "There is no domain to remove."
+        "remove_failed": "There is no domain to remove.",
+        "zone_unavailable": "The domain was not saved, because the chosen zone could not be loaded from Cloudflare. Please try again."
       }
     },
     "cloudflare": {
@@ -170,7 +169,11 @@
         "setUp": "Set up the tunnel",
         "settingUp": "Setting up..."
       },
-      "disconnectHelp": "Disconnecting also deletes the tunnel."
+      "disconnectHelp": "Disconnecting also deletes the tunnel and the DNS records of your domains. The domains are kept in Buttler.",
+      "leftovers": {
+        "title": "DNS records to be deleted",
+        "description": "These domains were removed from Buttler, but their DNS records are still in Cloudflare."
+      }
     }
   },
   "DashboardPage": {
@@ -409,8 +412,6 @@
         "title": "Domains",
         "description": "The public hostnames of this service, and the port of its container that receives their requests.",
         "empty": "No domains configured.",
-        "hostnameLabel": "Domain",
-        "hostnamePlaceholder": "e.g. app.example.com",
         "portLabel": "Container port",
         "portPlaceholder": "e.g. 3000",
         "add": "Add domain",
@@ -422,10 +423,11 @@
           "add_failed": "The domain could not be added.",
           "connect_failed": "The domain was not added, because the service could not be connected to Nginx. The reason is in the server log.",
           "hostname_taken": "This domain is already in use.",
-          "invalid_hostname": "Enter an exact domain like app.example.com, without a wildcard, a port or a path.",
+          "invalid_hostname": "This is not a valid domain. Wildcards, ports and paths are not allowed.",
           "invalid_port": "The port must be a number between 1 and 65535.",
           "reload_failed": "The change was undone, because Nginx could not be reloaded with it. The reason is in the server log.",
-          "remove_failed": "The domain could not be removed."
+          "remove_failed": "The domain could not be removed.",
+          "zone_unavailable": "The domain was not saved, because the chosen zone could not be loaded from Cloudflare. Please try again."
         }
       },
       "delete": {
@@ -486,6 +488,41 @@
         "failed": "Disconnected"
       },
       "noContainer": "This service doesn't have a container. Start it to see its logs."
+    }
+  },
+  "Domains": {
+    "subdomainLabel": "Subdomain",
+    "subdomainPlaceholder": "e.g. app, or empty",
+    "zoneLabel": "Domain in Cloudflare",
+    "preview": "The address will be {hostname}",
+    "certificateWarning": "The free certificate of Cloudflare only covers one level of subdomains. Browsers will show an error at this address without an additional certificate.",
+    "retry": "Try again",
+    "retrying": "Trying...",
+    "replace": "Replace the DNS records",
+    "replacing": "Replacing...",
+    "states": {
+      "active": "Active",
+      "pending": "Pending",
+      "failed": "Failed",
+      "disconnected": "Not reachable"
+    },
+    "help": {
+      "pending": "Cloudflare is not up to date with this domain yet.",
+      "failed": "Cloudflare could not be updated.",
+      "disconnected": "The domain is not reachable, because there is no Cloudflare tunnel."
+    },
+    "failures": {
+      "unreachable": "Cloudflare could not be reached. Buttler will try again automatically.",
+      "connection_lost": "Cloudflare doesn't accept the connection anymore. Connect again in the settings.",
+      "no_zone": "The Cloudflare account of the tunnel doesn't have a domain that {hostname} belongs to.",
+      "taken": "{hostname} already has DNS records that Buttler didn't create: {details}. Whatever uses them will stop working if they are replaced.",
+      "rejected": "Cloudflare rejected the change: {details}. Buttler will try again automatically."
+    },
+    "zones": {
+      "ready": "There are no domains in the Cloudflare account of the tunnel.",
+      "disconnected": "Domains need Cloudflare. Connect it and set up the tunnel first.",
+      "unavailable": "Could not load your domains from Cloudflare. Please try again later, or check the connection.",
+      "open": "Open the settings"
     }
   }
 }
