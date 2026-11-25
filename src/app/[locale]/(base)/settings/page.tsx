@@ -21,7 +21,9 @@ export default async function({ searchParams }: PageProps<"/[locale]/settings">)
             <Suspense fallback={<ServicePanelSkeleton />}>
               <CloudflareSettings searchParams={searchParams} />
             </Suspense>
-            <DashboardDomain />
+            <Suspense fallback={<ServicePanelSkeleton />}>
+              <DashboardDomain />
+            </Suspense>
             <UserWhitelist />
           </div>
         </Authorized>

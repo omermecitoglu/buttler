@@ -5,6 +5,7 @@ import CloudflareTunnel from "~/components/settings/CloudflareTunnel";
 import CloudflareZones from "~/components/settings/CloudflareZones";
 import ConnectCloudflareForm from "~/components/settings/ConnectCloudflareForm";
 import DisconnectCloudflareForm from "~/components/settings/DisconnectCloudflareForm";
+import LeftoverDomains from "~/components/settings/LeftoverDomains";
 import Card from "~/components/ui/card";
 import { getConnectionState } from "~/core/cloudflare/connection";
 import { getZones } from "~/core/cloudflare/zones";
@@ -77,6 +78,7 @@ const CloudflareSettings = async ({ searchParams }: CloudflareSettingsProps) => 
           <ConnectCloudflareForm action={connectCloudflareAction} isLost={state === "lost"} />
         </div>
       )}
+      <LeftoverDomains />
       {state !== "disconnected" && (
         <div className="space-y-1">
           <DisconnectCloudflareForm action={disconnectCloudflareAction} />

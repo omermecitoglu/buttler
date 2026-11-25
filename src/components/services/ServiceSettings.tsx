@@ -1,8 +1,10 @@
 import { connection } from "next/server";
 import { getLocale, getTranslations } from "next-intl/server";
+import { Suspense } from "react";
 import { deleteServiceAction } from "~/actions/service";
 import DeleteServiceModal from "~/components/services/DeleteServiceModal";
 import ServiceDomains from "~/components/services/ServiceDomains";
+import ServicePanelSkeleton from "~/components/services/ServicePanelSkeleton";
 import Card from "~/components/ui/card";
 import { getServiceWithLiveStatus, getVolumesOfService } from "~/data/services";
 import { notFound } from "~/i18n/navigation";
@@ -33,7 +35,9 @@ const ServiceSettings = async ({ params }: ServiceSettingsProps) => {
 
   return (
     <div className="flex flex-col gap-4">
-      <ServiceDomains service={service} />
+      <Suspense fallback={<ServicePanelSkeleton />}>
+        <ServiceDomains service={service} />
+      </Suspense>
       <Card className="flex flex-col gap-4 border-rose-500/20 p-6 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-base font-semibold text-slate-100">{t("delete.title")}</h2>
