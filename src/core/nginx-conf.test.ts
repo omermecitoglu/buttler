@@ -43,4 +43,20 @@ describe("generateProxyConfig", () => {
     expect(config).toContain("proxy_set_header Connection $connection_upgrade;");
     expect(config).toContain("map $http_upgrade $connection_upgrade {");
   });
+
+  it("should proxy the domain of the dashboard to the host", () => {
+    const config = generateProxyConfig([app], { hostname: "buttler.example.com", port: 2083 });
+    expect(config.match(/server \{/g)).toHaveLength(3);
+    expect(config).toMatch(/server_name buttler\.example\.com;[^}]*proxy_pass http:\/\/host\.docker\.internal:2083;/);
+    expect(config).toMatch(/server_name app\.example\.com;[^}]*"service-a:3000";/);
+  });
+
+  it("should not buffer the dashboard", () => {
+    const config = generateProxyConfig([], { hostname: "buttler.example.com", port: 2083 });
+    expect(config).toMatch(/server_name buttler\.example\.com;[^}]*proxy_buffering off;/);
+  });
+
+  it("should not serve the dashboard without a domain", () => {
+    expect(generateProxyConfig([app])).not.toContain("host.docker.internal");
+  });
 });
