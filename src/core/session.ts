@@ -2,6 +2,7 @@ import "server-only";
 import crypto from "node:crypto";
 import { getIronSession } from "iron-session";
 import { cookies } from "next/headers";
+import { getPublicOrigin, isLoopbackOrigin } from "./headers";
 import { getSetting, setSetting } from "./settings";
 
 export type SessionUser = {
@@ -42,12 +43,19 @@ async function getOrCreateSessionPassword(): Promise<string> {
 }
 
 export async function getSession() {
-  const password = await getOrCreateSessionPassword();
+  const [
+    password,
+    origin,
+  ] = await Promise.all([
+    getOrCreateSessionPassword(),
+    getPublicOrigin(),
+  ]);
   return await getIronSession<SessionData>(await cookies(), {
     cookieName: SESSION_COOKIE_NAME,
     password,
     cookieOptions: {
-      secure: process.env.NODE_ENV === "production",
+      // Safari rejects secure cookies without HTTPS, also at localhost
+      secure: process.env.NODE_ENV === "production" && !isLoopbackOrigin(origin),
     },
   });
 }
