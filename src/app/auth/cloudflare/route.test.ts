@@ -5,9 +5,12 @@ const mocks = vi.hoisted(() => ({
   getPublicOrigin: vi.fn(),
   requireAdmin: vi.fn(),
   connectCloudflare: vi.fn(),
+  setUpTunnelAfterConnecting: vi.fn(),
+  revalidateTag: vi.fn(),
   getDashboardDomain: vi.fn(),
 }));
 
+vi.mock("next/cache", () => ({ revalidateTag: mocks.revalidateTag }));
 vi.mock("next/navigation", () => ({
   redirect: (url: string) => {
     throw new Error(`redirect ${url}`);
@@ -15,6 +18,7 @@ vi.mock("next/navigation", () => ({
 }));
 vi.mock("~/core/auth", () => ({ requireAdmin: mocks.requireAdmin }));
 vi.mock("~/core/cloudflare/connection", () => ({ connectCloudflare: mocks.connectCloudflare }));
+vi.mock("~/core/cloudflare/tunnel", () => ({ setUpTunnelAfterConnecting: mocks.setUpTunnelAfterConnecting }));
 vi.mock("~/core/headers", () => ({ getPublicOrigin: mocks.getPublicOrigin }));
 vi.mock("~/core/session", () => ({ getSession: mocks.getSession }));
 vi.mock("~/database", () => ({ default: {} }));
@@ -45,6 +49,17 @@ describe("GET /auth/cloudflare", () => {
   it("should connect, and not keep the code in the address bar", async () => {
     expect(await call("code=abc&state=state")).toBe("redirect /settings");
     expect(mocks.connectCloudflare).toHaveBeenCalledWith("abc", "verifier");
+  });
+
+  it("should set the tunnel up after connecting", async () => {
+    await call("code=abc&state=state");
+    expect(mocks.setUpTunnelAfterConnecting).toHaveBeenCalledAfter(mocks.connectCloudflare);
+    expect(mocks.revalidateTag).toHaveBeenCalledWith("getAllServices()", { expire: 0 });
+  });
+
+  it("should stay connected if the tunnel can't be set up", async () => {
+    mocks.setUpTunnelAfterConnecting.mockRejectedValue(new Error("no docker"));
+    expect(await call("code=abc&state=state")).toBe("redirect /settings");
   });
 
   it("should use the authorization only once", async () => {
@@ -96,6 +111,7 @@ describe("GET /auth/cloudflare", () => {
   it("should report a connection that fails", async () => {
     mocks.connectCloudflare.mockRejectedValue(new Error("offline"));
     expect(await call("code=abc&state=state")).toBe("redirect /settings?cloudflare=failed");
+    expect(mocks.setUpTunnelAfterConnecting).not.toHaveBeenCalled();
     expect(await call("state=state")).toBe(INVALID);
   });
 

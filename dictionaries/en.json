@@ -153,13 +153,24 @@
       "disconnect": "Disconnect",
       "disconnecting": "Disconnecting...",
       "messages": {
-        "disconnect_failed": "Cloudflare could not be disconnected. Please try again."
+        "disconnect_failed": "Cloudflare could not be disconnected. Please try again.",
+        "setup_failed": "The tunnel could not be set up. The reason is in the output of Buttler."
       },
       "errors": {
         "access_denied": "The connection was not approved on Cloudflare.",
         "invalid_state": "The connection was not started in this browser, or it took too long. Please try again.",
         "failed": "Cloudflare could not be connected. Please try again."
-      }
+      },
+      "tunnel": {
+        "title": "Tunnel",
+        "running": "Buttler has a tunnel in the account {account}. You can see its status and logs on its own page.",
+        "open": "Open the tunnel",
+        "missing": "The tunnel is not set up yet. Your domains need it to be reachable.",
+        "account": "Account",
+        "setUp": "Set up the tunnel",
+        "settingUp": "Setting up..."
+      },
+      "disconnectHelp": "Disconnecting also deletes the tunnel."
     }
   },
   "DashboardPage": {

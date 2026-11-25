@@ -1,6 +1,7 @@
 import { connection } from "next/server";
 import { getTranslations } from "next-intl/server";
 import { connectCloudflareAction, disconnectCloudflareAction } from "~/actions/cloudflare";
+import CloudflareTunnel from "~/components/settings/CloudflareTunnel";
 import CloudflareZones from "~/components/settings/CloudflareZones";
 import ConnectCloudflareForm from "~/components/settings/ConnectCloudflareForm";
 import DisconnectCloudflareForm from "~/components/settings/DisconnectCloudflareForm";
@@ -63,7 +64,10 @@ const CloudflareSettings = async ({ searchParams }: CloudflareSettingsProps) => 
         <p className="rounded-md border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-400">{t("lost")}</p>
       )}
       {state === "connected" ? (
-        <CloudflareZones zones={zones} />
+        <>
+          <CloudflareZones zones={zones} />
+          <CloudflareTunnel zones={zones} />
+        </>
       ) : (
         <div className="space-y-4">
           <div className="space-y-1 text-xs text-slate-400">
@@ -73,7 +77,12 @@ const CloudflareSettings = async ({ searchParams }: CloudflareSettingsProps) => 
           <ConnectCloudflareForm action={connectCloudflareAction} isLost={state === "lost"} />
         </div>
       )}
-      {state !== "disconnected" && <DisconnectCloudflareForm action={disconnectCloudflareAction} />}
+      {state !== "disconnected" && (
+        <div className="space-y-1">
+          <DisconnectCloudflareForm action={disconnectCloudflareAction} />
+          <p className="text-xs text-slate-500">{t("disconnectHelp")}</p>
+        </div>
+      )}
     </Card>
   );
 };
