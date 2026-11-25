@@ -53,7 +53,7 @@
     "dev": "next dev --port 7777",
     "build:migration": "tsx scripts/migrate.ts",
     "build:ui": "next build",
-    "postbuild:ui": "rimraf ui && copyfiles -u 2 -a '.next/standalone/**/*' ui && copyfiles -a '.next/static/**/*' ui && copyfiles -a 'public/**/*' ui && rimraf ui/node_modules",
+    "postbuild:ui": "rimraf ui && copyfiles -F -u 2 -a '.next/standalone/**/*' ui && copyfiles -a '.next/static/**/*' ui && copyfiles -a 'public/**/*' ui && rimraf ui/node_modules",
     "build": "npm run build:cli && npm run build:ui"
   },
   "dependencies": {
