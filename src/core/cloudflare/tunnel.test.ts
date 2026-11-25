@@ -122,8 +122,31 @@ describe("Cloudflare tunnel", () => {
       expect(mocks.startTunnelContainer).not.toHaveBeenCalled();
     });
 
-    it("should create a tunnel in another account", async () => {
+    it("should delete the tunnel before one is created in another account", async () => {
       saved = tunnel;
+      await setUpTunnel("other");
+      expect(mocks.removeTunnelContainer).toHaveBeenCalledBefore(mocks.cloudflareFetch);
+      expect(getRequests().slice(0, 3)).toEqual([
+        "DELETE /accounts/acc/cfd_tunnel/tunnel/connections",
+        "DELETE /accounts/acc/cfd_tunnel/tunnel",
+        "POST /accounts/other/cfd_tunnel",
+      ]);
+      expect(saved).toMatchObject({ id: "new", accountId: "other" });
+    });
+
+    it("should not leave a tunnel behind if it can't be deleted", async () => {
+      saved = tunnel;
+      mocks.cloudflareFetch.mockRejectedValueOnce(new CloudflareApiError("down", 503));
+      await expect(setUpTunnel("other")).rejects.toThrow("down");
+      expect(saved).toEqual(tunnel);
+      expect(getRequests().some(request => request.startsWith("POST"))).toBe(false);
+    });
+
+    it.each([403, 404])("should replace a tunnel of another account that is gone (%d)", async status => {
+      saved = tunnel;
+      mocks.cloudflareFetch
+        .mockRejectedValueOnce(new CloudflareApiError("gone", status))
+        .mockRejectedValueOnce(new CloudflareApiError("gone", status));
       await setUpTunnel("other");
       expect(saved).toMatchObject({ id: "new", accountId: "other" });
     });
