@@ -2,6 +2,7 @@ import { getTranslations } from "next-intl/server";
 import { Suspense } from "react";
 import Authorized from "~/components/auth/Authorized";
 import ServicePanelSkeleton from "~/components/services/ServicePanelSkeleton";
+import DashboardDomain from "~/components/settings/DashboardDomain";
 import UserWhitelist from "~/components/settings/UserWhitelist";
 
 export default async function(_page: PageProps<"/[locale]/settings">) {
@@ -15,7 +16,10 @@ export default async function(_page: PageProps<"/[locale]/settings">) {
       </div>
       <Suspense fallback={<ServicePanelSkeleton />}>
         <Authorized adminOnly>
-          <UserWhitelist />
+          <div className="flex flex-col gap-6">
+            <DashboardDomain />
+            <UserWhitelist />
+          </div>
         </Authorized>
       </Suspense>
     </div>
