@@ -1,32 +1,61 @@
-export function parseEnvVariables(text: string): Record<string, string> {
-  const lines = text.split("\n").map(line => line.trim());
+const assignmentPattern = /^\s*(?:export\s+)?([A-Za-z_][A-Za-z0-9_.]*)\s*=(.*)$/;
+const doubleQuoteEscapes: Record<string, string> = { "n": "\n", "r": "\r", "t": "\t", "\"": "\"", "\\": "\\" };
+
+/**
+ * Parses `.env` text into variables, keeping their order. Values can be wrapped in
+ * single, double or backtick quotes to span several lines, and double quoted values
+ * can use `\n`, `\r`, `\t`, `\"` and `\\` escapes.
+ *
+ * Returns null if the text is not in `.env` format or has no variables.
+ */
+export function parseEnvVariables(text: string): Record<string, string> | null {
+  const lines = text.replace(/\r\n?/g, "\n").split("\n");
   const envVariables: Record<string, string> = {};
 
-  let currentKey: string | null = null;
-  let currentValue: string[] = [];
+  for (let index = 0; index < lines.length; index++) {
+    const line = lines[index];
+    const trimmed = line.trim();
+    if (trimmed === "" || trimmed.startsWith("#")) continue;
 
-  for (const line of lines) {
-    if (line.startsWith("#")) {
-      continue; // Skip commented lines
+    const match = assignmentPattern.exec(line);
+    if (!match) return null;
+    const [, key, rest] = match;
+    const rawValue = rest.trimStart();
+    const quote = rawValue[0];
+
+    if (quote !== "\"" && quote !== "'" && quote !== "`") {
+      envVariables[key] = rawValue.replace(/\s+#.*$/, "").trim();
+      continue;
     }
-    if (currentKey) {
-      currentValue.push(line);
-      if (line.endsWith('"')) {
-        envVariables[currentKey] = currentValue.join("\n").slice(1, -1); // Remove surrounding quotes
-        currentKey = null;
-        currentValue = [];
+
+    // A quoted value goes on until its closing quote, which can be on a later line
+    let value = "";
+    let remaining = rawValue.slice(1);
+    let closed = false;
+    for (;;) {
+      for (let position = 0; position < remaining.length; position++) {
+        const char = remaining[position];
+        if (quote === "\"" && char === "\\" && position + 1 < remaining.length) {
+          const next = remaining[position + 1];
+          value += doubleQuoteEscapes[next] ?? `\\${next}`;
+          position++;
+        } else if (char === quote) {
+          const after = remaining.slice(position + 1).trim();
+          if (after !== "" && !after.startsWith("#")) return null;
+          closed = true;
+          break;
+        } else {
+          value += char;
+        }
       }
-    } else {
-      const [key, ...valueParts] = line.split("=");
-      const value = valueParts.join("=");
-      if (key && value.startsWith('"') && !value.endsWith('"')) {
-        currentKey = key.trim();
-        currentValue.push(value);
-      } else if (key) {
-        envVariables[key.trim()] = value.trim();
-      }
+      if (closed) break;
+      index++;
+      if (index >= lines.length) return null;
+      value += "\n";
+      remaining = lines[index];
     }
+    envVariables[key] = value;
   }
 
-  return envVariables;
+  return Object.keys(envVariables).length > 0 ? envVariables : null;
 }
