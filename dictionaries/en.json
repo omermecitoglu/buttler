@@ -312,6 +312,10 @@
       "namePlaceholder": "e.g. My Web App",
       "nameHelp": "Unique name used to identify this service."
     },
+    "internetSection": {
+      "title": "Internet Access",
+      "description": "Whether the container can reach the internet. It never makes the service reachable by other services. This can be changed later in the settings."
+    },
     "portsSection": {
       "title": "Port Mappings",
       "description": "Map host ports to container ports for network access.",
@@ -369,7 +373,8 @@
       "invalid_ports": "One or more port mappings are invalid.",
       "invalid_environment_variables": "One or more environment variables are invalid.",
       "invalid_volumes": "One or more storage mounts are invalid.",
-      "volume_name_required": "Volume name is required for all storage mounts."
+      "volume_name_required": "Volume name is required for all storage mounts.",
+      "internet_access_required": "Choose whether the service has internet access."
     }
   },
   "ServicePage": {
@@ -525,6 +530,17 @@
         "failed": "Disconnected"
       },
       "noContainer": "This service doesn't have a container. Start it to see its logs."
+    },
+    "internetAccess": {
+      "title": "Internet Access",
+      "allowed": {
+        "label": "Allow internet access",
+        "description": "The container gets its own network to the internet, no other service is on it."
+      },
+      "blocked": {
+        "label": "No internet access",
+        "description": "The container can't reach the internet. Its domains and published ports keep working."
+      }
     }
   },
   "Domains": {

@@ -63,6 +63,9 @@ const environmentVariable = z.object({
   isSecret: z.boolean().default(false),
 });
 
+/** Radio buttons that have no default, nothing is sent until one is chosen */
+const internetAccessField = z.enum(["yes", "no"], "internet_access_required").transform(value => value === "yes");
+
 const volumesField = jsonField("invalid_volumes", z.array(z.object({
   name: z.string().trim().min(1, "volume_name_required"),
   containerPath: z.string().trim().min(1).startsWith("/"),
@@ -78,6 +81,7 @@ export const createServiceAction = defineFormAction({
     ports: portsField.optional().default([]),
     environmentVariables: jsonField("invalid_environment_variables", z.array(environmentVariable)).optional().default([]),
     volumes: volumesField.optional().default([]),
+    internetAccess: internetAccessField,
   }),
   action: input => async (locale: AppLocale) => {
     // Only the services with a build step can use the other scopes
@@ -90,6 +94,7 @@ export const createServiceAction = defineFormAction({
         type: input.type,
         repository: input.repository,
         branch: input.branch,
+        internetAccess: input.internetAccess,
         ports: input.ports,
         environmentVariables,
         volumes: input.volumes,
