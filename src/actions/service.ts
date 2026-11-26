@@ -16,8 +16,6 @@ import {
   getServiceRuntimeState,
   isImagePresentLocally,
   isServiceBuilding,
-  isServiceDeleting,
-  isServiceDeploying,
   isServicePulling,
   markServiceDeleting,
   markServicePulling,
@@ -38,19 +36,10 @@ import getDeployableService from "~/operations/getDeployableService";
 import getService from "~/operations/getService";
 import getSharedVolumes from "~/operations/getSharedVolumes";
 import updateService, { MissingSecretValueError } from "~/operations/updateService";
+import { jsonField } from "./fields";
 import { adminMiddleware } from "./middlewares/admin";
 import { userMiddleware } from "./middlewares/user";
-
-function jsonField<T extends z.ZodType>(errorMessage: string, schema: T) {
-  return z.string().transform((val, ctx): z.output<T> => {
-    try {
-      return schema.parse(JSON.parse(val || "[]"));
-    } catch {
-      ctx.addIssue({ code: "custom", message: errorMessage });
-      return z.NEVER;
-    }
-  });
-}
+import { isServiceBusy } from "./recreate";
 
 const portsField = jsonField("invalid_ports", z.array(z.object({
   external: z.coerce.number().int().min(1).max(65535),
@@ -192,14 +181,6 @@ export const updateInternetAccessAction = defineFormAction({
     return displayMessage("success", "recreated");
   },
 });
-
-/** A build, a pull or a deploy would create the service again while it's deleted */
-function isServiceBusy(serviceId: string) {
-  return isServiceBuilding(serviceId) ||
-    isServicePulling(serviceId) ||
-    isServiceDeploying(serviceId) ||
-    isServiceDeleting(serviceId);
-}
 
 /** The service itself is deleted last, so a deletion that fails can be tried again */
 async function removeService({ id, volumes }: { id: string, volumes: { name: string }[] }, chosenVolumes: string[]) {
