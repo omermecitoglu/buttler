@@ -32,6 +32,7 @@ describe("secrets of services", () => {
       type: "github",
       repository: null,
       branch: null,
+      internetAccess: true,
       environmentVariables: [
         { key: "URL", value: "http://localhost", scope: "both", isSecret: false },
         { key: "TOKEN", value: "hunter2", scope: "build", isSecret: true },
@@ -55,7 +56,7 @@ describe("secrets of services", () => {
   });
 
   it("should leave variables without a scope at runtime", async () => {
-    const { id } = createService(db, { name: "old", type: "github", repository: null, branch: null });
+    const { id } = createService(db, { name: "old", type: "github", repository: null, branch: null, internetAccess: true });
     client.prepare("INSERT INTO environment_variables (service_id, key, value) VALUES (?, 'A', 'B')").run(id);
     const service = await getDeployableService(db, id);
     expect(service?.environmentVariables).toEqual([

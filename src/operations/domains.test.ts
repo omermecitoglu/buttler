@@ -21,7 +21,7 @@ const db = drizzle({ client, relations });
 migrate(db, { migrationsFolder: "drizzle" });
 
 function create(name: string) {
-  return createService(db, { name, type: "dockerhub", repository: "nginx", branch: "alpine" }).id;
+  return createService(db, { name, type: "dockerhub", repository: "nginx", branch: "alpine", internetAccess: true }).id;
 }
 
 async function getServiceDomains(serviceId: string) {

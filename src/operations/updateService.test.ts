@@ -25,6 +25,7 @@ describe("updateService", () => {
     serviceId = createService(db, {
       ...base,
       type: "github",
+      internetAccess: true,
       ports: [{ external: 8080, internal: 80 }],
       environmentVariables: [{ key: "TOKEN", value: "hunter2", scope: "runtime", isSecret: true }],
       volumes: [{ name: "data", containerPath: "/data" }],

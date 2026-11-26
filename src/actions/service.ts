@@ -7,6 +7,7 @@ import { requireUser } from "~/core/auth";
 import { deleteBuildLog, findLatestImage, startBuilding } from "~/core/build";
 import { syncDomains } from "~/core/cloudflare/domains";
 import { removeIngressNetwork } from "~/core/docker/ingress";
+import { removeInternetNetwork } from "~/core/docker/internet";
 import { removeServiceContainers, removeServiceImages, removeVolumes } from "~/core/docker/removal";
 import {
   type ServiceRef,
@@ -153,6 +154,7 @@ function isServiceBusy(serviceId: string) {
 async function removeService({ id, volumes }: { id: string, volumes: { name: string }[] }, chosenVolumes: string[]) {
   await removeServiceContainers(id);
   await removeIngressNetwork(id);
+  await removeInternetNetwork(id);
   await removeServiceImages(id);
   if (chosenVolumes.length > 0) {
     const sharedVolumes = await getSharedVolumes(db, id);
