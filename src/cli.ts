@@ -8,6 +8,7 @@ import { fileURLToPath } from "node:url";
 import { Command } from "commander";
 import { getLogPath, openLogFile } from "./core/log-file";
 import { getSetupLink } from "./core/setup-code";
+import { checkFile, getFilePath, removeFile, saveFile } from "./core/storage";
 
 /* eslint-disable no-console */
 
@@ -22,14 +23,7 @@ const STOP_TIMEOUT = 10_000;
 
 const SERVER_ERROR = 500;
 
-async function checkFile(filePath: string) {
-  try {
-    await fs.access(filePath);
-    return true;
-  } catch {
-    return false;
-  }
-}
+const PID_FILE = "PID";
 
 function spawnChildProcess(detached: boolean, debug: boolean) {
   const __filename = fileURLToPath(import.meta.url);
@@ -44,7 +38,6 @@ function spawnChildProcess(detached: boolean, debug: boolean) {
       ...process.env,
       PORT: "7777",
       WEBHOOK_SECRET: "buttler",
-      CURRENT_WORKING_DIRECTORY: process.cwd(),
       DRIZZLE_DIR: resolve(__dirname, "../drizzle"),
       ...(debug ? { DEBUG_MODE: "yes" } : {}),
     },
@@ -86,19 +79,18 @@ async function start(development: boolean) {
   if (development) {
     await stop();
   }
-  const pidFilePath = resolve(process.cwd(), "PID");
-  const exists = await checkFile(pidFilePath);
+  const exists = await checkFile("", PID_FILE);
   if (exists) {
     console.warn("the application is already running");
     printAddress();
     return;
   }
   const child = spawnChildProcess(!development, development);
-  await fs.writeFile(pidFilePath, `${child.pid}`, "utf8");
+  await saveFile("", PID_FILE, `${child.pid}`);
   console.log("the application is starting");
   const result = await waitUntilReady(child);
   if (result === "crashed") {
-    await fs.rm(pidFilePath, { force: true });
+    await fs.rm(getFilePath("", PID_FILE), { force: true });
     console.error("the application could not start");
     process.exitCode = 1;
   } else if (result === "broken") {
@@ -129,12 +121,11 @@ async function waitUntilGone(pid: number) {
 }
 
 async function stop() {
-  const pidFilePath = resolve(process.cwd(), "PID");
-  const exists = await checkFile(pidFilePath);
+  const exists = await checkFile("", PID_FILE);
   if (!exists) {
     return console.warn("the application was not running");
   }
-  const content = await fs.readFile(pidFilePath, "utf-8");
+  const content = await fs.readFile(getFilePath("", PID_FILE), "utf-8");
   const pid = parseInt(content);
   try {
     if (isNaN(pid)) throw new Error("Invalid PID");
@@ -144,7 +135,7 @@ async function stop() {
   } catch {
     console.warn("the application was crashed");
   } finally {
-    await fs.unlink(pidFilePath);
+    await removeFile("", PID_FILE);
   }
 }
 
