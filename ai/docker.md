@@ -23,6 +23,12 @@ Docker is the single source of truth for builds, nothing about them is stored in
 - Builds and pulls go on after the response is sent, so the actions return what they led to (`ServiceActionOutcome`) instead of waiting. A failed pull is only written to the server log.
 - A deploy always starts the new container, so "Rebuild" and "Redeploy" also start a stopped service.
 
+## Exposed Ports
+
+- The ports a service's image exposes (`EXPOSE`, including those of a base image) are read from Docker when a page renders, never stored (`getExposedPortsOfService` in `src/data/services.ts`). Only TCP ports are kept.
+- The image is the latest build of a GitHub service, or the pulled image of a Docker Hub service. A missing image exposes nothing.
+- The first exposed port is the default container port of a new domain, before the first port mapping. The port mappings editor offers the exposed ports that are not mapped yet.
+
 ## Deletion
 
 - Only the admin can delete a service (`deleteServiceAction`), from the "Settings" tab of its page. System services can't be deleted, and neither can services that are being built or pulled, because they would be deployed again.
