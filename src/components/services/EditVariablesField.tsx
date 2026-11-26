@@ -31,6 +31,7 @@ const EditVariablesField = ({ variables, hasBuild }: EditVariablesFieldProps) =>
     scope: variable.scope,
     isSecret: variable.isSecret,
     savedSecretKey: variable.isSecret ? variable.key : undefined,
+    isMultiline: variable.value?.includes("\n") ?? false,
   })));
 
   const value = items

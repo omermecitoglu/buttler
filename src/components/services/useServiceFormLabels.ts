@@ -20,6 +20,8 @@ export default function useServiceFormLabels() {
       title: t("envSection.title"),
       description: t("envSection.description"),
       addButton: t("envSection.addButton"),
+      copyButton: t("envSection.copyButton"),
+      copiedButton: t("envSection.copiedButton"),
       removeButton: t("envSection.removeButton"),
       keyLabel: t("envSection.keyLabel"),
       keyPlaceholder: t("envSection.keyPlaceholder"),
