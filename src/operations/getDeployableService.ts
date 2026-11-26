@@ -1,5 +1,6 @@
 import { decryptSecret } from "~/core/secrets";
 import type database from "~/database";
+import getInheritedVariables from "./getInheritedVariables";
 import { getSecretContext } from "./getSecretContext";
 
 /** Returns a service with its decrypted secrets, it must never be cached or sent to the browser */
@@ -13,6 +14,7 @@ export default async function getDeployableService(db: typeof database, serviceI
     },
   });
   if (!service) return null;
+  const inheritedVariables = await getInheritedVariables(db, serviceId, { decrypt: true });
   return {
     ...service,
     environmentVariables: service.environmentVariables.map(variable => ({
@@ -21,5 +23,7 @@ export default async function getDeployableService(db: typeof database, serviceI
         ? decryptSecret(variable.value, getSecretContext(serviceId, variable.key))
         : variable.value,
     })),
+    /** Runtime-only, the hand-written variables of the service win */
+    inheritedVariables: Object.fromEntries(inheritedVariables.map(({ name, value }) => [name, value ?? ""])),
   };
 }

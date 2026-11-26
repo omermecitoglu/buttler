@@ -220,6 +220,8 @@ export type ServiceRef = ServiceIdentity & {
   branch?: string | null,
   ports?: { external: number, internal: number }[],
   environmentVariables?: ServiceEnvironmentVariable[],
+  /** Variables from the links of the service, resolved when it's loaded */
+  inheritedVariables?: Record<string, string>,
   volumes?: { name: string, containerPath: string }[],
 };
 
@@ -413,7 +415,10 @@ async function replaceServiceContainer(service: ServiceRef, image: string) {
     exposedPorts[`${p.internal}/tcp`] = {};
   }
 
-  const env = Object.entries(getRuntimeVariables(service.environmentVariables)).map(([key, value]) => `${key}=${value}`);
+  const env = Object.entries({
+    ...service.inheritedVariables,
+    ...getRuntimeVariables(service.environmentVariables),
+  }).map(([key, value]) => `${key}=${value}`);
   const binds = (service.volumes ?? []).map(v => `${v.name}:${v.containerPath}`);
 
   const container = await docker.createContainer({
