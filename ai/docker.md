@@ -26,10 +26,21 @@ Docker is the single source of truth for builds, nothing about them is stored in
 ## Deletion
 
 - Only the admin can delete a service (`deleteServiceAction`), from the "Settings" tab of its page. System services can't be deleted, and neither can services that are being built or pulled, because they would be deployed again.
-- The container, its ingress network, the built images, the chosen volumes and the domains in the Nginx config are removed before the database row, so a deletion that fails can be tried again (`src/core/docker/removal.ts`).
+- The container, its ingress and internet networks, the built images, the chosen volumes and the domains in the Nginx config are removed before the database row, so a deletion that fails can be tried again (`src/core/docker/removal.ts`).
 - Containers are matched by the label or the `buttler-service-<id>` name only. `matchContainerForService` also matches by the service name, which may find an unrelated container.
 - Volumes are kept, except the ones that are chosen in the dialog. The ones that other services or containers use are always kept. Stopped services have no container, so the `volumes` table is checked too (`getSharedVolumes`).
 - Docker Hub images are never removed, other containers may use them.
+
+## Service Networks
+
+- Services are isolated: a service container is never on the default `bridge` network, and never on a network with another service.
+- Whether a service has internet access is the `internet_access` column of `services`. The create form requires a choice, existing services got internet access with the migration.
+- Every service has its own internet network (`src/core/docker/internet.ts`), a non-internal bridge network named `buttler-internet-<service id>` and labelled `buttler.network=internet`.
+- A deploy creates the container on its internet network (`NetworkMode`), because a container that is created without a network joins the default `bridge` network. A service without internet access leaves it before the container is started, and the network is removed.
+- `NetworkMode: "none"` is not used, a container with it can never join a network later (ingress networks, links).
+- A change of internet access is only applied when the container is created again. The settings form offers to recreate it right away (`updateInternetAccessAction`), otherwise it's applied by the next restart, start or deploy.
+- Containers that were created before keep the default `bridge` network until they are recreated.
+- Host ports that a service publishes are not affected.
 
 ## Ingress Networks
 
@@ -39,9 +50,9 @@ Docker is the single source of truth for builds, nothing about them is stored in
 - `provisionReverseProxy` syncs all of them, at startup too. This connects a new Nginx container and removes leftovers.
 - Changes run one after another, and read the domains when it's their turn.
 - A domain isn't added if its service can't be connected. A failed cleanup of a removed domain is only logged, and done by the next sync.
-- The networks are internal, so the default network stays the gateway of the containers.
+- The networks are internal, only the internet network of a service reaches the outside.
 - Networks are only found by their labels (`buttler.network=ingress` and `buttler.service-id`). Others are never used, changed or removed, and a network that is used by an unrelated container is kept.
-- The container is connected after it's created, because networks that are given at creation would replace the default one.
+- The container is connected after it's created, its internet network is the one that is given at creation.
 
 ## Network Subnets
 
