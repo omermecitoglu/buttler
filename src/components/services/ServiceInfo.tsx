@@ -5,7 +5,7 @@ import type { ServiceEdit } from "~/components/services/EditServiceFields";
 import EditServiceModal from "~/components/services/EditServiceModal";
 import ServiceInfoList from "~/components/services/ServiceInfoList";
 import ServiceInfoSection from "~/components/services/ServiceInfoSection";
-import { getServiceWithLiveStatus } from "~/data/services";
+import { getAllServices, getInheritedVariablesOfService, getServiceWithLiveStatus } from "~/data/services";
 import { notFound } from "~/i18n/navigation";
 
 export type ServiceInfoProps = {
@@ -17,12 +17,16 @@ const ServiceInfo = async ({ params }: ServiceInfoProps) => {
   const { id } = await params;
   const [
     service,
+    inheritedVariables,
+    services,
     t,
     tService,
     tScopes,
     format,
   ] = await Promise.all([
     getServiceWithLiveStatus(id),
+    getInheritedVariablesOfService(id),
+    getAllServices(),
     getTranslations("ServicePage.info"),
     getTranslations("DashboardPage.service"),
     getTranslations("NewServicePage.envSection.scopes"),
@@ -139,7 +143,7 @@ const ServiceInfo = async ({ params }: ServiceInfoProps) => {
         title={t("variables")}
         action={renderEdit({ section: "variables", isGitHub, variables: service.environmentVariables })}
       >
-        {service.environmentVariables.length === 0 ? (
+        {service.environmentVariables.length === 0 && inheritedVariables.length === 0 ? (
           <p className="text-sm text-slate-500">{t("noVariables")}</p>
         ) : (
           <div className="overflow-x-auto">
@@ -165,6 +169,36 @@ const ServiceInfo = async ({ params }: ServiceInfoProps) => {
                     {isGitHub && <td className="py-2 text-slate-400">{tScopes(variable.scope)}</td>}
                   </tr>
                 ))}
+                {inheritedVariables.map(variable => {
+                  const isOverridden = service.environmentVariables.some(({ key }) => key === variable.name);
+                  const source = services.find(({ id: serviceId }) => serviceId === variable.sourceServiceId);
+                  return (
+                    <tr key={`${variable.linkId}-${variable.sharedVariableId}`}>
+                      <td className="py-2 pr-4 align-top">
+                        <span className={isOverridden ? "font-mono text-slate-500 line-through" : "font-mono text-slate-200"}>
+                          {variable.name}
+                        </span>
+                        <p className="text-xs text-slate-500">
+                          {t("inheritedFrom", { name: source?.name ?? variable.sourceServiceId })}
+                          {isOverridden && ` · ${t("overridden")}`}
+                        </p>
+                      </td>
+                      <td className="py-2 pr-4 align-top font-mono break-all text-slate-400">
+                        {variable.isSecret ? (
+                          <span className="rounded border border-amber-500/20 bg-amber-500/10 px-1.5 py-0.5 text-xs text-amber-400">
+                            {t("secret")}
+                          </span>
+                        ) : variable.value}
+                        {variable.unset.length > 0 && (
+                          <p className="font-sans text-xs text-amber-400">
+                            {t("inheritedUnset", { names: variable.unset.join(", ") })}
+                          </p>
+                        )}
+                      </td>
+                      {isGitHub && <td className="py-2 align-top text-slate-400">{tScopes("runtime")}</td>}
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
