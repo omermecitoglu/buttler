@@ -13,6 +13,7 @@ import EnvironmentVariablesRepeater, {
   type EnvironmentVariableItem,
 } from "~/components/services/EnvironmentVariablesRepeater";
 import GitHubSourcePicker from "~/components/services/GitHubSourcePicker";
+import InternetAccessChoice from "~/components/services/InternetAccessChoice";
 import PortMappingsRepeater, {
   type PortMappingItem,
 } from "~/components/services/PortMappingsRepeater";
@@ -43,6 +44,8 @@ const NewServiceForm = ({ action }: NewServiceFormProps) => {
   const [ports, setPorts] = useState<PortMappingItem[]>([]);
   const [envVars, setEnvVars] = useState<EnvironmentVariableItem[]>([]);
   const [volumes, setVolumes] = useState<VolumeMountItem[]>([]);
+  // There is no default, the user must choose
+  const [internetAccess, setInternetAccess] = useState<boolean | null>(null);
 
   const nameInputId = useId();
 
@@ -84,6 +87,7 @@ const NewServiceForm = ({ action }: NewServiceFormProps) => {
     invalid_environment_variables: t("messages.invalid_environment_variables"),
     invalid_volumes: t("messages.invalid_volumes"),
     volume_name_required: t("messages.volume_name_required"),
+    INTERNET_ACCESS_REQUIRED: t("messages.internet_access_required"),
   };
 
   return (
@@ -174,6 +178,18 @@ const NewServiceForm = ({ action }: NewServiceFormProps) => {
             placeholder={t("generalSection.namePlaceholder")}
           />
         </div>
+      </Card>
+      {/* Internet Access Section */}
+      <Card className="flex flex-col gap-4 p-6">
+        <div>
+          <h2 className="text-base font-semibold text-slate-100">
+            {t("internetSection.title")}
+            {" "}
+            <span className="text-rose-400">*</span>
+          </h2>
+          <p className="mt-1 text-xs text-slate-400">{t("internetSection.description")}</p>
+        </div>
+        <InternetAccessChoice value={internetAccess} onChange={setInternetAccess} />
       </Card>
       {/* Port Mappings Section */}
       <PortMappingsRepeater

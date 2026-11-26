@@ -313,6 +313,7 @@ describe("service lifecycle server actions", () => {
         { key: "NPM_TOKEN", value: "t", scope: "build", isSecret: true },
       ]));
       formData.set("volumes", JSON.stringify([{ name: "app-data", containerPath: "/data" }]));
+      formData.set("internetAccess", "yes");
 
       await createServiceAction("en", {}, formData);
 
@@ -325,6 +326,7 @@ describe("service lifecycle server actions", () => {
         type: "github",
         repository: "org/repo",
         branch: "main",
+        internetAccess: true,
         ports: [{ external: 3000, internal: 3000 }],
         environmentVariables,
         volumes: [{ name: "app-data", containerPath: "/data" }],
@@ -347,6 +349,7 @@ describe("service lifecycle server actions", () => {
       formData.set("type", "dockerhub");
       formData.set("repository", "redis");
       formData.set("branch", "latest");
+      formData.set("internetAccess", "no");
       formData.set("environmentVariables", JSON.stringify([
         { key: "PASSWORD", value: "p", scope: "build", isSecret: true },
       ]));
@@ -369,6 +372,33 @@ describe("service lifecycle server actions", () => {
       expect(mockCreateService).not.toHaveBeenCalled();
     });
 
+    it("requires a choice for internet access", async () => {
+      const formData = new FormData();
+      formData.set("name", "Cache");
+      formData.set("type", "dockerhub");
+      formData.set("repository", "redis");
+      formData.set("branch", "latest");
+
+      const errors = await createServiceAction("en", {}, formData);
+
+      expect(errors).toHaveProperty("internetAccess");
+      expect(mockCreateService).not.toHaveBeenCalled();
+    });
+
+    it("creates a service without internet access", async () => {
+      mockCreateService.mockReturnValue({ id: "srv-dh", type: "dockerhub" });
+      const formData = new FormData();
+      formData.set("name", "Cache");
+      formData.set("type", "dockerhub");
+      formData.set("repository", "redis");
+      formData.set("branch", "latest");
+      formData.set("internetAccess", "no");
+
+      await createServiceAction("en", {}, formData);
+
+      expect(mockCreateService).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ internetAccess: false }));
+    });
+
     it("returns error message if createService operation throws", async () => {
       mockCreateService.mockImplementation(() => {
         throw new Error("DB error");
@@ -378,6 +408,7 @@ describe("service lifecycle server actions", () => {
       formData.set("type", "dockerhub");
       formData.set("repository", "redis");
       formData.set("branch", "alpine");
+      formData.set("internetAccess", "yes");
 
       const res = await createServiceAction("en", {}, formData);
       expect(res).toEqual({ "[error]": "create_failed" });
