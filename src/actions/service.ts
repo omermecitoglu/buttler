@@ -149,6 +149,8 @@ export const updateServiceAction = defineFormAction({
     }
     updateTag("getAllServices()");
     updateTag(`getSingleService(${serviceId})`);
+    // Linked services may inherit variables that are built from them
+    updateTag("getInheritedVariablesOfService(...)");
     return {};
   },
 });
