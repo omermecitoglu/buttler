@@ -15,6 +15,8 @@ import { userMiddleware } from "./middlewares/user";
 function updateLinkTags(link: Pick<ServiceLinkDTO, "serviceAId" | "serviceBId">) {
   updateTag(`getLinksOfService(${link.serviceAId})`);
   updateTag(`getLinksOfService(${link.serviceBId})`);
+  // The services may inherit variables through the link
+  updateTag("getInheritedVariablesOfService(...)");
 }
 
 /** System services get their links from Buttler */

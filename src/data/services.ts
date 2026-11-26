@@ -6,9 +6,11 @@ import { isVolumeName } from "~/core/docker/removal";
 import { type ServiceRuntimeState, getServiceRuntimeState, getServicesRuntimeStates } from "~/core/docker/status";
 import db from "~/database";
 import type { ServiceDTO } from "~/models/service";
+import getInheritedVariables from "~/operations/getInheritedVariables";
 import getService from "~/operations/getService";
 import getServiceLinks from "~/operations/getServiceLinks";
 import getServices from "~/operations/getServices";
+import getSharedVariables from "~/operations/getSharedVariables";
 import getSharedVolumes from "~/operations/getSharedVolumes";
 
 export type ServiceWithRuntime = Awaited<ReturnType<typeof getServices>>[number] & {
@@ -109,4 +111,22 @@ export async function getLinksOfService(serviceId: ServiceDTO["id"]) {
   cacheTag(`getLinksOfService(${serviceId})`);
   cacheTag("getLinksOfService(...)");
   return await getServiceLinks(db, serviceId);
+}
+
+export async function getSharedVariablesOfService(serviceId: ServiceDTO["id"]) {
+  "use cache";
+  cacheTag(`getSharedVariablesOfService(${serviceId})`);
+  cacheTag("getSharedVariablesOfService(...)");
+  return await getSharedVariables(db, serviceId);
+}
+
+/**
+ * Secrets have no value, so the result is safe to be cached.
+ * It depends on the variables and the links of other services, so changes to them update the group tag.
+ */
+export async function getInheritedVariablesOfService(serviceId: ServiceDTO["id"]) {
+  "use cache";
+  cacheTag(`getInheritedVariablesOfService(${serviceId})`);
+  cacheTag("getInheritedVariablesOfService(...)");
+  return await getInheritedVariables(db, serviceId);
 }
