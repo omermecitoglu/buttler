@@ -29,7 +29,7 @@ vi.mock("~/operations/getSharedVariables", () => ({ default: mocks.getSharedVari
 vi.mock("~/operations/getInheritedVariables", () => ({ default: mocks.getInheritedVariables }));
 vi.mock("~/operations/saveSharedVariables", () => ({ default: mocks.saveSharedVariables }));
 vi.mock("~/operations/updateLinkInheritance", () => ({ default: mocks.updateLinkInheritance }));
-vi.mock("./recreate", () => ({ recreateRunningServices: mocks.recreateRunningServices }));
+vi.mock("~/core/recreate", () => ({ recreateRunningServices: mocks.recreateRunningServices }));
 
 const link = {
   id: "l1",

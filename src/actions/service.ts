@@ -27,6 +27,7 @@ import {
 import { getServiceImageTag } from "~/core/dockerhub";
 import { environmentVariableScopes } from "~/core/environment-variables";
 import { deleteFromReverseProxy } from "~/core/nginx";
+import { isServiceBusy } from "~/core/recreate";
 import db from "~/database";
 import { redirect } from "~/i18n/navigation";
 import type { AppLocale } from "~/i18n/routing";
@@ -37,10 +38,9 @@ import getInheritedVariables from "~/operations/getInheritedVariables";
 import getService from "~/operations/getService";
 import getSharedVolumes from "~/operations/getSharedVolumes";
 import updateService, { MissingSecretValueError } from "~/operations/updateService";
-import { jsonField } from "./fields";
+import { jsonField } from "~/utils/jsonField";
 import { adminMiddleware } from "./middlewares/admin";
 import { userMiddleware } from "./middlewares/user";
-import { isServiceBusy } from "./recreate";
 
 const portsField = jsonField("invalid_ports", z.array(z.object({
   external: z.coerce.number().int().min(1).max(65535),
