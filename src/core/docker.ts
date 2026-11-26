@@ -119,6 +119,26 @@ export function pullImage(imageName: string) {
   });
 }
 
+/** Returns the TCP ports of an image config's `ExposedPorts`, e.g. `{ "3000/tcp": {} }` */
+export function parseExposedPorts(exposedPorts: Record<string, unknown> | null | undefined): number[] {
+  const ports = Object.keys(exposedPorts ?? {}).flatMap(key => {
+    const [port, protocol = "tcp"] = key.split("/");
+    const number = Number(port);
+    return protocol === "tcp" && Number.isInteger(number) && number > 0 ? [number] : [];
+  });
+  return [...new Set(ports)].toSorted((a, b) => a - b);
+}
+
+/** Returns the TCP ports that an image exposes, or none if the image is not present */
+export async function getExposedPorts(imageName: string): Promise<number[]> {
+  try {
+    const { Config: config } = await docker.getImage(imageName).inspect();
+    return parseExposedPorts(config.ExposedPorts);
+  } catch {
+    return [];
+  }
+}
+
 export async function removeImage(imageId: string) {
   try {
     const image = docker.getImage(imageId);
