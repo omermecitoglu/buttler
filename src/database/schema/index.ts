@@ -2,6 +2,7 @@ export * from "./dns-records";
 export * from "./domains";
 export * from "./environment-variables";
 export * from "./ports";
+export * from "./service-links";
 export * from "./services";
 export * from "./settings";
 export * from "./users";
