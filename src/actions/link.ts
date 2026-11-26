@@ -17,6 +17,7 @@ function updateLinkTags(link: Pick<ServiceLinkDTO, "serviceAId" | "serviceBId">)
   updateTag(`getLinksOfService(${link.serviceBId})`);
   // The services may inherit variables through the link
   updateTag("getInheritedVariablesOfService(...)");
+  updateTag("getServiceGraph()");
 }
 
 /** System services get their links from Buttler */

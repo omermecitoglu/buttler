@@ -106,6 +106,7 @@ export const createServiceAction = defineFormAction({
         startPulling(deployable);
       }
       updateTag("getAllServices()");
+      updateTag("getServiceGraph()");
     } catch {
       displayMessage("error", "create_failed");
     }
@@ -148,6 +149,7 @@ export const updateServiceAction = defineFormAction({
       return displayMessage("error", error instanceof MissingSecretValueError ? "secret_value_required" : "update_failed");
     }
     updateTag("getAllServices()");
+    updateTag("getServiceGraph()");
     updateTag(`getSingleService(${serviceId})`);
     // Linked services may inherit variables that are built from them
     updateTag("getInheritedVariablesOfService(...)");
@@ -250,6 +252,7 @@ export const deleteServiceAction = defineFormAction({
       console.error(`Failed to delete the build log of service ${serviceId}:`, error);
     }
     updateTag("getAllServices()");
+    updateTag("getServiceGraph()");
     updateTag(`getSingleService(${serviceId})`);
     // The links are deleted with the service
     updateTag("getLinksOfService(...)");

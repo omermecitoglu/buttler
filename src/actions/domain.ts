@@ -63,6 +63,8 @@ export const addDomainAction = defineFormAction({
     // It's only public after it can be served
     await syncDomains();
     updateTag(`getSingleService(${serviceId})`);
+    // nginx is connected to the services with a domain
+    updateTag("getServiceGraph()");
     return {};
   },
 });
@@ -96,6 +98,8 @@ export const removeDomainAction = defineFormAction({
       console.error(`Failed to disconnect service ${serviceId} from the reverse proxy:`, error);
     }
     updateTag(`getSingleService(${serviceId})`);
+    // nginx is connected to the services with a domain
+    updateTag("getServiceGraph()");
     return {};
   },
 });
