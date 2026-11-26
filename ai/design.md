@@ -267,8 +267,8 @@ Wide screens (lg and up)             Narrow screens
 - The nodes are the services and nginx. The other system services are left out.
 - The lines are the links, and nginx is connected to the services that have a domain.
 - The layout is computed on the server with `d3-force` (`src/core/service-graph.ts`). It starts from the same positions every time, so it only changes with the data.
-- Each node is a link to its service, the lines aren't interactive.
-- Nodes can be dragged within the view, a pointer that moves less than a few pixels clicks instead. The moved positions aren't saved.
+- A node is dragged by its circle, within the view. Its name is the link to its service, underlined on hover. The lines aren't interactive.
+- The moved positions aren't saved.
 - `getServiceGraph()` is cached. The actions that add or remove services, links or domains update its tag.
 
 ## Service Page
