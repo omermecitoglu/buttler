@@ -4,12 +4,15 @@ import { cache } from "react";
 import { type ServiceImage, getServiceBuilds, listServiceImages } from "~/core/docker/builds";
 import { isVolumeName } from "~/core/docker/removal";
 import { type ServiceRuntimeState, getServiceRuntimeState, getServicesRuntimeStates } from "~/core/docker/status";
+import { buildServiceGraph } from "~/core/service-graph";
 import db from "~/database";
 import type { ServiceDTO } from "~/models/service";
+import { REVERSE_PROXY_SERVICE_NAME } from "~/operations/ensureReverseProxyService";
 import getInheritedVariables from "~/operations/getInheritedVariables";
 import getService from "~/operations/getService";
 import getServiceLinks from "~/operations/getServiceLinks";
 import getServices from "~/operations/getServices";
+import getServicesWithDomains from "~/operations/getServicesWithDomains";
 import getSharedVariableNames from "~/operations/getSharedVariableNames";
 import getSharedVariables from "~/operations/getSharedVariables";
 import getSharedVolumes from "~/operations/getSharedVolumes";
@@ -136,4 +139,21 @@ export async function getSharedVariableNamesOfLink(linkId: string) {
   "use cache";
   cacheTag(`getSharedVariableNamesOfLink(${linkId})`);
   return await getSharedVariableNames(db, linkId);
+}
+
+/** The graph of the home page, the actions that change services, links or domains update its tag */
+export async function getServiceGraph() {
+  "use cache";
+  cacheTag("getServiceGraph()");
+  const [
+    services,
+    links,
+    servicesWithDomains,
+  ] = await Promise.all([
+    getServices(db),
+    getServiceLinks(db),
+    getServicesWithDomains(db),
+  ]);
+  const reverseProxy = services.find(service => service.type === "system" && service.name === REVERSE_PROXY_SERVICE_NAME);
+  return buildServiceGraph(services, links, reverseProxy?.id ?? null, servicesWithDomains);
 }
