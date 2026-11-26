@@ -10,10 +10,14 @@ import { removeIngressNetwork } from "~/core/docker/ingress";
 import { removeServiceContainers, removeServiceImages, removeVolumes } from "~/core/docker/removal";
 import {
   type ServiceRef,
+  assertServiceNotDeleting,
   getServiceRuntimeState,
   isImagePresentLocally,
   isServiceBuilding,
+  isServiceDeleting,
+  isServiceDeploying,
   isServicePulling,
+  markServiceDeleting,
   markServicePulling,
   pullAndDeployService,
   restartServiceContainer,
@@ -137,12 +141,15 @@ export const updateServiceAction = defineFormAction({
   },
 });
 
-/** A build or a pull would deploy the service again after it's deleted */
-function isServiceBeingDeployed(serviceId: string) {
-  return isServiceBuilding(serviceId) || isServicePulling(serviceId);
+/** A build, a pull or a deploy would create the service again while it's deleted */
+function isServiceBusy(serviceId: string) {
+  return isServiceBuilding(serviceId) ||
+    isServicePulling(serviceId) ||
+    isServiceDeploying(serviceId) ||
+    isServiceDeleting(serviceId);
 }
 
-/** The service itself is deleted last, so a deletion that fails can be tried again. Returns false if it's kept. */
+/** The service itself is deleted last, so a deletion that fails can be tried again */
 async function removeService({ id, volumes }: { id: string, volumes: { name: string }[] }, chosenVolumes: string[]) {
   await removeServiceContainers(id);
   await removeIngressNetwork(id);
@@ -153,9 +160,7 @@ async function removeService({ id, volumes }: { id: string, volumes: { name: str
     const names = volumes.map(volume => volume.name).filter(name => chosenVolumes.includes(name));
     await removeVolumes(names.filter(name => !sharedVolumes.includes(name)));
   }
-  return deleteFromReverseProxy(id, async () => {
-    // A push may have started a build in the meantime
-    if (isServiceBeingDeployed(id)) return false;
+  await deleteFromReverseProxy(id, async () => {
     await deleteService(db, id);
     return true;
   });
@@ -172,18 +177,25 @@ export const deleteServiceAction = defineFormAction({
     if (!service || service.type === "system") return displayMessage("error", "delete_failed");
     const { status } = await getServiceRuntimeState(service);
     if (status === "building" || status === "pulling") return displayMessage("error", "service_busy");
-    // The domains must not be public longer than they are served
-    const hasDomains = service.domains.length > 0;
-    if (hasDomains) await syncDomains({ withoutService: serviceId });
-    const isRemoved = await removeService(service, input.volumes).catch((error: unknown) => {
-      // eslint-disable-next-line no-console
-      console.error(`Failed to delete service ${serviceId}:`, error);
-      return null;
-    });
-    // They are public again if the service is kept
-    if (hasDomains) await syncDomains();
-    if (isRemoved === null) return displayMessage("error", "delete_failed");
-    if (!isRemoved) return displayMessage("error", "service_busy");
+    // Nothing is awaited between the check and the mark, so no build, pull or deploy can start in between
+    if (isServiceBusy(serviceId)) return displayMessage("error", "service_busy");
+    markServiceDeleting(serviceId, true);
+    let isRemoved: boolean;
+    try {
+      // The domains must not be public longer than they are served
+      const hasDomains = service.domains.length > 0;
+      if (hasDomains) await syncDomains({ withoutService: serviceId });
+      isRemoved = await removeService(service, input.volumes).then(() => true, (error: unknown) => {
+        // eslint-disable-next-line no-console
+        console.error(`Failed to delete service ${serviceId}:`, error);
+        return false;
+      });
+      // They are public again if the service is kept
+      if (hasDomains) await syncDomains();
+    } finally {
+      markServiceDeleting(serviceId, false);
+    }
+    if (!isRemoved) return displayMessage("error", "delete_failed");
     try {
       await deleteBuildLog(serviceId);
     } catch (error) {
@@ -215,6 +227,7 @@ async function getServiceToDeploy(serviceId: string) {
 function startPulling(service: ServiceRef) {
   // Requests made during a pull share it
   if (isServicePulling(service.id)) return;
+  assertServiceNotDeleting(service.id);
   markServicePulling(service.id, true);
   after(async () => {
     try {

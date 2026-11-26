@@ -7,9 +7,11 @@ const mocks = vi.hoisted(() => ({
   getSetting: vi.fn(),
   getServicesByBranch: vi.fn(),
   getDeployableService: vi.fn(),
+  isServiceDeleting: vi.fn(),
 }));
 
 vi.mock("~/core/build", () => ({ startBuilding: mocks.startBuilding }));
+vi.mock("~/core/docker/status", () => ({ isServiceDeleting: mocks.isServiceDeleting }));
 vi.mock("~/core/settings", () => ({ getSetting: mocks.getSetting }));
 vi.mock("~/database", () => ({ default: {} }));
 vi.mock("~/operations/getServicesByBranch", () => ({ default: mocks.getServicesByBranch }));
@@ -101,6 +103,12 @@ describe("POST /webhooks/github", () => {
     expect((await send(push)).status).toBe(202);
     expect(mocks.startBuilding.mock.calls).toEqual([[{ id: "b" }]]);
     expect(console.error).toHaveBeenCalled();
+  });
+
+  it("should skip the services that are being deleted", async () => {
+    mocks.isServiceDeleting.mockImplementation((id: string) => id === "a");
+    expect((await send(push)).status).toBe(202);
+    expect(mocks.startBuilding.mock.calls).toEqual([[{ id: "b" }]]);
   });
 
   it("should report when no build could be started", async () => {

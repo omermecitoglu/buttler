@@ -21,6 +21,10 @@ const mockIsImagePresentLocally = vi.fn();
 const mockMarkServicePulling = vi.fn();
 const mockIsServiceBuilding = vi.fn();
 const mockIsServicePulling = vi.fn();
+const mockIsServiceDeploying = vi.fn();
+const mockIsServiceDeleting = vi.fn();
+const mockMarkServiceDeleting = vi.fn();
+const mockAssertServiceNotDeleting = vi.fn();
 const mockPullAndDeployService = vi.fn();
 const mockAfter = vi.fn();
 const mockFindLatestImage = vi.fn();
@@ -110,6 +114,10 @@ vi.mock("~/core/docker/status", () => ({
   markServicePulling: (...args: unknown[]) => mockMarkServicePulling(...args),
   isServiceBuilding: (...args: unknown[]) => mockIsServiceBuilding(...args),
   isServicePulling: (...args: unknown[]) => mockIsServicePulling(...args),
+  isServiceDeploying: (...args: unknown[]) => mockIsServiceDeploying(...args),
+  isServiceDeleting: (...args: unknown[]) => mockIsServiceDeleting(...args),
+  markServiceDeleting: (...args: unknown[]) => mockMarkServiceDeleting(...args),
+  assertServiceNotDeleting: (...args: unknown[]) => mockAssertServiceNotDeleting(...args),
   pullAndDeployService: (...args: unknown[]) => mockPullAndDeployService(...args),
 }));
 
@@ -554,11 +562,29 @@ describe("deleteServiceAction", () => {
     expect(mockRemoveServiceContainers).not.toHaveBeenCalled();
   });
 
-  it("keeps the service if a build starts during the deletion", async () => {
-    mockIsServiceBuilding.mockReturnValue(true);
+  it.each([
+    mockIsServiceBuilding,
+    mockIsServicePulling,
+    mockIsServiceDeploying,
+    mockIsServiceDeleting,
+  ])("rejects services that became busy while their state was read", async mock => {
+    mock.mockReturnValue(true);
     expect(await submit()).toEqual({ "[error]": "service_busy" });
-    expect(mockDeleteService).not.toHaveBeenCalled();
-    expect(mockRedirect).not.toHaveBeenCalled();
+    expect(mockMarkServiceDeleting).not.toHaveBeenCalled();
+    expect(mockRemoveServiceContainers).not.toHaveBeenCalled();
+  });
+
+  it("marks the service as being deleted for as long as the deletion goes on", async () => {
+    await submit(["data"]);
+    expect(mockMarkServiceDeleting.mock.calls).toEqual([["srv", true], ["srv", false]]);
+    expect(mockMarkServiceDeleting).toHaveBeenCalledBefore(mockSyncDomains);
+    expect(mockMarkServiceDeleting.mock.invocationCallOrder[1]).toBeGreaterThan(mockDeleteService.mock.invocationCallOrder[0]);
+  });
+
+  it("removes the mark if the deletion fails", async () => {
+    mockRemoveVolumes.mockRejectedValue(new Error("boom"));
+    expect(await submit(["data"])).toEqual({ "[error]": "delete_failed" });
+    expect(mockMarkServiceDeleting).toHaveBeenLastCalledWith("srv", false);
   });
 
   it.each([
