@@ -100,6 +100,7 @@ export const updateLinkInheritanceAction = defineFormAction({
     }
     updateTag(`getLinksOfService(${link.serviceAId})`);
     updateTag(`getLinksOfService(${link.serviceBId})`);
+    updateTag(`getSharedVariableNamesOfLink(${linkId})`);
     updateInheritedTags();
     return await recreate(input.recreate ? [serviceId] : []);
   },
