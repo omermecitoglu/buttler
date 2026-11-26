@@ -487,6 +487,7 @@ describe("updateServiceAction", () => {
     });
     expect(mockUpdateTag).toHaveBeenCalledWith("getAllServices()");
     expect(mockUpdateTag).toHaveBeenCalledWith("getSingleService(srv)");
+    expect(mockUpdateTag).toHaveBeenCalledWith("getInheritedVariablesOfService(...)");
   });
 
   it("rejects a new variable with the name of an inherited one", async () => {
