@@ -120,7 +120,17 @@ const ServiceInfo = async ({ params }: ServiceInfoProps) => {
         ) : (
           <ul className="flex flex-col gap-2 font-mono text-sm break-all text-slate-300">
             {service.domains.map(({ hostname, port }) => (
-              <li key={hostname}>{`${hostname} → ${port}`}</li>
+              <li key={hostname}>
+                <a
+                  href={`https://${hostname}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="underline-offset-2 hover:text-white hover:underline"
+                >
+                  {hostname}
+                </a>
+                {` → ${port}`}
+              </li>
             ))}
           </ul>
         )}
