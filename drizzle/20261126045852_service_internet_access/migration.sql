@@ -1,0 +1,1 @@
+ALTER TABLE `services` ADD `internet_access` integer DEFAULT true NOT NULL;

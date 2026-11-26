@@ -9,6 +9,7 @@ const sharedRefinements = createSharedRefinements(services, {
   type: schema => schema.describe("Type of the service (github, dockerhub, system)"),
   repository: schema => schema.describe("GitHub repository or DockerHub image reference"),
   branch: schema => schema.describe("Git branch or Docker image tag"),
+  internetAccess: schema => schema.describe("Whether the container can reach the internet through its own network"),
   createdAt: schema => schema.readonly().describe("Creation date of the service as an ISO 8601 date string"),
   updatedAt: schema => schema.readonly().describe("Modification date of the service as an ISO 8601 date string"),
 });
