@@ -377,10 +377,33 @@ describe("service lifecycle server actions", () => {
       const formData = new FormData();
       formData.set("name", "");
       formData.set("type", "github");
+      formData.set("repository", " ");
+      formData.set("branch", "");
 
       const errors = await createServiceAction("en", {}, formData);
 
-      expect(errors).toHaveProperty("name");
+      // The form maps these codes to the messages of each field
+      expect(errors).toEqual({
+        name: "SERVICE_NAME_REQUIRED",
+        repository: "REPOSITORY_REQUIRED",
+        branch: "BRANCH_REQUIRED",
+        internetAccess: "INTERNET_ACCESS_REQUIRED",
+      });
+      expect(mockCreateService).not.toHaveBeenCalled();
+    });
+
+    it("requires a name for every volume", async () => {
+      const formData = new FormData();
+      formData.set("name", "Waha");
+      formData.set("type", "dockerhub");
+      formData.set("repository", "waha");
+      formData.set("branch", "latest");
+      formData.set("internetAccess", "yes");
+      formData.set("volumes", JSON.stringify([{ name: " ", containerPath: "/sessions" }]));
+
+      const errors = await createServiceAction("en", {}, formData);
+
+      expect(errors).toEqual({ volumes: "VOLUME_NAME_REQUIRED" });
       expect(mockCreateService).not.toHaveBeenCalled();
     });
 
@@ -395,7 +418,7 @@ describe("service lifecycle server actions", () => {
 
       const errors = await createServiceAction("en", {}, formData);
 
-      expect(errors).toHaveProperty("volumes");
+      expect(errors).toEqual({ volumes: "INVALID_VOLUME_NAME" });
       expect(mockCreateService).not.toHaveBeenCalled();
     });
 
@@ -423,7 +446,7 @@ describe("service lifecycle server actions", () => {
 
       const errors = await createServiceAction("en", {}, formData);
 
-      expect(errors).toHaveProperty("internetAccess");
+      expect(errors).toEqual({ internetAccess: "INTERNET_ACCESS_REQUIRED" });
       expect(mockCreateService).not.toHaveBeenCalled();
     });
 

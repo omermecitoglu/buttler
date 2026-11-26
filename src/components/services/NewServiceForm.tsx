@@ -78,16 +78,17 @@ const NewServiceForm = ({ action }: NewServiceFormProps) => {
       containerPath: v.containerPath.trim(),
     }));
 
+  // Validation errors are in upper case
   const messages = {
     create_failed: t("messages.create_failed"),
-    service_name_required: t("messages.service_name_required"),
-    repository_required: t("messages.repository_required"),
-    branch_required: t("messages.branch_required"),
-    invalid_ports: t("messages.invalid_ports"),
-    invalid_environment_variables: t("messages.invalid_environment_variables"),
-    invalid_volumes: t("messages.invalid_volumes"),
-    volume_name_required: t("messages.volume_name_required"),
-    invalid_volume_name: t("messages.invalid_volume_name"),
+    SERVICE_NAME_REQUIRED: t("messages.service_name_required"),
+    REPOSITORY_REQUIRED: t("messages.repository_required"),
+    BRANCH_REQUIRED: t("messages.branch_required"),
+    INVALID_PORTS: t("messages.invalid_ports"),
+    INVALID_ENVIRONMENT_VARIABLES: t("messages.invalid_environment_variables"),
+    INVALID_VOLUMES: t("messages.invalid_volumes"),
+    VOLUME_NAME_REQUIRED: t("messages.volume_name_required"),
+    INVALID_VOLUME_NAME: t("messages.invalid_volume_name"),
     INTERNET_ACCESS_REQUIRED: t("messages.internet_access_required"),
   };
 

@@ -47,6 +47,7 @@ const EditServiceForm = ({ action, edit, onClose }: EditServiceFormProps) => {
     INVALID_PORTS: t("messages.invalid_ports"),
     INVALID_ENVIRONMENT_VARIABLES: t("messages.invalid_environment_variables"),
     INVALID_VOLUMES: t("messages.invalid_volumes"),
+    VOLUME_NAME_REQUIRED: t("messages.volume_name_required"),
     INVALID_VOLUME_NAME: t("messages.invalid_volume_name"),
   };
 
