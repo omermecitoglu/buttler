@@ -53,6 +53,15 @@
 - Both foreign keys cascade, so the links of a service are deleted with it.
 - The networks of the links are only in Docker, see `ai/docker.md`.
 
+## Shared Variables
+
+- A service offers variables to its linked services in the `shared_variables` table: a key and a template, which refers to the service itself (`{host}`, `{env.NAME}`, `{env.NAME:-fallback}`, see `src/core/shared-variables.ts`). Templates are stored as they are, never encrypted.
+- `{env.NAME}` only uses the hand-written `runtime` and `both` variables of the sharing service, so shared variables can't refer to each other. An unset variable without a fallback resolves to an empty string.
+- Each side of a link inherits the shared variables of the other side when its column is set (`service_a_inherits`, `service_b_inherits`, off by default).
+- `shared_variable_names` only holds the renamed variables, by the ID of the shared variable, so a rename survives a new key. `saveSharedVariables` updates the variables with an ID in place, because replacing them would delete their names.
+- `getInheritedVariables` resolves what a service inherits. When two inherited variables have the same name, the one of the older link is kept. A value built from a secret is a secret, and it's `null` unless it's decrypted for a deploy.
+- The actions block two inherited variables with the same name, and new hand-written variables with an inherited name. If both exist anyway, the hand-written one wins.
+
 ## Users & Access
 
 - The `users` table lists the people who have access, by their GitHub user ID. Everyone else is denied.
