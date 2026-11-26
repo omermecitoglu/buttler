@@ -18,6 +18,13 @@ export async function register() {
       console.error("Failed to provision reverse proxy service at startup:", error);
     });
 
+    // Connects the containers again and removes the networks of links that are gone
+    const { syncLinkNetworks } = await import("./core/docker/links");
+    await syncLinkNetworks().catch((error: unknown) => {
+      // eslint-disable-next-line no-console
+      console.error("Failed to sync the link networks at startup:", error);
+    });
+
     const { provisionTunnel } = await import("./core/cloudflare/tunnel");
     await provisionTunnel().catch((error: unknown) => {
       // eslint-disable-next-line no-console
