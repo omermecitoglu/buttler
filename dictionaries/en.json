@@ -329,6 +329,7 @@
       "addButton": "Add Variable",
       "copyButton": "Copy as .env",
       "copiedButton": "Copied",
+      "clearButton": "Clear all",
       "removeButton": "Remove variable",
       "keyLabel": "Key",
       "keyPlaceholder": "e.g. DATABASE_URL",

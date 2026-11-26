@@ -37,6 +37,7 @@ export type EnvironmentVariablesRepeaterLabels = {
   addButton?: string,
   copyButton?: string,
   copiedButton?: string,
+  clearButton?: string,
   removeButton?: string,
   keyLabel?: string,
   keyPlaceholder?: string,
@@ -202,6 +203,7 @@ const EnvironmentVariablesRepeater = ({
   const addButton = labels?.addButton ?? "Add Variable";
   const copyButton = labels?.copyButton ?? "Copy as .env";
   const copiedButton = labels?.copiedButton ?? "Copied";
+  const clearButton = labels?.clearButton ?? "Clear all";
   const removeButton = labels?.removeButton ?? "Remove variable";
   const keyLabel = labels?.keyLabel ?? "Key";
   const keyPlaceholder = labels?.keyPlaceholder ?? "e.g. DATABASE_URL";
@@ -240,6 +242,17 @@ const EnvironmentVariablesRepeater = ({
           >
             <FontAwesomeIcon icon={copied ? faCheck : faCopy} className="size-3" />
             <span>{copied ? copiedButton : copyButton}</span>
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="xs"
+            onClick={() => updateItems([])}
+            disabled={disabled || internalItems.length === 0}
+            className="gap-1.5 text-slate-400 hover:bg-rose-500/10 hover:text-rose-400"
+          >
+            <FontAwesomeIcon icon={faTrash} className="size-3" />
+            <span>{clearButton}</span>
           </Button>
           <Button
             type="button"
