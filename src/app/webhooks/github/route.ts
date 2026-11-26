@@ -1,4 +1,5 @@
 import { startBuilding } from "~/core/build";
+import { isServiceDeleting } from "~/core/docker/status";
 import { PushEvent, getPushedBranch, verifyWebhookSignature } from "~/core/github/webhooks";
 import { getSetting } from "~/core/settings";
 import db from "~/database";
@@ -18,7 +19,8 @@ function parseJson(body: Buffer): unknown {
 async function startBuildingById(serviceId: string) {
   try {
     const service = await getDeployableService(db, serviceId);
-    if (!service) return false;
+    // A service that is being deleted is skipped like a missing one
+    if (!service || isServiceDeleting(service.id)) return false;
     startBuilding(service);
     return true;
   } catch (error) {
