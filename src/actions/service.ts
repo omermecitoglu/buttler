@@ -252,6 +252,8 @@ export const deleteServiceAction = defineFormAction({
     }
     updateTag("getAllServices()");
     updateTag(`getSingleService(${serviceId})`);
+    // The links are deleted with the service
+    updateTag("getLinksOfService(...)");
     return redirect({ locale, href: "/services" });
   },
 });

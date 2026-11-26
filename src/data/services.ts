@@ -7,6 +7,7 @@ import { type ServiceRuntimeState, getServiceRuntimeState, getServicesRuntimeSta
 import db from "~/database";
 import type { ServiceDTO } from "~/models/service";
 import getService from "~/operations/getService";
+import getServiceLinks from "~/operations/getServiceLinks";
 import getServices from "~/operations/getServices";
 import getSharedVolumes from "~/operations/getSharedVolumes";
 
@@ -100,4 +101,12 @@ export async function getBuildsOfService(serviceId: ServiceDTO["id"]) {
     console.error("Failed to query the builds:", error);
     return null;
   }
+}
+
+/** Both services of a link show it, so a deletion updates all of them with the generic tag */
+export async function getLinksOfService(serviceId: ServiceDTO["id"]) {
+  "use cache";
+  cacheTag(`getLinksOfService(${serviceId})`);
+  cacheTag("getLinksOfService(...)");
+  return await getServiceLinks(db, serviceId);
 }
