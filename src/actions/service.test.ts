@@ -108,6 +108,7 @@ vi.mock("~/core/docker/removal", () => ({
   removeServiceContainers: (...args: unknown[]) => mockRemoveServiceContainers(...args),
   removeServiceImages: (...args: unknown[]) => mockRemoveServiceImages(...args),
   removeVolumes: (...args: unknown[]) => mockRemoveVolumes(...args),
+  isVolumeName: (name: string) => (/^[a-zA-Z0-9][a-zA-Z0-9_.-]+$/).test(name),
 }));
 
 vi.mock("~/core/build", () => ({
@@ -378,6 +379,36 @@ describe("service lifecycle server actions", () => {
       expect(mockCreateService).not.toHaveBeenCalled();
     });
 
+    it("rejects a volume name that Docker doesn't accept", async () => {
+      const formData = new FormData();
+      formData.set("name", "Waha");
+      formData.set("type", "dockerhub");
+      formData.set("repository", "waha");
+      formData.set("branch", "latest");
+      formData.set("internetAccess", "yes");
+      formData.set("volumes", JSON.stringify([{ name: "Waha Sessions", containerPath: "/sessions" }]));
+
+      const errors = await createServiceAction("en", {}, formData);
+
+      expect(errors).toHaveProperty("volumes");
+      expect(mockCreateService).not.toHaveBeenCalled();
+    });
+
+    it("accepts an absolute path on the host as a volume", async () => {
+      mockCreateService.mockReturnValue({ id: "srv-dh", type: "dockerhub" });
+      const formData = new FormData();
+      formData.set("name", "Waha");
+      formData.set("type", "dockerhub");
+      formData.set("repository", "waha");
+      formData.set("branch", "latest");
+      formData.set("internetAccess", "yes");
+      formData.set("volumes", JSON.stringify([{ name: "/srv/waha sessions", containerPath: "/sessions" }]));
+
+      await createServiceAction("en", {}, formData);
+
+      expect(mockCreateService).toHaveBeenCalled();
+    });
+
     it("requires a choice for internet access", async () => {
       const formData = new FormData();
       formData.set("name", "Cache");
@@ -459,6 +490,14 @@ describe("updateServiceAction", () => {
     expect(await updateServiceAction("srv", {}, formData)).toEqual({});
     const [, , changes] = mockUpdateService.mock.calls[0] as [unknown, unknown, Record<string, unknown>];
     expect(Object.entries(changes).filter(([, value]) => value !== undefined)).toEqual([["ports", []]]);
+  });
+
+  it("rejects a volume name that Docker doesn't accept", async () => {
+    mockGetService.mockResolvedValue({ id: "srv", type: "dockerhub" });
+    const formData = new FormData();
+    formData.append("volumes", JSON.stringify([{ name: "Waha Sessions", containerPath: "/sessions" }]));
+    expect(await updateServiceAction("srv", {}, formData)).toHaveProperty("volumes");
+    expect(mockUpdateService).not.toHaveBeenCalled();
   });
 
   it("asks for the values of the secrets that cannot be kept", async () => {

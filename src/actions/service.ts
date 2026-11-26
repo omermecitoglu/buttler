@@ -9,7 +9,7 @@ import { syncDomains } from "~/core/cloudflare/domains";
 import { removeIngressNetwork } from "~/core/docker/ingress";
 import { removeInternetNetwork } from "~/core/docker/internet";
 import { removeLinkNetworks } from "~/core/docker/links";
-import { removeServiceContainers, removeServiceImages, removeVolumes } from "~/core/docker/removal";
+import { isVolumeName, removeServiceContainers, removeServiceImages, removeVolumes } from "~/core/docker/removal";
 import {
   type ServiceRef,
   assertServiceNotDeleting,
@@ -70,7 +70,11 @@ const internetAccessField = z.enum(["yes", "no"], "internet_access_required").tr
 const volumesField = jsonField("invalid_volumes", z.array(z.object({
   name: z.string().trim().min(1, "volume_name_required"),
   containerPath: z.string().trim().min(1).startsWith("/"),
-})));
+}))).refine(
+  // Docker doesn't accept other names, the service couldn't be deployed
+  volumes => volumes.every(({ name }) => isVolumeName(name) || name.startsWith("/")),
+  "invalid_volume_name",
+);
 
 export const createServiceAction = defineFormAction({
   middlewares: [userMiddleware],
