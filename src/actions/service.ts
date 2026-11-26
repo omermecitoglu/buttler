@@ -54,25 +54,35 @@ const environmentVariable = z.object({
   isSecret: z.boolean().default(false),
 });
 
+/** Only the messages of `refine` reach the form, `.min(1, "...")` gives `TOO_SMALL` */
+function requiredString(message: string) {
+  return z.string().trim().refine(value => value !== "", message);
+}
+
 /** Radio buttons that have no default, nothing is sent until one is chosen */
-const internetAccessField = z.enum(["yes", "no"], "internet_access_required").transform(value => value === "yes");
+const internetAccessField = z.enum(["yes", "no"]).optional()
+  .refine(value => value !== undefined, "internet_access_required")
+  .transform(value => value === "yes");
 
 const volumesField = jsonField("invalid_volumes", z.array(z.object({
-  name: z.string().trim().min(1, "volume_name_required"),
+  // Checked below, the errors in the JSON become "invalid_volumes"
+  name: z.string().trim(),
   containerPath: z.string().trim().min(1).startsWith("/"),
-}))).refine(
-  // Docker doesn't accept other names, the service couldn't be deployed
-  volumes => volumes.every(({ name }) => isVolumeName(name) || name.startsWith("/")),
-  "invalid_volume_name",
-);
+})))
+  .refine(volumes => volumes.every(({ name }) => name !== ""), { message: "volume_name_required", abort: true })
+  .refine(
+    // Docker doesn't accept other names, the service couldn't be deployed
+    volumes => volumes.every(({ name }) => isVolumeName(name) || name.startsWith("/")),
+    "invalid_volume_name",
+  );
 
 export const createServiceAction = defineFormAction({
   middlewares: [userMiddleware],
   schema: z.object({
-    name: z.string().trim().min(1, "service_name_required"),
+    name: requiredString("service_name_required"),
     type: z.enum(["github", "dockerhub"]),
-    repository: z.string().trim().min(1, "repository_required"),
-    branch: z.string().trim().min(1, "branch_required"),
+    repository: requiredString("repository_required"),
+    branch: requiredString("branch_required"),
     ports: portsField.optional().default([]),
     environmentVariables: jsonField("invalid_environment_variables", z.array(environmentVariable)).optional().default([]),
     volumes: volumesField.optional().default([]),
