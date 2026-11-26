@@ -67,7 +67,6 @@
     "@omer-x/next-form-actions": "^1.0.0-alpha.4",
     "@omer-x/next-utils": "^1.2.0",
     "@omer-x/tailwind-ui-kit": "^1.0.0-alpha.18",
-    "change-case": "^5.4.4",
     "clsx": "^2.1.1",
     "commander": "^14.0.2",
     "dockerode": "^4.0.9",
