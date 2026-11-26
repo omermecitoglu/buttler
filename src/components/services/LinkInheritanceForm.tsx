@@ -57,7 +57,6 @@ const LinkInheritanceForm = ({
     update_failed: t("messages.update_failed"),
     recreate_failed: t("messages.recreate_failed"),
     duplicate_names: t("messages.duplicate_names"),
-    invalid_names: t("messages.invalid_names"),
     INVALID_NAMES: t("messages.invalid_names"),
   };
 
