@@ -38,6 +38,7 @@ const mockRemoveServiceContainers = vi.fn();
 const mockRemoveServiceImages = vi.fn();
 const mockRemoveIngressNetwork = vi.fn();
 const mockRemoveInternetNetwork = vi.fn();
+const mockRemoveLinkNetworks = vi.fn();
 const mockDeleteFromReverseProxy = vi.fn();
 const mockRemoveVolumes = vi.fn();
 const mockSyncDomains = vi.fn();
@@ -93,6 +94,10 @@ vi.mock("~/core/docker/ingress", () => ({
 
 vi.mock("~/core/docker/internet", () => ({
   removeInternetNetwork: (...args: unknown[]) => mockRemoveInternetNetwork(...args),
+}));
+
+vi.mock("~/core/docker/links", () => ({
+  removeLinkNetworks: (...args: unknown[]) => mockRemoveLinkNetworks(...args),
 }));
 
 vi.mock("~/core/nginx", () => ({
@@ -513,6 +518,9 @@ describe("deleteServiceAction", () => {
     expect(mockRemoveInternetNetwork).toHaveBeenCalledWith("srv");
     expect(mockRemoveInternetNetwork).toHaveBeenCalledAfter(mockRemoveServiceContainers);
     expect(mockRemoveInternetNetwork).toHaveBeenCalledBefore(mockDeleteService);
+    expect(mockRemoveLinkNetworks).toHaveBeenCalledWith("srv");
+    expect(mockRemoveLinkNetworks).toHaveBeenCalledAfter(mockRemoveServiceContainers);
+    expect(mockRemoveLinkNetworks).toHaveBeenCalledBefore(mockDeleteService);
   });
 
   it("keeps the service if its ingress network can't be removed", async () => {
