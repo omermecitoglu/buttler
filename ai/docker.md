@@ -52,6 +52,8 @@ Docker is the single source of truth for builds, nothing about them is stored in
 - `syncLinkNetworks` runs at startup, it connects every link again and removes the networks of the links that are gone.
 - Only the containers of services are disconnected, a network that is used by an unrelated container is kept.
 - Every user can add and remove links, on the "Links" tab of a service. System services can't be linked there, Nginx is linked by Buttler.
+- Inherited variables (`ai/database.md`) are runtime-only. They are resolved when the service is loaded for a deploy (`getDeployableService`), and the container gets them before its own variables, which win.
+- A change of shared variables, of inheritance or of a rename is only applied when the container is created again. The forms offer to recreate the affected running containers (`recreateRunningServices`), stopped services get it when they are started.
 
 ## Ingress Networks
 
