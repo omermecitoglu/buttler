@@ -58,6 +58,14 @@ describe("service link operations", () => {
     expect(await getServiceLinks(db)).toEqual([]);
   });
 
+  it("should restore a removed link with its ID", async () => {
+    const app = create("app");
+    const api = create("api");
+    const link = await createServiceLink(db, app, api);
+    await deleteServiceLink(db, app, link!.id);
+    expect(await createServiceLink(db, link!.serviceAId, link!.serviceBId, link!.id)).toEqual(link);
+  });
+
   it("should delete the links with a service", async () => {
     const app = create("app");
     const api = create("api");
