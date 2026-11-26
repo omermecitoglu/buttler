@@ -1,8 +1,9 @@
 import { connection } from "next/server";
 import { getLocale, getTranslations } from "next-intl/server";
 import { Suspense } from "react";
-import { deleteServiceAction } from "~/actions/service";
+import { deleteServiceAction, updateInternetAccessAction } from "~/actions/service";
 import DeleteServiceModal from "~/components/services/DeleteServiceModal";
+import InternetAccessForm from "~/components/services/InternetAccessForm";
 import ServiceDomains from "~/components/services/ServiceDomains";
 import ServicePanelSkeleton from "~/components/services/ServicePanelSkeleton";
 import Card from "~/components/ui/card";
@@ -35,6 +36,18 @@ const ServiceSettings = async ({ params }: ServiceSettingsProps) => {
 
   return (
     <div className="flex flex-col gap-4">
+      <Card className="flex flex-col gap-6 p-6">
+        <div>
+          <h2 className="text-base font-semibold text-slate-100">{t("internetAccess.title")}</h2>
+          <p className="mt-1 text-xs text-slate-400">{t("internetAccess.description")}</p>
+        </div>
+        <InternetAccessForm
+          action={updateInternetAccessAction.bind(null, service.id)}
+          hasInternetAccess={service.internetAccess}
+          hasContainer={service.runtime.containerId !== null}
+          isBusy={status === "pulling" || status === "building"}
+        />
+      </Card>
       <Suspense fallback={<ServicePanelSkeleton />}>
         <ServiceDomains service={service} />
       </Suspense>
