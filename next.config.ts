@@ -10,7 +10,10 @@ const nextConfig: NextConfig = {
   experimental: {
     authInterrupts: true,
   },
-  allowedDevOrigins: ["*.ngrok-free.app"],
+  allowedDevOrigins: [
+    "buttler.*.*",
+    "*.ngrok-free.app",
+  ],
   images: {
     unoptimized: true,
     remotePatterns: [
