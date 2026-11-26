@@ -9,6 +9,7 @@ const tabs = [
   { pathname: "/services/[id]", label: "info", segment: "" },
   { pathname: "/services/[id]/builds", label: "builds", segment: "/builds" },
   { pathname: "/services/[id]/logs", label: "logs", segment: "/logs" },
+  { pathname: "/services/[id]/links", label: "links", segment: "/links" },
 ] as const;
 
 const adminTabs = [

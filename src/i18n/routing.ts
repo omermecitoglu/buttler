@@ -16,6 +16,7 @@ export const routing = defineRouting({
     "/services/[id]": "/services/[id]",
     "/services/[id]/builds": "/services/[id]/builds",
     "/services/[id]/logs": "/services/[id]/logs",
+    "/services/[id]/links": "/services/[id]/links",
     "/services/[id]/settings": "/services/[id]/settings",
     "/settings": "/settings",
     "/login": "/login",
