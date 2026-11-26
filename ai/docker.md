@@ -39,9 +39,16 @@ Docker is the single source of truth for builds, nothing about them is stored in
 - `provisionReverseProxy` syncs all of them, at startup too. This connects a new Nginx container and removes leftovers.
 - Changes run one after another, and read the domains when it's their turn.
 - A domain isn't added if its service can't be connected. A failed cleanup of a removed domain is only logged, and done by the next sync.
-- The networks are internal, so the default network stays the gateway of the containers. Their subnets are `/28` blocks of `172.30.0.0/16` that no other network of Docker or the host overlaps.
+- The networks are internal, so the default network stays the gateway of the containers.
 - Networks are only found by their labels (`buttler.network=ingress` and `buttler.service-id`). Others are never used, changed or removed, and a network that is used by an unrelated container is kept.
 - The container is connected after it's created, because networks that are given at creation would replace the default one.
+
+## Network Subnets
+
+- Docker's default pools run out at about 30 networks, so every network that Buttler creates gets an explicit `/29` subnet (2 containers and the gateway) from `10.213.0.0/16`, which is outside of Docker's default pools and of common LANs (`src/core/docker/networks.ts`).
+- Always create networks with `createButtlerNetwork`. It picks the first subnet that no network of Docker or interface of the host overlaps, so the subnets of removed networks are reused. Nothing is stored in SQLite.
+- Networks are created one after another, otherwise two of them could pick the same subnet.
+- Networks that were created before (ingress networks in `172.30.0.0/16`, the tunnel network without a subnet) keep working until they are replaced.
 
 ## Nginx Config
 
