@@ -100,13 +100,16 @@ export const createServiceAction = defineFormAction({
         environmentVariables,
         volumes: input.volumes,
       }));
+      const deployable = {
+        ...service,
+        ports: input.ports,
+        environmentVariables,
+        volumes: input.volumes,
+      };
       if (service.type === "github") {
-        startBuilding({
-          ...service,
-          ports: input.ports,
-          environmentVariables,
-          volumes: input.volumes,
-        });
+        startBuilding(deployable);
+      } else {
+        startPulling(deployable);
       }
       updateTag("getAllServices()");
     } catch {
