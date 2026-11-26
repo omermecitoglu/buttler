@@ -6,3 +6,5 @@ export const BUTTLER_BUILT_AT_LABEL = "buttler.built-at";
 export const BUTTLER_NETWORK_LABEL = "buttler.network";
 /** The tunnel that a cloudflared container runs */
 export const BUTTLER_TUNNEL_LABEL = "buttler.tunnel-id";
+/** The link that a network belongs to */
+export const BUTTLER_LINK_LABEL = "buttler.link-id";
