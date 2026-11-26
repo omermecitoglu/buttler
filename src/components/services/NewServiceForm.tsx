@@ -87,6 +87,7 @@ const NewServiceForm = ({ action }: NewServiceFormProps) => {
     invalid_environment_variables: t("messages.invalid_environment_variables"),
     invalid_volumes: t("messages.invalid_volumes"),
     volume_name_required: t("messages.volume_name_required"),
+    invalid_volume_name: t("messages.invalid_volume_name"),
     INTERNET_ACCESS_REQUIRED: t("messages.internet_access_required"),
   };
 

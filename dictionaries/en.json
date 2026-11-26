@@ -374,6 +374,7 @@
       "invalid_environment_variables": "One or more environment variables are invalid.",
       "invalid_volumes": "One or more storage mounts are invalid.",
       "volume_name_required": "Volume name is required for all storage mounts.",
+      "invalid_volume_name": "Volume names may only contain letters, digits, \"_\", \".\" and \"-\", start with a letter or digit and be at least 2 characters long. To mount a folder on the host, enter its absolute path.",
       "internet_access_required": "Choose whether the service has internet access."
     }
   },
@@ -446,7 +447,8 @@
         "field_required": "Name and source fields are required.",
         "invalid_ports": "One or more port mappings are invalid.",
         "invalid_environment_variables": "One or more environment variables are invalid.",
-        "invalid_volumes": "One or more storage mounts are invalid."
+        "invalid_volumes": "One or more storage mounts are invalid.",
+        "invalid_volume_name": "Volume names may only contain letters, digits, \"_\", \".\" and \"-\", start with a letter or digit and be at least 2 characters long. To mount a folder on the host, enter its absolute path."
       }
     },
     "settings": {
