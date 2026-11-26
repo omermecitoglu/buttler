@@ -2,6 +2,7 @@ import { docker, pullImage } from "~/core/docker";
 import { REVERSE_PROXY_CONTAINER_NAME } from "./containers";
 import { FORBIDDEN, NOT_FOUND, NOT_MODIFIED, ignoreStatus } from "./errors";
 import { BUTTLER_NETWORK_LABEL, BUTTLER_SERVICE_LABEL, BUTTLER_TUNNEL_LABEL } from "./labels";
+import { createButtlerNetwork } from "./networks";
 import type Docker from "dockerode";
 
 export const TUNNEL_CONTAINER_NAME = "buttler-cloudflared";
@@ -28,7 +29,7 @@ async function findNetwork() {
 async function ensureNetwork() {
   const existing = await findNetwork();
   if (existing) return { id: existing.Id, name: existing.Name };
-  const { id } = await docker.createNetwork({
+  const { id } = await createButtlerNetwork({
     Name: TUNNEL_NETWORK_NAME,
     Driver: "bridge",
     Labels: {

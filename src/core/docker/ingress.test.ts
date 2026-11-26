@@ -119,7 +119,7 @@ describe("syncIngressNetwork", () => {
     expect(networks).toEqual([expect.objectContaining({
       Name: "buttler-ingress-srv",
       Internal: true,
-      IPAM: { Driver: "default", Config: [{ Subnet: "172.30.0.0/28" }] },
+      IPAM: { Driver: "default", Config: [{ Subnet: "10.213.0.0/29" }] },
       Labels: expect.objectContaining({ "buttler.network": "ingress", "buttler.service-id": "srv" }),
     })]);
     expect(getMembers("buttler-ingress-srv")).toEqual(["srv", "proxy"]);
@@ -157,21 +157,21 @@ describe("syncIngressNetwork", () => {
     await Promise.all([syncIngressNetwork("a"), syncIngressNetwork("b")]);
     expect(getMembers("buttler-ingress-a")).toEqual(["a", "proxy"]);
     expect(getMembers("buttler-ingress-b")).toEqual(["b", "proxy"]);
-    expect(getSubnets()).toEqual(["172.30.0.0/28", "172.30.0.16/28"]);
+    expect(getSubnets()).toEqual(["10.213.0.0/29", "10.213.0.8/29"]);
   });
 
   it("should avoid the subnets of other networks and of the host", async () => {
-    networks.push({ Id: "other", Name: "other", IPAM: { Config: [{ Subnet: "172.30.0.0/24" }] } });
+    networks.push({ Id: "other", Name: "other", IPAM: { Config: [{ Subnet: "10.213.0.0/24" }] } });
     vi.mocked(os.networkInterfaces).mockReturnValue({
-      eth0: [{ family: "IPv4", cidr: "172.30.1.5/28", address: "", netmask: "", mac: "", internal: false }],
+      eth0: [{ family: "IPv4", cidr: "10.213.1.5/29", address: "", netmask: "", mac: "", internal: false }],
     });
     setDomains("srv");
     await syncIngressNetwork("srv");
-    expect(getSubnets()).toEqual(["172.30.0.0/24", "172.30.1.16/28"]);
+    expect(getSubnets()).toEqual(["10.213.0.0/24", "10.213.1.8/29"]);
   });
 
   it("should fail if there is no free subnet", async () => {
-    networks.push({ Id: "other", Name: "other", IPAM: { Config: [{ Subnet: "172.30.0.0/16" }] } });
+    networks.push({ Id: "other", Name: "other", IPAM: { Config: [{ Subnet: "10.213.0.0/16" }] } });
     setDomains("srv");
     await expect(syncIngressNetwork("srv")).rejects.toThrow("No free subnet");
   });
