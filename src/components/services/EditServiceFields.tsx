@@ -9,7 +9,7 @@ import EditVolumesField from "~/components/services/EditVolumesField";
 export type ServiceEdit =
   | { section: "name", name: string } |
   { section: "source", isGitHub: boolean, repository: string, branch: string } |
-  { section: "ports", ports: { external: number, internal: number }[] } |
+  { section: "ports", ports: { external: number, internal: number }[], exposedPorts: number[] } |
   { section: "variables", isGitHub: boolean, variables: SavedVariable[] } |
   { section: "volumes", volumes: { id: string, name: string, containerPath: string }[] };
 
@@ -39,7 +39,7 @@ const EditServiceFields = ({ edit }: EditServiceFieldsProps) => {
         </>
       );
     case "ports":
-      return <EditPortsField ports={edit.ports} />;
+      return <EditPortsField ports={edit.ports} exposedPorts={edit.exposedPorts} />;
     case "variables":
       return <EditVariablesField variables={edit.variables} hasBuild={edit.isGitHub} />;
     case "volumes":
