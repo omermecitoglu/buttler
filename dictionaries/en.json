@@ -584,6 +584,55 @@
         "connect_failed": "The link was not added, because its network could not be set up. The reason is in the server log.",
         "disconnect_failed": "The link was kept, because its network could not be removed. The reason is in the server log.",
         "remove_failed": "The link could not be removed."
+      },
+      "shared": {
+        "title": "Shared Variables",
+        "description": "Variables that this service offers to its linked services. Each linked service decides whether to inherit them, and what to call them.",
+        "empty": "This service doesn't share any variables.",
+        "keyLabel": "Name",
+        "keyPlaceholder": "e.g. POSTGRES_HOST",
+        "templateLabel": "Value",
+        "templatePlaceholder": "e.g. {example}",
+        "remove": "Remove variable",
+        "add": "Add variable",
+        "emptyValue": "empty",
+        "secret": "Secret, it's built from a secret variable",
+        "duplicateKey": "Another shared variable has the same name.",
+        "unset": "{name} isn't a runtime variable of this service, so it resolves to an empty string.",
+        "addFallback": "Add a fallback",
+        "unknown": "{placeholder} isn't a placeholder, it's kept as it is.",
+        "help": "{host} is the address of this service, {env} is one of its runtime variables, and {fallback} has a fallback when it isn't set. The values are resolved when the containers of the linked services are created.",
+        "recreate": "Recreate the containers of these services now:",
+        "applyNow": "The chosen containers are recreated with the change when you save.",
+        "applyLater": "The change applies the next time the containers of the linked services are created.",
+        "save": "Save",
+        "saving": "Saving...",
+        "messages": {
+          "saved": "Saved. It applies the next time the containers of the linked services are created.",
+          "recreated": "Saved, and the containers were recreated with the change.",
+          "save_failed": "The shared variables could not be saved.",
+          "recreate_failed": "The change was saved, but some containers could not be recreated. The reason is in the server log.",
+          "duplicate_keys": "Two shared variables have the same name.",
+          "invalid_shared_variables": "Every shared variable needs a valid name, with letters, digits and underscores."
+        }
+      },
+      "inheritance": {
+        "inherit": "Inherit the shared variables of {name}",
+        "nothingShared": "{name} doesn't share any variables.",
+        "nameLabel": "Name of {key} in this service",
+        "keepName": "Keep the name",
+        "duplicateName": "This service would inherit {name} twice.",
+        "recreate": "Recreate the container now",
+        "save": "Save",
+        "saving": "Saving...",
+        "messages": {
+          "saved": "Saved. It applies the next time the container is created, e.g. when the service is restarted.",
+          "recreated": "Saved, and the container was recreated with the change.",
+          "update_failed": "The change could not be saved.",
+          "recreate_failed": "The change was saved, but the container could not be recreated. The reason is in the server log.",
+          "duplicate_names": "Two inherited variables would have the same name. Rename one of them.",
+          "invalid_names": "A name can only have letters, digits and underscores, and can't start with a digit."
+        }
       }
     }
   },
