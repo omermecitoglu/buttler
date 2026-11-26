@@ -42,6 +42,17 @@ Docker is the single source of truth for builds, nothing about them is stored in
 - Containers that were created before keep the default `bridge` network until they are recreated.
 - Host ports that a service publishes are not affected.
 
+## Service Links
+
+- A link is the only way two services can reach each other. It's two-sided, Docker can't enforce a direction, and there is at most one link per pair (`service_links`, see `ai/database.md`).
+- Every link has its own internal network (`src/core/docker/links.ts`), named `buttler-link-<link id>` and labelled `buttler.network=link` and `buttler.link-id`. Only the two containers are on it, and they reach each other by the container name, `buttler-service-<service id>`.
+- Adding or removing a link connects or disconnects the containers right away (`syncLinkNetwork`). A link whose network can't be set up isn't kept, and a link whose network can't be removed is restored, because the services could still reach each other.
+- A deploy connects the container to the networks of all its links (`connectLinkNetworks`), before the old container is replaced and again before the new one is started. A stopped service has no container, it's connected when it's started.
+- A deletion removes the link networks before the database row, the links are deleted with it.
+- `syncLinkNetworks` runs at startup, it connects every link again and removes the networks of the links that are gone.
+- Only the containers of services are disconnected, a network that is used by an unrelated container is kept.
+- Every user can add and remove links, on the "Links" tab of a service. System services can't be linked there, Nginx is linked by Buttler.
+
 ## Ingress Networks
 
 - A service with at least one domain shares a network with Nginx (`src/core/docker/ingress.ts`). Every service has its own, so the services can't reach each other through them.

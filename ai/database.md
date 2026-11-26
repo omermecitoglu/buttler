@@ -47,6 +47,12 @@
 - The domain of the dashboard is the `dashboard_domain` setting. `createDomain` and `setDashboardDomain` check both places in a transaction, so a service and the dashboard can't have the same hostname.
 - The `dns_records` table is what is known about the hostnames in Cloudflare: the record that Buttler has created, and why a hostname isn't in sync. It has no relation to the domains, because a record outlives its domain until it's deleted in Cloudflare.
 
+## Service Links
+
+- The `service_links` table holds the links between services. The pair is stored in order (`service_a_id < service_b_id`, a check constraint) with a unique index, so there is at most one link per pair, whichever side adds it. `createServiceLink` sorts the IDs.
+- Both foreign keys cascade, so the links of a service are deleted with it.
+- The networks of the links are only in Docker, see `ai/docker.md`.
+
 ## Users & Access
 
 - The `users` table lists the people who have access, by their GitHub user ID. Everyone else is denied.
