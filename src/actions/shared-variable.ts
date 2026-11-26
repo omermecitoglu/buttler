@@ -2,6 +2,7 @@
 import { defineFormAction, displayMessage } from "@omer-x/next-form-actions";
 import { refresh, updateTag } from "next/cache";
 import z from "zod";
+import { recreateRunningServices } from "~/core/recreate";
 import db from "~/database";
 import type { ServiceDTO } from "~/models/service";
 import type { ServiceLinkDTO } from "~/models/service-link";
@@ -12,9 +13,8 @@ import getServiceLinks, { getLinkedServiceId } from "~/operations/getServiceLink
 import getSharedVariables from "~/operations/getSharedVariables";
 import saveSharedVariables from "~/operations/saveSharedVariables";
 import updateLinkInheritance from "~/operations/updateLinkInheritance";
-import { jsonField } from "./fields";
+import { jsonField } from "~/utils/jsonField";
 import { userMiddleware } from "./middlewares/user";
-import { recreateRunningServices } from "./recreate";
 
 const variableName = z.string().trim().regex(variableNamePattern);
 
