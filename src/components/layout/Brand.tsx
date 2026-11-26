@@ -4,7 +4,7 @@ import { Link } from "~/i18n/navigation";
 
 const Brand = () => (
   <Link
-    href="/services"
+    href="/"
     className="flex items-center gap-3 rounded-lg focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-slate-500"
   >
     {/* The ornate frame is illegible at this size, so the portrait is zoomed in */}
