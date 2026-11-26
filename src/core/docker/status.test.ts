@@ -267,6 +267,11 @@ describe("Docker status aggregator", () => {
         Names: ["/named-app"],
         Labels: {},
       },
+      {
+        Id: "c-3",
+        Names: ["/buttler-service-srv-3"],
+        Labels: {},
+      },
     ] as unknown as Docker.ContainerInfo[];
 
     it("matches by label", () => {
@@ -283,9 +288,14 @@ describe("Docker status aggregator", () => {
       expect(matched?.Id).toBe("c-nginx");
     });
 
-    it("matches by container name fallback", () => {
+    it("matches by the service ID name", () => {
+      const matched = matchContainerForService({ id: "srv-3", name: "Unlabeled" }, containers);
+      expect(matched?.Id).toBe("c-3");
+    });
+
+    it("does not match a container that only has the name of the service", () => {
       const matched = matchContainerForService({ id: "srv-unlabeled", name: "named-app" }, containers);
-      expect(matched?.Id).toBe("c-2");
+      expect(matched).toBeUndefined();
     });
 
     it("returns undefined if no match", () => {

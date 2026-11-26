@@ -4,6 +4,7 @@ import { type ServiceEnvironmentVariable, getRuntimeVariables } from "~/core/env
 import { getSharedState } from "~/core/shared-state";
 import { TUNNEL_SERVICE_NAME } from "~/operations/getTunnelService";
 import { getBuildingServiceIds } from "./builds";
+import { REVERSE_PROXY_CONTAINER_NAME, isOwnContainer } from "./containers";
 import { syncIngressNetwork } from "./ingress";
 import { BUTTLER_SERVICE_LABEL } from "./labels";
 import type Docker from "dockerode";
@@ -136,23 +137,11 @@ export function matchContainerForService(
   if (byLabel) return byLabel;
 
   if (service.type === "system" && service.name === "Reverse Proxy Server") {
-    const reverseProxy = containers.find(c => c.Names.some(n => n === "/buttler-nginx" || n === "buttler-nginx"));
+    const reverseProxy = containers.find(c => c.Names.includes(`/${REVERSE_PROXY_CONTAINER_NAME}`));
     if (reverseProxy) return reverseProxy;
   }
 
-  const expectedName = `buttler-service-${service.id}`;
-  const byServiceIdName = containers.find(c => c.Names.some(n => n === `/${expectedName}` || n === expectedName));
-  if (byServiceIdName) return byServiceIdName;
-
-  if (service.name) {
-    const sanitizedName = service.name.toLowerCase().replace(/[^a-z0-9_-]/g, "-");
-    const byName = containers.find(c => c.Names.some(n => n === `/${service.name}` ||
-      n === `/${sanitizedName}` ||
-      n === `/buttler-${sanitizedName}`));
-    if (byName) return byName;
-  }
-
-  return undefined;
+  return containers.find(c => isOwnContainer(c, service.id));
 }
 
 export function createServiceRuntimeState(
