@@ -10,6 +10,7 @@ import getInheritedVariables from "~/operations/getInheritedVariables";
 import getService from "~/operations/getService";
 import getServiceLinks from "~/operations/getServiceLinks";
 import getServices from "~/operations/getServices";
+import getSharedVariableNames from "~/operations/getSharedVariableNames";
 import getSharedVariables from "~/operations/getSharedVariables";
 import getSharedVolumes from "~/operations/getSharedVolumes";
 
@@ -129,4 +130,10 @@ export async function getInheritedVariablesOfService(serviceId: ServiceDTO["id"]
   cacheTag(`getInheritedVariablesOfService(${serviceId})`);
   cacheTag("getInheritedVariablesOfService(...)");
   return await getInheritedVariables(db, serviceId);
+}
+
+export async function getSharedVariableNamesOfLink(linkId: string) {
+  "use cache";
+  cacheTag(`getSharedVariableNamesOfLink(${linkId})`);
+  return await getSharedVariableNames(db, linkId);
 }
