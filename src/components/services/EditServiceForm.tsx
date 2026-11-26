@@ -42,6 +42,7 @@ const EditServiceForm = ({ action, edit, onClose }: EditServiceFormProps) => {
   const messages = {
     update_failed: t("messages.update_failed"),
     secret_value_required: t("messages.secret_value_required"),
+    inherited_variable_name: t("messages.inherited_variable_name"),
     TOO_SMALL: t("messages.field_required"),
     INVALID_PORTS: t("messages.invalid_ports"),
     INVALID_ENVIRONMENT_VARIABLES: t("messages.invalid_environment_variables"),

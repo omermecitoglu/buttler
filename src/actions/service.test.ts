@@ -47,6 +47,7 @@ const mockRequireAdmin = vi.fn();
 const mockRefresh = vi.fn();
 const mockUpdateTag = vi.fn();
 const mockRedirect = vi.fn();
+const mockGetInheritedVariables = vi.fn();
 
 vi.mock("~/database", () => ({
   default: {},
@@ -54,6 +55,10 @@ vi.mock("~/database", () => ({
 
 vi.mock("~/operations/getService", () => ({
   default: (...args: unknown[]) => mockGetService(...args),
+}));
+
+vi.mock("~/operations/getInheritedVariables", () => ({
+  default: (...args: unknown[]) => mockGetInheritedVariables(...args),
 }));
 
 vi.mock("~/operations/getDeployableService", () => ({
@@ -456,6 +461,7 @@ describe("service lifecycle server actions", () => {
 describe("updateServiceAction", () => {
   beforeEach(() => {
     vi.resetAllMocks();
+    mockGetInheritedVariables.mockResolvedValue([]);
   });
 
   function createFormData() {
@@ -470,7 +476,7 @@ describe("updateServiceAction", () => {
   }
 
   it("saves the service and updates its caches", async () => {
-    mockGetService.mockResolvedValue({ id: "srv", type: "dockerhub" });
+    mockGetService.mockResolvedValue({ id: "srv", type: "dockerhub", environmentVariables: [] });
     expect(await updateServiceAction("srv", {}, createFormData())).toEqual({});
     expect(mockUpdateService).toHaveBeenCalledWith({}, "srv", {
       name: "app",
@@ -481,6 +487,16 @@ describe("updateServiceAction", () => {
     });
     expect(mockUpdateTag).toHaveBeenCalledWith("getAllServices()");
     expect(mockUpdateTag).toHaveBeenCalledWith("getSingleService(srv)");
+  });
+
+  it("rejects a new variable with the name of an inherited one", async () => {
+    mockGetInheritedVariables.mockResolvedValue([{ name: "TOKEN" }]);
+    mockGetService.mockResolvedValue({ id: "srv", type: "dockerhub", environmentVariables: [] });
+    expect(await updateServiceAction("srv", {}, createFormData())).toEqual({ "[error]": "inherited_variable_name" });
+    expect(mockUpdateService).not.toHaveBeenCalled();
+    // A variable that was saved before is kept
+    mockGetService.mockResolvedValue({ id: "srv", type: "dockerhub", environmentVariables: [{ key: "TOKEN" }] });
+    expect(await updateServiceAction("srv", {}, createFormData())).toEqual({});
   });
 
   it("leaves the parts that are not submitted untouched", async () => {
@@ -501,7 +517,7 @@ describe("updateServiceAction", () => {
   });
 
   it("asks for the values of the secrets that cannot be kept", async () => {
-    mockGetService.mockResolvedValue({ id: "srv", type: "github" });
+    mockGetService.mockResolvedValue({ id: "srv", type: "github", environmentVariables: [] });
     mockUpdateService.mockImplementation(() => {
       throw new MissingSecretValueError("TOKEN");
     });

@@ -447,6 +447,7 @@
       "messages": {
         "update_failed": "Failed to save the changes. Check that host ports and variable keys are unique, and try again.",
         "secret_value_required": "Enter the value again for secrets that are renamed or no longer secret.",
+        "inherited_variable_name": "A variable with this name is inherited from a link. Choose another name, or rename the inherited one on the links tab.",
         "field_required": "Name and source fields are required.",
         "invalid_ports": "One or more port mappings are invalid.",
         "invalid_environment_variables": "One or more environment variables are invalid.",
