@@ -1,6 +1,8 @@
 "use client";
 
+import { Toast } from "@base-ui/react/toast";
 import { faCheck } from "@fortawesome/free-solid-svg-icons/faCheck";
+import { faClipboard } from "@fortawesome/free-solid-svg-icons/faClipboard";
 import { faCopy } from "@fortawesome/free-solid-svg-icons/faCopy";
 import { faKey } from "@fortawesome/free-solid-svg-icons/faKey";
 import { faLock } from "@fortawesome/free-solid-svg-icons/faLock";
@@ -38,6 +40,9 @@ export type EnvironmentVariablesRepeaterLabels = {
   copyButton?: string,
   copiedButton?: string,
   clearButton?: string,
+  pasteButton?: string,
+  pasteInvalidMessage?: string,
+  pasteFailedMessage?: string,
   removeButton?: string,
   keyLabel?: string,
   keyPlaceholder?: string,
@@ -69,6 +74,28 @@ const createEmptyVariable = (): EnvironmentVariableItem => ({
   isSecret: false,
 });
 
+const createPastedVariable = ([key, value]: [string, string]): EnvironmentVariableItem => ({
+  ...createEmptyVariable(),
+  key,
+  value,
+  isMultiline: value.includes("\n"),
+});
+
+/** Whether the clipboard has .env text, which can only be known if reading it is allowed */
+type ClipboardContent = "unknown" | "env" | "other";
+
+async function readClipboardContent(): Promise<ClipboardContent> {
+  try {
+    const permission = await navigator.permissions.query({ name: "clipboard-read" as PermissionName });
+    if (permission.state !== "granted") return "unknown";
+    const text = await navigator.clipboard.readText();
+    return parseEnvVariables(text) ? "env" : "other";
+  } catch {
+    // Browsers that do not know the permission cannot read the clipboard without a click
+    return "unknown";
+  }
+}
+
 const EnvironmentVariablesRepeater = ({
   items: controlledItems,
   onChange,
@@ -85,7 +112,10 @@ const EnvironmentVariablesRepeater = ({
     }
   }, [controlledItems]);
 
+  const toastManager = Toast.useToastManager();
   const [copied, setCopied] = useState(false);
+  const [clipboardContent, setClipboardContent] = useState<ClipboardContent>("unknown");
+  const isEmpty = internalItems.length === 0;
   /** The value field to focus once it has turned into a textarea */
   const pendingFocus = useRef<{ index: number, caret: number } | null>(null);
 
@@ -94,6 +124,23 @@ const EnvironmentVariablesRepeater = ({
     const timeout = setTimeout(() => setCopied(false), 2000);
     return () => clearTimeout(timeout);
   }, [copied]);
+
+  useEffect(() => {
+    if (!isEmpty) return;
+    let cancelled = false;
+    const check = () => {
+      void readClipboardContent().then(content => {
+        if (!cancelled) setClipboardContent(content);
+      });
+    };
+    check();
+    // The clipboard can change while the user is in another window
+    window.addEventListener("focus", check);
+    return () => {
+      cancelled = true;
+      window.removeEventListener("focus", check);
+    };
+  }, [isEmpty]);
 
   useLayoutEffect(() => {
     if (!pendingFocus.current) return;
@@ -143,12 +190,7 @@ const EnvironmentVariablesRepeater = ({
         isMultiline: item.isMultiline === true || value.includes("\n"),
       };
     });
-    const added = Array.from(remaining, ([key, value]) => ({
-      ...createEmptyVariable(),
-      key,
-      value,
-      isMultiline: value.includes("\n"),
-    }));
+    const added = Array.from(remaining, createPastedVariable);
     const current = internalItems[index];
     const isBlank = current.key.trim() === "" && current.value === "";
     // A blank row is replaced by the pasted variables, other rows are followed by them
@@ -182,6 +224,23 @@ const EnvironmentVariablesRepeater = ({
     });
   };
 
+  const handlePasteFromClipboard = async () => {
+    let text: string;
+    try {
+      text = await navigator.clipboard.readText();
+    } catch {
+      toastManager.add({ type: "error", description: pasteFailedMessage });
+      return;
+    }
+    const pasted = parseEnvVariables(text);
+    if (!pasted) {
+      setClipboardContent("other");
+      toastManager.add({ type: "error", description: pasteInvalidMessage });
+      return;
+    }
+    updateItems(Object.entries(pasted).map(createPastedVariable));
+  };
+
   const handleCopy = async () => {
     const text = stringifyEnvVariables(internalItems
       .filter(item => item.key.trim() !== "")
@@ -204,6 +263,9 @@ const EnvironmentVariablesRepeater = ({
   const copyButton = labels?.copyButton ?? "Copy as .env";
   const copiedButton = labels?.copiedButton ?? "Copied";
   const clearButton = labels?.clearButton ?? "Clear all";
+  const pasteButton = labels?.pasteButton ?? "Paste .env";
+  const pasteInvalidMessage = labels?.pasteInvalidMessage ?? "The clipboard has no environment variables.";
+  const pasteFailedMessage = labels?.pasteFailedMessage ?? "The clipboard could not be read.";
   const removeButton = labels?.removeButton ?? "Remove variable";
   const keyLabel = labels?.keyLabel ?? "Key";
   const keyPlaceholder = labels?.keyPlaceholder ?? "e.g. DATABASE_URL";
@@ -267,20 +329,35 @@ const EnvironmentVariablesRepeater = ({
           </Button>
         </div>
       </div>
-      {internalItems.length === 0 ? (
+      {isEmpty ? (
         <div className="flex flex-col items-center justify-center rounded-md border border-dashed border-slate-800 py-6 text-center">
           <p className="text-xs text-slate-500">{emptyMessage}</p>
-          <Button
-            type="button"
-            variant="ghost"
-            size="xs"
-            onClick={handleAdd}
-            disabled={disabled}
-            className="mt-2 text-slate-400 hover:text-slate-200"
-          >
-            <FontAwesomeIcon icon={faPlus} className="mr-1 size-3" />
-            <span>{addButton}</span>
-          </Button>
+          <div className="mt-2 flex items-center gap-2">
+            <Button
+              type="button"
+              variant="ghost"
+              size="xs"
+              onClick={handleAdd}
+              disabled={disabled}
+              className="text-slate-400 hover:text-slate-200"
+            >
+              <FontAwesomeIcon icon={faPlus} className="mr-1 size-3" />
+              <span>{addButton}</span>
+            </Button>
+            {clipboardContent !== "other" && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="xs"
+                onClick={handlePasteFromClipboard}
+                disabled={disabled}
+                className="gap-1.5 text-slate-400 hover:text-slate-200"
+              >
+                <FontAwesomeIcon icon={faClipboard} className="size-3" />
+                <span>{pasteButton}</span>
+              </Button>
+            )}
+          </div>
         </div>
       ) : (
         <div className="space-y-2">
