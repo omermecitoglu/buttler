@@ -7,6 +7,7 @@ export const relations = defineRelations(schema, r => ({
     ports: r.many.ports(),
     environmentVariables: r.many.environmentVariables(),
     domains: r.many.domains(),
+    sharedVariables: r.many.sharedVariables(),
   },
   volumes: {
     service: r.one.services({
@@ -29,6 +30,12 @@ export const relations = defineRelations(schema, r => ({
   environmentVariables: {
     service: r.one.services({
       from: r.environmentVariables.serviceId,
+      to: r.services.id,
+    }),
+  },
+  sharedVariables: {
+    service: r.one.services({
+      from: r.sharedVariables.serviceId,
       to: r.services.id,
     }),
   },
