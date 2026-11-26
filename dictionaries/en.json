@@ -384,6 +384,7 @@
       "info": "Info",
       "builds": "Builds",
       "logs": "Logs",
+      "links": "Links",
       "settings": "Settings"
     },
     "notFound": {
@@ -560,6 +561,27 @@
       "blocked": {
         "label": "No internet access",
         "description": "The container can't reach the internet. Its domains and published ports keep working."
+      }
+    },
+    "links": {
+      "title": "Links",
+      "description": "Linked services can reach each other, and no other service can reach this one. Both sides can open connections.",
+      "systemService": "System services are linked by Buttler.",
+      "hostDescription": "Reach it at",
+      "empty": "This service isn't linked to any other service.",
+      "noCandidates": "There is no other service to link.",
+      "serviceLabel": "Service",
+      "add": "Add link",
+      "adding": "Adding...",
+      "remove": "Remove",
+      "removing": "Removing...",
+      "removeLink": "Remove the link to {name}",
+      "messages": {
+        "add_failed": "The link could not be added.",
+        "already_linked": "These services are already linked.",
+        "connect_failed": "The link was not added, because its network could not be set up. The reason is in the server log.",
+        "disconnect_failed": "The link was kept, because its network could not be removed. The reason is in the server log.",
+        "remove_failed": "The link could not be removed."
       }
     }
   },
