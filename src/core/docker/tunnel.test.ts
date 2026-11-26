@@ -1,3 +1,4 @@
+import os from "node:os";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { connectProxyToTunnel, removeTunnelContainer, startTunnelContainer } from "./tunnel";
 
@@ -64,6 +65,7 @@ const newContainer = { start: vi.fn() };
 describe("tunnel container", () => {
   beforeEach(() => {
     vi.resetAllMocks();
+    vi.spyOn(os, "networkInterfaces").mockReturnValue({});
     mocks.listNetworks.mockResolvedValue([network]);
     mocks.createNetwork.mockResolvedValue({ id: "net" });
     mocks.listContainers.mockResolvedValue([proxy()]);
@@ -77,6 +79,7 @@ describe("tunnel container", () => {
       Name: "buttler-tunnel",
       Driver: "bridge",
       Labels: { "com.docker.compose.project": "buttler", "buttler.network": "tunnel" },
+      IPAM: { Driver: "default", Config: [{ Subnet: "10.213.0.0/29" }] },
     });
     expect(mocks.connect).toHaveBeenCalledWith({ Container: "buttler-nginx" });
     expect(mocks.createContainer).toHaveBeenCalledWith({

@@ -1,4 +1,3 @@
-import os from "node:os";
 import { docker } from "~/core/docker";
 import { createQueue } from "~/core/queue";
 import db from "~/database";
@@ -6,18 +5,14 @@ import getServicesWithDomains from "~/operations/getServicesWithDomains";
 import { REVERSE_PROXY_CONTAINER_NAME, isOwnContainer } from "./containers";
 import { FORBIDDEN, NOT_FOUND, ignoreStatus } from "./errors";
 import { BUTTLER_NETWORK_LABEL, BUTTLER_SERVICE_LABEL } from "./labels";
-import { findFreeSubnet } from "./subnets";
+import { createButtlerNetwork } from "./networks";
 import type Docker from "dockerode";
 
 const INGRESS_NETWORK = "ingress";
 
-/** The default pools of Docker run out at about 30 networks */
-const SUBNET_POOL = "172.30.0.0/16";
-const SUBNET_PREFIX = 28;
-
 type IngressNetwork = Pick<Docker.NetworkInspectInfo, "Id" | "Name">;
 
-/** Changes never overlap, otherwise they could pick the same subnet or undo each other */
+/** Changes never overlap, otherwise they could undo each other */
 const enqueue = createQueue("ingress-queue");
 
 export function getIngressNetworkName(serviceId: string) {
@@ -41,31 +36,13 @@ function listIngressNetworks(serviceId?: string) {
   });
 }
 
-async function listUsedSubnets() {
-  const networks = await docker.listNetworks();
-  // Docker doesn't check the networks of the host for explicit subnets
-  const hostAddresses = Object.values(os.networkInterfaces()).flatMap(addresses => addresses ?? []);
-  return [
-    ...networks.flatMap(network => network.IPAM?.Config ?? []).map(config => config.Subnet),
-    ...hostAddresses.map(address => address.cidr),
-  ].filter(subnet => typeof subnet === "string");
-}
-
 async function createIngressNetwork(serviceId: string): Promise<IngressNetwork> {
   const name = getIngressNetworkName(serviceId);
-  const subnet = findFreeSubnet(SUBNET_POOL, SUBNET_PREFIX, await listUsedSubnets());
-  if (!subnet) {
-    throw new Error(`No free subnet left in ${SUBNET_POOL} for ${name}`);
-  }
-  const network = await docker.createNetwork({
+  const network = await createButtlerNetwork({
     Name: name,
     Driver: "bridge",
     // The containers keep reaching the outside through their other networks
     Internal: true,
-    IPAM: {
-      Driver: "default",
-      Config: [{ Subnet: subnet }],
-    },
     Labels: {
       "com.docker.compose.project": "buttler",
       [BUTTLER_NETWORK_LABEL]: INGRESS_NETWORK,
