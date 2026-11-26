@@ -120,6 +120,15 @@ describe("inherited variables", () => {
     expect((await getInheritedVariables(db, app)).map(({ name }) => name)).toEqual(["PGHOST"]);
   });
 
+  it("should not store a name that is the same as the key", async () => {
+    const pg = create("db");
+    const app = create("app");
+    const serviceLink = await link(pg, app);
+    const [host] = saveSharedVariables(db, pg, [{ key: "HOST", template: "{host}" }]);
+    updateLinkInheritance(db, app, serviceLink.id, { inherits: true, names: [{ sharedVariableId: host.id, name: "HOST" }] });
+    expect(client.prepare("SELECT * FROM shared_variable_names").all()).toEqual([]);
+  });
+
   it("should not rename the variables of the inheriting service itself", async () => {
     const pg = create("db");
     const app = create("app");
