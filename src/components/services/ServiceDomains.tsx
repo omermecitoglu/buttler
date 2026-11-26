@@ -8,20 +8,22 @@ import RemoveDomainForm from "~/components/services/RemoveDomainForm";
 import Card from "~/components/ui/card";
 import { getDomainStatuses } from "~/core/cloudflare/domains";
 import { loadDomainZones } from "~/data/cloudflare";
-import type { ServiceDetails } from "~/data/services";
+import { type ServiceDetails, getExposedPortsOfService } from "~/data/services";
 
 export type ServiceDomainsProps = {
-  service: Pick<ServiceDetails, "id" | "domains" | "ports">,
+  service: Pick<ServiceDetails, "id" | "type" | "repository" | "branch" | "domains" | "ports">,
 };
 
 const ServiceDomains = async ({ service }: ServiceDomainsProps) => {
   const [
     domainZones,
     statuses,
+    exposedPorts,
     t,
   ] = await Promise.all([
     loadDomainZones(),
     getDomainStatuses(service.domains.map(({ hostname }) => hostname)),
+    getExposedPortsOfService(service),
     getTranslations("ServicePage.settings.domains"),
   ]);
 
@@ -35,7 +37,7 @@ const ServiceDomains = async ({ service }: ServiceDomainsProps) => {
         <AddDomainForm
           action={addDomainAction.bind(null, service.id)}
           zones={domainZones.zones}
-          defaultPort={service.ports.at(0)?.internal}
+          defaultPort={exposedPorts.at(0) ?? service.ports.at(0)?.internal}
         />
       ) : (
         <ZonesNotice state={domainZones.state} />

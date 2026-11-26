@@ -1,9 +1,12 @@
 import "server-only";
 import { cacheTag } from "next/cache";
 import { cache } from "react";
+import { findLatestImage } from "~/core/build";
+import { getExposedPorts } from "~/core/docker";
 import { type ServiceImage, getServiceBuilds, listServiceImages } from "~/core/docker/builds";
 import { isVolumeName } from "~/core/docker/removal";
 import { type ServiceRuntimeState, getServiceRuntimeState, getServicesRuntimeStates } from "~/core/docker/status";
+import { getServiceImageTag } from "~/core/dockerhub";
 import { buildServiceGraph } from "~/core/service-graph";
 import db from "~/database";
 import type { ServiceDTO } from "~/models/service";
@@ -96,6 +99,22 @@ export async function getVolumesOfService(service: Pick<ServiceDetails, "id" | "
     name,
     keptAs: !isVolumeName(name) ? "hostPath" : sharedNames.includes(name) ? "shared" : null,
   }));
+}
+
+/**
+ * Returns the TCP ports that the newest image of a service exposes: the latest build of a GitHub service,
+ * or the pulled image of a Docker Hub service. Docker is the source of truth, so nothing is cached.
+ */
+export async function getExposedPortsOfService(service: Pick<ServiceDetails, "id" | "type" | "repository" | "branch">) {
+  if (service.type === "github") {
+    const imageId = await findLatestImage(service.id).catch(() => null);
+    return imageId ? await getExposedPorts(imageId) : [];
+  }
+  if (service.type === "dockerhub") {
+    const imageTag = getServiceImageTag(service);
+    return imageTag ? await getExposedPorts(imageTag) : [];
+  }
+  return [];
 }
 
 /** Returns null if the builds are not available */
