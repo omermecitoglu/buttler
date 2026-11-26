@@ -5,7 +5,12 @@ import type { ServiceEdit } from "~/components/services/EditServiceFields";
 import EditServiceModal from "~/components/services/EditServiceModal";
 import ServiceInfoList from "~/components/services/ServiceInfoList";
 import ServiceInfoSection from "~/components/services/ServiceInfoSection";
-import { getAllServices, getInheritedVariablesOfService, getServiceWithLiveStatus } from "~/data/services";
+import {
+  getAllServices,
+  getExposedPortsOfService,
+  getInheritedVariablesOfService,
+  getServiceWithLiveStatus,
+} from "~/data/services";
 import { notFound } from "~/i18n/navigation";
 
 export type ServiceInfoProps = {
@@ -34,6 +39,7 @@ const ServiceInfo = async ({ params }: ServiceInfoProps) => {
   ]);
   if (!service) notFound();
 
+  const exposedPorts = await getExposedPortsOfService(service);
   const { runtime, deployedImage } = service;
   const notAvailable = t("notAvailable");
   const isGitHub = service.type === "github";
@@ -91,7 +97,7 @@ const ServiceInfo = async ({ params }: ServiceInfoProps) => {
         </ServiceInfoSection>
         <ServiceInfoSection
           title={t("ports")}
-          action={renderEdit({ section: "ports", ports: service.ports })}
+          action={renderEdit({ section: "ports", ports: service.ports, exposedPorts })}
         >
           {service.ports.length === 0 ? (
             <p className="text-sm text-slate-500">{t("noPorts")}</p>
@@ -101,6 +107,11 @@ const ServiceInfo = async ({ params }: ServiceInfoProps) => {
                 <li key={port.external}>{`${port.external} → ${port.internal}`}</li>
               ))}
             </ul>
+          )}
+          {exposedPorts.length > 0 && (
+            <p className="mt-3 text-xs text-slate-500">
+              {t("exposedPorts", { ports: exposedPorts.join(", ") })}
+            </p>
           )}
         </ServiceInfoSection>
         <ServiceInfoSection

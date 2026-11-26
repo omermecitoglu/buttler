@@ -326,7 +326,9 @@
       "hostPortPlaceholder": "Host port (e.g. 8080)",
       "containerPortLabel": "Container Port",
       "containerPortPlaceholder": "Container port (e.g. 80)",
-      "emptyMessage": "No port mappings configured."
+      "emptyMessage": "No port mappings configured.",
+      "exposedPortsLabel": "Exposed by the image",
+      "addExposedPort": "Map container port {port}"
     },
     "envSection": {
       "title": "Environment Variables",
@@ -409,6 +411,7 @@
       "builtAt": "Built at",
       "ports": "Port Mappings",
       "noPorts": "No port mappings configured.",
+      "exposedPorts": "Exposed by the image: {ports}",
       "variables": "Environment Variables",
       "noVariables": "No environment variables configured.",
       "inheritedFrom": "From the link to {name}, read-only",
