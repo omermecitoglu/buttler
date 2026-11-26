@@ -29,14 +29,17 @@ export default function updateLinkInheritance(
       .get();
 
     // Only the variables of the other side can be renamed on this side
-    const otherVariableIds = tx.select({ id: sharedVariables.id }).from(sharedVariables)
+    const otherVariables = tx.select({ id: sharedVariables.id, key: sharedVariables.key }).from(sharedVariables)
       .where(eq(sharedVariables.serviceId, getLinkedServiceId(link, serviceId)))
-      .all()
-      .map(({ id }) => id);
+      .all();
+    const otherVariableIds = otherVariables.map(({ id }) => id);
     tx.delete(sharedVariableNames)
       .where(and(eq(sharedVariableNames.linkId, linkId), inArray(sharedVariableNames.sharedVariableId, otherVariableIds)))
       .run();
-    const renamed = names.filter(({ sharedVariableId }) => otherVariableIds.includes(sharedVariableId));
+    // A name that is the same as the key isn't a rename
+    const renamed = names.filter(({ sharedVariableId, name }) => {
+      return otherVariables.some(({ id, key }) => id === sharedVariableId && key !== name);
+    });
     if (renamed.length > 0) {
       tx.insert(sharedVariableNames)
         .values(renamed.map(({ sharedVariableId, name }) => ({ linkId, sharedVariableId, name })))
