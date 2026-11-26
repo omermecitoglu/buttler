@@ -42,6 +42,8 @@ const SharedVariablesForm = ({ action, variables, source, inheritingServices }: 
   const [items, setItems] = useState<Item[]>(() => variables.map(variable => ({ ...variable, uid: variable.id })));
   const [recreate, setRecreate] = useState<string[]>([]);
   const [isSaving, setIsSaving] = useState(false);
+  // React resets the form after an action, which unchecks the checkboxes without updating their state
+  const [submitCount, setSubmitCount] = useState(0);
 
   const runtimeKeys = source.variables
     .filter(({ scope }) => scope === "runtime" || scope === "both")
@@ -55,6 +57,7 @@ const SharedVariablesForm = ({ action, variables, source, inheritingServices }: 
       return await action(state, formData);
     } finally {
       setIsSaving(false);
+      setSubmitCount(count => count + 1);
     }
   };
 
@@ -181,6 +184,7 @@ const SharedVariablesForm = ({ action, variables, source, inheritingServices }: 
           {inheritingServices.map(service => (
             <div key={service.id} className="flex items-start gap-2">
               <input
+                key={submitCount}
                 id={`${idPrefix}-recreate-${service.id}`}
                 type="checkbox"
                 checked={recreate.includes(service.id)}
