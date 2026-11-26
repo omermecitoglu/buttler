@@ -71,7 +71,6 @@ const SharedVariablesForm = ({ action, variables, source, inheritingServices }: 
     save_failed: t("messages.save_failed"),
     recreate_failed: t("messages.recreate_failed"),
     duplicate_keys: t("messages.duplicate_keys"),
-    invalid_shared_variables: t("messages.invalid_shared_variables"),
     INVALID_SHARED_VARIABLES: t("messages.invalid_shared_variables"),
   };
 
