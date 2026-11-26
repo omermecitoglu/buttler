@@ -10,7 +10,7 @@ import {
   BUTTLER_COMMIT_LABEL,
   BUTTLER_SERVICE_LABEL,
 } from "~/core/docker/labels";
-import { type ServiceRef, deployServiceContainer, markServiceBuilding } from "~/core/docker/status";
+import { type ServiceRef, assertServiceNotDeleting, deployServiceContainer, markServiceBuilding } from "~/core/docker/status";
 import { getBuildArgs, getBuildSecrets } from "~/core/environment-variables";
 import { cloneRepo, deleteRepo, parseRepository } from "~/core/git";
 import { getInstallationTokenForOwner } from "~/core/github/app";
@@ -58,6 +58,8 @@ function openBuildLog(serviceId: string) {
 async function runPipeline(service: ServiceRef) {
   markServiceBuilding(service.id, true);
   try {
+    // A queued build may start after a deletion has begun
+    assertServiceNotDeleting(service.id);
     const { repository, branch } = service;
     if (!repository || !branch) {
       throw new Error(`No repository or branch specified for service ${service.id}`);
@@ -141,6 +143,7 @@ export function buildAndDeploy(service: ServiceRef): Promise<void> {
 
 /** Builds and deploys a service after the response is sent */
 export function startBuilding(service: ServiceRef) {
+  assertServiceNotDeleting(service.id);
   markServiceBuilding(service.id, true);
   after(async () => {
     try {
@@ -154,6 +157,7 @@ export function startBuilding(service: ServiceRef) {
 
 /** Starts a service from its latest image, and builds it only if there is none */
 export async function startGitHubService(service: ServiceRef): Promise<void> {
+  assertServiceNotDeleting(service.id);
   const running = runningBuilds.get(service.id);
   if (running) return running;
 
