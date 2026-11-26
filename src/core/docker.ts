@@ -211,36 +211,10 @@ export async function createVolume(name: string) {
   });
 }
 
-export async function createNetwork(networkId: string, containerIds: string[] = []) {
-  const network = await docker.createNetwork({
-    Name: networkId,
-    Driver: "bridge",
-    CheckDuplicate: true,
-    Internal: false,
-    Attachable: true,
-  });
-  await Promise.all(containerIds.map(containerId => connectContainerToNetwork(containerId, network.id)));
-  return network;
-}
-
-export async function destroyNetwork(networkId: string, containerIds: string[] = []) {
-  const network = docker.getNetwork(networkId);
-  await Promise.all(containerIds.map(containerId => disconnectContainerFromNetwork(containerId, network.id)));
-  await network.remove();
-}
-
 async function connectContainerToNetwork(containerId: string, networkId: string) {
   const network = docker.getNetwork(networkId);
   await network.connect({
     Container: containerId,
-  });
-}
-
-async function disconnectContainerFromNetwork(containerId: string, networkId: string) {
-  const network = docker.getNetwork(networkId);
-  await network.disconnect({
-    Container: containerId,
-    // Force: true, // is this necessary?
   });
 }
 
