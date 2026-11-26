@@ -8,6 +8,7 @@ import {
   startService,
   stopService,
   triggerBuild,
+  updateInternetAccessAction,
   updateServiceAction,
 } from "./service";
 
@@ -635,5 +636,64 @@ describe("deleteServiceAction", () => {
     expect(await submit(["data"])).toEqual({ "[error]": "delete_failed" });
     expect(mockDeleteService).not.toHaveBeenCalled();
     expect(mockRedirect).not.toHaveBeenCalled();
+  });
+});
+
+describe("updateInternetAccessAction", () => {
+  const service = { id: "srv", type: "dockerhub" };
+
+  beforeEach(() => {
+    vi.resetAllMocks();
+    mockGetService.mockResolvedValue(service);
+    mockGetDeployableService.mockResolvedValue(service);
+    mockGetServiceRuntimeState.mockResolvedValue({ status: "running" });
+  });
+
+  function createFormData(internetAccess: string, recreate = false) {
+    const formData = new FormData();
+    formData.set("internetAccess", internetAccess);
+    if (recreate) formData.set("recreate", "on");
+    return formData;
+  }
+
+  it("saves the choice without touching the container", async () => {
+    expect(await updateInternetAccessAction("srv", {}, createFormData("no"))).toEqual({ "[success]": "saved" });
+    expect(mockUpdateService).toHaveBeenCalledWith({}, "srv", { internetAccess: false });
+    expect(mockUpdateTag).toHaveBeenCalledWith("getSingleService(srv)");
+    expect(mockRestartServiceContainer).not.toHaveBeenCalled();
+  });
+
+  it("recreates the container after the choice is saved", async () => {
+    expect(await updateInternetAccessAction("srv", {}, createFormData("yes", true))).toEqual({ "[success]": "recreated" });
+    expect(mockUpdateService).toHaveBeenCalledWith({}, "srv", { internetAccess: true });
+    expect(mockRestartServiceContainer).toHaveBeenCalledWith(service);
+    expect(mockRestartServiceContainer).toHaveBeenCalledAfter(mockUpdateService);
+    expect(mockRefresh).toHaveBeenCalled();
+  });
+
+  it("changes nothing while the service is being built", async () => {
+    mockGetServiceRuntimeState.mockResolvedValue({ status: "building" });
+    expect(await updateInternetAccessAction("srv", {}, createFormData("no", true))).toEqual({ "[error]": "service_busy" });
+    expect(mockUpdateService).not.toHaveBeenCalled();
+    expect(mockRestartServiceContainer).not.toHaveBeenCalled();
+  });
+
+  it("keeps the saved choice when the container can't be recreated", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+    mockRestartServiceContainer.mockRejectedValue(new Error("no docker"));
+    expect(await updateInternetAccessAction("srv", {}, createFormData("no", true))).toEqual({ "[error]": "recreate_failed" });
+    expect(mockUpdateService).toHaveBeenCalled();
+  });
+
+  it("requires a choice", async () => {
+    const errors = await updateInternetAccessAction("srv", {}, new FormData());
+    expect(errors).toHaveProperty("internetAccess");
+    expect(mockUpdateService).not.toHaveBeenCalled();
+  });
+
+  it("refuses system services", async () => {
+    mockGetService.mockResolvedValue({ id: "srv", type: "system" });
+    expect(await updateInternetAccessAction("srv", {}, createFormData("no"))).toEqual({ "[error]": "update_failed" });
+    expect(mockUpdateService).not.toHaveBeenCalled();
   });
 });

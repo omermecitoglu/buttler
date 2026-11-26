@@ -450,6 +450,26 @@
     },
     "settings": {
       "systemService": "System services are managed by Buttler, they can't be deleted and don't have domains.",
+      "internetAccess": {
+        "title": "Internet Access",
+        "description": "Whether the container can reach the internet. It never makes the service reachable by other services.",
+        "recreate": "Recreate the container now",
+        "help": {
+          "now": "The container is recreated with the change when you save.",
+          "onRestart": "The change applies the next time the service is restarted.",
+          "onStart": "The service has no container, the change applies when it's started.",
+          "onDeploy": "The change applies when the running build or pull deploys a new container."
+        },
+        "save": "Save",
+        "saving": "Saving...",
+        "messages": {
+          "saved": "Saved. It applies the next time the container is created, e.g. when the service is restarted.",
+          "recreated": "Saved, and the container was recreated with the change.",
+          "update_failed": "The change could not be saved.",
+          "recreate_failed": "The change was saved, but the container could not be recreated. The reason is in the server log.",
+          "service_busy": "The service is being built, pulled or deleted. Nothing was changed, try again when it's done."
+        }
+      },
       "domains": {
         "title": "Domains",
         "description": "The public hostnames of this service, and the port of its container that receives their requests.",

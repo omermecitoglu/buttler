@@ -147,6 +147,44 @@ export const updateServiceAction = defineFormAction({
   },
 });
 
+export const updateInternetAccessAction = defineFormAction({
+  middlewares: [userMiddleware],
+  schema: z.object({
+    internetAccess: internetAccessField,
+    // Otherwise the change applies the next time the container is created
+    recreate: z.literal("on").optional(),
+  }),
+  action: input => async (serviceId: string): Promise<Record<string, string>> => {
+    const service = await getService(db, serviceId);
+    if (!service || service.type === "system") return displayMessage("error", "update_failed");
+    if (input.recreate) {
+      const { status } = await getServiceRuntimeState(service);
+      // The container is replaced anyway, and replacing it at the same time would fail
+      if (status === "building" || status === "pulling" || isServiceBusy(serviceId)) {
+        return displayMessage("error", "service_busy");
+      }
+    }
+    try {
+      updateService(db, serviceId, { internetAccess: input.internetAccess });
+    } catch {
+      return displayMessage("error", "update_failed");
+    }
+    updateTag("getAllServices()");
+    updateTag(`getSingleService(${serviceId})`);
+    if (!input.recreate) return displayMessage("success", "saved");
+    try {
+      await restartServiceContainer(await getServiceToDeploy(serviceId));
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error(`Failed to recreate the container of service ${serviceId}:`, error);
+      return displayMessage("error", "recreate_failed");
+    } finally {
+      refresh();
+    }
+    return displayMessage("success", "recreated");
+  },
+});
+
 /** A build, a pull or a deploy would create the service again while it's deleted */
 function isServiceBusy(serviceId: string) {
   return isServiceBuilding(serviceId) ||
