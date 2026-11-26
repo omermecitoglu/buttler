@@ -33,6 +33,7 @@ import type { AppLocale } from "~/i18n/routing";
 import createService from "~/operations/createService";
 import deleteService from "~/operations/deleteService";
 import getDeployableService from "~/operations/getDeployableService";
+import getInheritedVariables from "~/operations/getInheritedVariables";
 import getService from "~/operations/getService";
 import getSharedVolumes from "~/operations/getSharedVolumes";
 import updateService, { MissingSecretValueError } from "~/operations/updateService";
@@ -133,6 +134,14 @@ export const updateServiceAction = defineFormAction({
     const environmentVariables = service.type === "github"
       ? input.environmentVariables
       : input.environmentVariables?.map(variable => ({ ...variable, scope: "runtime" as const }));
+    if (environmentVariables) {
+      // A variable that was saved before keeps winning over an inherited one
+      const savedKeys = service.environmentVariables.map(({ key }) => key);
+      const inheritedNames = (await getInheritedVariables(db, serviceId)).map(({ name }) => name);
+      if (environmentVariables.some(({ key }) => !savedKeys.includes(key) && inheritedNames.includes(key))) {
+        return displayMessage("error", "inherited_variable_name");
+      }
+    }
     try {
       updateService(db, serviceId, { ...input, environmentVariables });
     } catch (error) {
