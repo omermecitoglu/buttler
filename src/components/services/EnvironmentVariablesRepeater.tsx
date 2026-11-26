@@ -1,5 +1,7 @@
 "use client";
 
+import { faCheck } from "@fortawesome/free-solid-svg-icons/faCheck";
+import { faCopy } from "@fortawesome/free-solid-svg-icons/faCopy";
 import { faKey } from "@fortawesome/free-solid-svg-icons/faKey";
 import { faLock } from "@fortawesome/free-solid-svg-icons/faLock";
 import { faLockOpen } from "@fortawesome/free-solid-svg-icons/faLockOpen";
@@ -7,12 +9,15 @@ import { faPlus } from "@fortawesome/free-solid-svg-icons/faPlus";
 import { faTrash } from "@fortawesome/free-solid-svg-icons/faTrash";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { cn } from "@omer-x/tailwind-ui-kit/utils";
-import { useEffect, useState } from "react";
+import { type ClipboardEvent, useEffect, useLayoutEffect, useRef, useState } from "react";
 import Button from "~/components/ui/button";
 import Input from "~/components/ui/input";
 import Label from "~/components/ui/label";
 import Select from "~/components/ui/select";
+import Textarea from "~/components/ui/textarea";
 import { type EnvironmentVariableScope, environmentVariableScopes } from "~/core/environment-variables";
+import { parseEnvVariables } from "~/utils/parseEnvVariables";
+import { stringifyEnvVariables } from "~/utils/stringifyEnvVariables";
 
 export type EnvironmentVariableItem = {
   id?: string,
@@ -22,12 +27,16 @@ export type EnvironmentVariableItem = {
   isSecret: boolean,
   /** Key of the saved secret, which is kept if a new value is not entered */
   savedSecretKey?: string,
+  /** Whether the value is edited in a textarea, which is turned on when lines are pasted into it */
+  isMultiline?: boolean,
 };
 
 export type EnvironmentVariablesRepeaterLabels = {
   title?: string,
   description?: string,
   addButton?: string,
+  copyButton?: string,
+  copiedButton?: string,
   removeButton?: string,
   keyLabel?: string,
   keyPlaceholder?: string,
@@ -75,6 +84,27 @@ const EnvironmentVariablesRepeater = ({
     }
   }, [controlledItems]);
 
+  const [copied, setCopied] = useState(false);
+  /** The value field to focus once it has turned into a textarea */
+  const pendingFocus = useRef<{ index: number, caret: number } | null>(null);
+
+  useEffect(() => {
+    if (!copied) return;
+    const timeout = setTimeout(() => setCopied(false), 2000);
+    return () => clearTimeout(timeout);
+  }, [copied]);
+
+  useLayoutEffect(() => {
+    if (!pendingFocus.current) return;
+    const { index, caret } = pendingFocus.current;
+    pendingFocus.current = null;
+    const element = document.getElementById(`env-val-${index}`);
+    if (element instanceof HTMLTextAreaElement) {
+      element.focus();
+      element.setSelectionRange(caret, caret);
+    }
+  });
+
   const updateItems = (nextItems: EnvironmentVariableItem[]) => {
     setInternalItems(nextItems);
     onChange?.(nextItems);
@@ -99,9 +129,79 @@ const EnvironmentVariablesRepeater = ({
     updateItems(next);
   };
 
+  const pasteVariables = (index: number, pasted: Record<string, string>) => {
+    const remaining = new Map(Object.entries(pasted));
+    const next = internalItems.map(item => {
+      const key = item.key.trim();
+      const value = remaining.get(key);
+      if (value === undefined) return item;
+      remaining.delete(key);
+      return {
+        ...item,
+        value,
+        isMultiline: item.isMultiline === true || value.includes("\n"),
+      };
+    });
+    const added = Array.from(remaining, ([key, value]) => ({
+      ...createEmptyVariable(),
+      key,
+      value,
+      isMultiline: value.includes("\n"),
+    }));
+    const current = internalItems[index];
+    const isBlank = current.key.trim() === "" && current.value === "";
+    // A blank row is replaced by the pasted variables, other rows are followed by them
+    next.splice(isBlank ? index : index + 1, isBlank ? 1 : 0, ...added);
+    updateItems(next);
+  };
+
+  const handlePaste = (
+    index: number,
+    field: "key" | "value",
+    event: ClipboardEvent<HTMLInputElement | HTMLTextAreaElement>,
+  ) => {
+    const text = event.clipboardData.getData("text/plain");
+    const pasted = parseEnvVariables(text);
+    if (pasted) {
+      event.preventDefault();
+      pasteVariables(index, pasted);
+      return;
+    }
+    const item = internalItems[index];
+    if (field !== "value" || item.isMultiline || !(/[\r\n]/).test(text)) return;
+    // Inputs drop line breaks, so the pasted lines turn the value field into a textarea
+    event.preventDefault();
+    const lines = text.replace(/\r\n?/g, "\n");
+    const start = event.currentTarget.selectionStart ?? item.value.length;
+    const end = event.currentTarget.selectionEnd ?? start;
+    pendingFocus.current = { index, caret: start + lines.length };
+    handleChange(index, {
+      value: item.value.slice(0, start) + lines + item.value.slice(end),
+      isMultiline: true,
+    });
+  };
+
+  const handleCopy = async () => {
+    const text = stringifyEnvVariables(internalItems
+      .filter(item => item.key.trim() !== "")
+      .map(item => ({
+        key: item.key.trim(),
+        // Values of secrets are never copied out
+        value: item.isSecret ? "" : item.value,
+      })));
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+    } catch {
+      setCopied(false);
+    }
+  };
+
   const title = labels?.title ?? "Environment Variables";
   const description = labels?.description ?? "Configure runtime environment variables and secrets.";
   const addButton = labels?.addButton ?? "Add Variable";
+  const copyButton = labels?.copyButton ?? "Copy as .env";
+  const copiedButton = labels?.copiedButton ?? "Copied";
   const removeButton = labels?.removeButton ?? "Remove variable";
   const keyLabel = labels?.keyLabel ?? "Key";
   const keyPlaceholder = labels?.keyPlaceholder ?? "e.g. DATABASE_URL";
@@ -129,17 +229,30 @@ const EnvironmentVariablesRepeater = ({
             <p className="mt-0.5 text-xs text-slate-400">{description}</p>
           )}
         </div>
-        <Button
-          type="button"
-          variant="secondary"
-          size="xs"
-          onClick={handleAdd}
-          disabled={disabled}
-          className="gap-1.5"
-        >
-          <FontAwesomeIcon icon={faPlus} className="size-3" />
-          <span>{addButton}</span>
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            variant="ghost"
+            size="xs"
+            onClick={handleCopy}
+            disabled={!internalItems.some(item => item.key.trim() !== "")}
+            className="gap-1.5 text-slate-400 hover:text-slate-200"
+          >
+            <FontAwesomeIcon icon={copied ? faCheck : faCopy} className="size-3" />
+            <span>{copied ? copiedButton : copyButton}</span>
+          </Button>
+          <Button
+            type="button"
+            variant="secondary"
+            size="xs"
+            onClick={handleAdd}
+            disabled={disabled}
+            className="gap-1.5"
+          >
+            <FontAwesomeIcon icon={faPlus} className="size-3" />
+            <span>{addButton}</span>
+          </Button>
+        </div>
       </div>
       {internalItems.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-md border border-dashed border-slate-800 py-6 text-center">
@@ -171,7 +284,7 @@ const EnvironmentVariablesRepeater = ({
             return (
               <div
                 key={key}
-                className={cn("grid items-center gap-2", columns)}
+                className={cn("grid items-start gap-2", columns)}
               >
                 <div>
                   <Label htmlFor={`env-key-${index}`} className="sr-only">
@@ -185,27 +298,45 @@ const EnvironmentVariablesRepeater = ({
                     placeholder={keyPlaceholder}
                     value={item.key}
                     onChange={e => handleChange(index, { key: e.target.value })}
+                    onPaste={e => handlePaste(index, "key", e)}
                     disabled={disabled}
                   />
                 </div>
-                <span className="text-center font-mono text-xs text-slate-500 select-none">=</span>
+                <span className="text-center font-mono text-xs leading-8 text-slate-500 select-none">=</span>
                 <div>
                   <Label htmlFor={`env-val-${index}`} className="sr-only">
                     {valueLabel}
                   </Label>
-                  <Input
-                    id={`env-val-${index}`}
-                    type={item.isSecret ? "password" : "text"}
-                    autoComplete={item.isSecret ? "new-password" : "off"}
-                    size="sm"
-                    className="font-mono text-xs"
-                    placeholder={item.isSecret && item.savedSecretKey === item.key.trim() && labels?.savedSecretPlaceholder
-                      ? labels.savedSecretPlaceholder
-                      : valuePlaceholder}
-                    value={item.value}
-                    onChange={e => handleChange(index, { value: e.target.value })}
-                    disabled={disabled}
-                  />
+                  {item.isMultiline ? (
+                    <Textarea
+                      id={`env-val-${index}`}
+                      autoGrow
+                      size="sm"
+                      autoComplete="off"
+                      spellCheck={false}
+                      className={cn("font-mono", item.isSecret && "[-webkit-text-security:disc]")}
+                      placeholder={valuePlaceholder}
+                      value={item.value}
+                      onChange={e => handleChange(index, { value: e.target.value })}
+                      onPaste={e => handlePaste(index, "value", e)}
+                      disabled={disabled}
+                    />
+                  ) : (
+                    <Input
+                      id={`env-val-${index}`}
+                      type={item.isSecret ? "password" : "text"}
+                      autoComplete={item.isSecret ? "new-password" : "off"}
+                      size="sm"
+                      className="font-mono text-xs"
+                      placeholder={item.isSecret && item.savedSecretKey === item.key.trim() && labels?.savedSecretPlaceholder
+                        ? labels.savedSecretPlaceholder
+                        : valuePlaceholder}
+                      value={item.value}
+                      onChange={e => handleChange(index, { value: e.target.value })}
+                      onPaste={e => handlePaste(index, "value", e)}
+                      disabled={disabled}
+                    />
+                  )}
                 </div>
                 {hasBuild && (
                   <div>
@@ -214,7 +345,7 @@ const EnvironmentVariablesRepeater = ({
                     </Label>
                     <Select
                       id={`env-scope-${index}`}
-                      className="text-xs"
+                      className="h-8 text-xs"
                       value={item.scope}
                       onChange={e => handleChange(index, { scope: e.target.value as EnvironmentVariableScope })}
                       disabled={disabled}

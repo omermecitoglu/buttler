@@ -327,6 +327,8 @@
       "title": "Environment Variables",
       "description": "Define configuration environment variables and secrets.",
       "addButton": "Add Variable",
+      "copyButton": "Copy as .env",
+      "copiedButton": "Copied",
       "removeButton": "Remove variable",
       "keyLabel": "Key",
       "keyPlaceholder": "e.g. DATABASE_URL",
