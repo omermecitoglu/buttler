@@ -2,6 +2,7 @@
 import { cn } from "@omer-x/tailwind-ui-kit/utils";
 import { type PointerEvent, useMemo, useRef, useState } from "react";
 import type { ServiceGraph as ServiceGraphData } from "~/core/service-graph";
+import useLocalStorage from "~/hooks/useLocalStorage";
 import { Link } from "~/i18n/navigation";
 
 const NODE_RADIUS = 28;
@@ -10,6 +11,9 @@ const MAX_LABEL_LENGTH = 24;
 const PADDING = 96;
 const MIN_WIDTH = 960;
 const MIN_HEIGHT = 600;
+const STORAGE_KEY = "service-graph-positions";
+
+type ViewBox = ReturnType<typeof getViewBox>;
 
 type Point = { x: number, y: number };
 
@@ -18,6 +22,11 @@ type Drag = {
   pointerId: number,
   offset: Point,
 };
+
+/** The moved positions by node ID */
+type Positions = Record<string, Point>;
+
+const NO_POSITIONS: Positions = {};
 
 export type ServiceGraphProps = {
   graph: ServiceGraphData,
@@ -43,17 +52,36 @@ function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
 }
 
+function isPoint(value: unknown): value is Point {
+  return typeof value === "object" && value !== null &&
+    typeof (value as Point).x === "number" && typeof (value as Point).y === "number";
+}
+
+/** A node can't leave the view, its label must stay visible too */
+function clampToView({ x, y }: Point, { minX, minY, width, height }: ViewBox): Point {
+  return {
+    // A label is wider than its node, the padding of the layout leaves room for it
+    x: clamp(x, minX + PADDING, minX + width - PADDING),
+    y: clamp(y, minY + NODE_RADIUS, minY + height - NODE_RADIUS - (LABEL_GAP * 2)),
+  };
+}
+
 /**
  * A node is dragged by its circle and its name opens its service, the lines aren't interactive.
- * The moved positions aren't saved, the layout of the server is used again after a reload.
+ * The moved positions are saved in the local storage when a drag ends, the other nodes keep the layout of the server.
+ * The view can change with the data, so a saved position is kept in it when it's shown.
  */
 const ServiceGraph = ({ graph, label }: ServiceGraphProps) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const dragRef = useRef<Drag | null>(null);
-  const [moved, setMoved] = useState<Record<string, Point>>({});
+  const [saved, setSaved] = useLocalStorage<Positions>(STORAGE_KEY, NO_POSITIONS);
+  const [dragged, setDragged] = useState<{ nodeId: string, position: Point } | null>(null);
   // The view doesn't follow the dragged nodes, so it stays still
   const viewBox = useMemo(() => getViewBox(graph), [graph]);
-  const nodes = new Map(graph.nodes.map(node => [node.id, { ...node, ...moved[node.id] }]));
+  const nodes = new Map(graph.nodes.map(node => {
+    const position = dragged?.nodeId === node.id ? dragged.position : saved[node.id];
+    return [node.id, { ...node, ...(isPoint(position) ? clampToView(position, viewBox) : null) }];
+  }));
 
   const toGraphPoint = (event: PointerEvent): Point => {
     const matrix = svgRef.current?.getScreenCTM()?.inverse();
@@ -77,20 +105,21 @@ const ServiceGraph = ({ graph, label }: ServiceGraphProps) => {
     const drag = dragRef.current;
     if (!drag || drag.pointerId !== event.pointerId) return;
     const point = toGraphPoint(event);
-    // A node can't leave the view, its label must stay visible too
-    const { minX, minY, width, height } = viewBox;
-    const position = {
-      // A label is wider than its node, the padding of the layout leaves room for it
-      x: clamp(point.x - drag.offset.x, minX + PADDING, minX + width - PADDING),
-      y: clamp(point.y - drag.offset.y, minY + NODE_RADIUS, minY + height - NODE_RADIUS - (LABEL_GAP * 2)),
-    };
-    setMoved(current => ({ ...current, [drag.nodeId]: position }));
+    const position = clampToView({ x: point.x - drag.offset.x, y: point.y - drag.offset.y }, viewBox);
+    setDragged({ nodeId: drag.nodeId, position });
   };
 
   const endDrag = (event: PointerEvent<Element>) => {
     if (dragRef.current?.pointerId !== event.pointerId) return;
     event.currentTarget.releasePointerCapture(event.pointerId);
     dragRef.current = null;
+    // The storage is only written once for each drag
+    if (dragged) {
+      // The positions of deleted services are dropped
+      const positions = Object.fromEntries(Object.entries(saved).filter(([nodeId]) => nodes.has(nodeId)));
+      setSaved({ ...positions, [dragged.nodeId]: dragged.position });
+    }
+    setDragged(null);
   };
 
   return (
