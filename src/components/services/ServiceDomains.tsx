@@ -47,7 +47,17 @@ const ServiceDomains = async ({ service }: ServiceDomainsProps) => {
           {service.domains.map(({ hostname, port }, index) => (
             <li key={hostname} className="space-y-2 py-2">
               <div className="flex min-h-8 items-center gap-3">
-                <span className="min-w-0 font-mono text-sm break-all text-slate-300">{`${hostname} → ${port}`}</span>
+                <span className="min-w-0 font-mono text-sm break-all text-slate-300">
+                  <a
+                    href={`https://${hostname}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="underline-offset-2 hover:text-white hover:underline"
+                  >
+                    {hostname}
+                  </a>
+                  {` → ${port}`}
+                </span>
                 <DomainStatusBadge state={statuses[index].state} />
                 <div className="ml-auto shrink-0">
                   <RemoveDomainForm action={removeDomainAction.bind(null, service.id, hostname)} hostname={hostname} />
