@@ -35,6 +35,8 @@ const LinkInheritanceForm = ({
   });
   const [recreate, setRecreate] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  // React resets the form after an action, which unchecks the checkboxes without updating their state
+  const [submitCount, setSubmitCount] = useState(0);
 
   const getName = (variable: { id: string, key: string }) => names[variable.id]?.trim() || variable.key;
   const finalNames = variables.map(getName);
@@ -45,6 +47,7 @@ const LinkInheritanceForm = ({
       return await action(state, formData);
     } finally {
       setIsSaving(false);
+      setSubmitCount(count => count + 1);
     }
   };
 
@@ -72,11 +75,14 @@ const LinkInheritanceForm = ({
           return name && name !== variable.key ? [{ sharedVariableId: variable.id, name }] : [];
         }))}
       />
+      {/* The checkboxes may show a reset state until they are mounted again, so the values come from the state */}
+      {inherits && <input type="hidden" name="inherits" value="on" />}
+      {recreate && <input type="hidden" name="recreate" value="on" />}
       <div className="flex items-start gap-2">
         <input
+          key={submitCount}
           id={`${idPrefix}-inherits`}
           type="checkbox"
-          name="inherits"
           checked={inherits}
           onChange={event => setInherits(event.target.checked)}
           disabled={isSaving}
@@ -121,9 +127,9 @@ const LinkInheritanceForm = ({
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <div className="flex items-start gap-2">
           <input
+            key={submitCount}
             id={`${idPrefix}-recreate`}
             type="checkbox"
-            name="recreate"
             checked={recreate}
             onChange={event => setRecreate(event.target.checked)}
             disabled={isSaving}
