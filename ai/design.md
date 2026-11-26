@@ -260,6 +260,16 @@ Wide screens (lg and up)             Narrow screens
 - Dark mode is activated by default via `data-theme="dark"` on `<body>`. `scheme-dark` on `<html>` covers scrollbars and native controls.
 - `MainNav` reads the pathname, which is not known while prerendering dynamic routes. It has its own `<Suspense>` boundary, and other components that call `usePathname` need one too.
 
+## Home Page
+
+`/` only shows a read-only graph of the services and their links (`src/components/home/ServiceGraph.tsx`):
+
+- The nodes are the services and nginx. The other system services are left out.
+- The lines are the links, and nginx is connected to the services that have a domain.
+- The layout is computed on the server with `d3-force` (`src/core/service-graph.ts`), so the page has no client code. It starts from the same positions every time, so it only changes with the data.
+- Each node is a link to its service, the lines aren't interactive.
+- `getServiceGraph()` is cached. The actions that add or remove services, links or domains update its tag.
+
 ## Service Page
 
 `/services/[id]` is the only place where a service is managed, the cards of the list only show it. Each tab is a page under the same layout, which renders the name, the status, the power buttons and the tabs:
