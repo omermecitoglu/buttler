@@ -262,12 +262,13 @@ Wide screens (lg and up)             Narrow screens
 
 ## Home Page
 
-`/` only shows a read-only graph of the services and their links (`src/components/home/ServiceGraph.tsx`):
+`/` only shows a graph of the services and their links (`src/components/home/ServiceGraph.tsx`):
 
 - The nodes are the services and nginx. The other system services are left out.
 - The lines are the links, and nginx is connected to the services that have a domain.
-- The layout is computed on the server with `d3-force` (`src/core/service-graph.ts`), so the page has no client code. It starts from the same positions every time, so it only changes with the data.
+- The layout is computed on the server with `d3-force` (`src/core/service-graph.ts`). It starts from the same positions every time, so it only changes with the data.
 - Each node is a link to its service, the lines aren't interactive.
+- Nodes can be dragged within the view, a pointer that moves less than a few pixels clicks instead. The moved positions aren't saved.
 - `getServiceGraph()` is cached. The actions that add or remove services, links or domains update its tag.
 
 ## Service Page
