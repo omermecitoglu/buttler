@@ -2,10 +2,13 @@ import { docker } from "~/core/docker";
 import { getServiceImageTag } from "~/core/dockerhub";
 import { type ServiceEnvironmentVariable, getRuntimeVariables } from "~/core/environment-variables";
 import { getSharedState } from "~/core/shared-state";
+import db from "~/database";
 import { TUNNEL_SERVICE_NAME } from "~/operations/getTunnelService";
+import hasInternetAccess from "~/operations/hasInternetAccess";
 import { getBuildingServiceIds } from "./builds";
 import { REVERSE_PROXY_CONTAINER_NAME, isOwnContainer } from "./containers";
 import { syncIngressNetwork } from "./ingress";
+import { ensureInternetNetwork, removeInternetNetwork } from "./internet";
 import { BUTTLER_SERVICE_LABEL } from "./labels";
 import type Docker from "dockerode";
 
@@ -364,8 +367,10 @@ export async function deployServiceContainer(service: ServiceRef, image: string)
 }
 
 async function replaceServiceContainer(service: ServiceRef, image: string) {
-  // If the network can't be created, the old container keeps running
+  // If the networks can't be created, the old container keeps running
   await syncIngressNetwork(service.id);
+  // A network given at creation replaces the default bridge network, where every container could reach the others
+  const internetNetwork = await ensureInternetNetwork(service.id);
 
   const existingContainer = await findServiceContainer(service);
   if (existingContainer) {
@@ -423,13 +428,20 @@ async function replaceServiceContainer(service: ServiceRef, image: string) {
       RestartPolicy: {
         Name: "always",
       },
+      NetworkMode: internetNetwork,
+    },
+    NetworkingConfig: {
+      EndpointsConfig: { [internetNetwork]: {} },
     },
     ExposedPorts: exposedPorts,
     Tty: false,
   });
 
-  // Joins the network of the new container. Networks that are given at creation would replace the default one.
   await syncIngressNetwork(service.id);
+  // With NetworkMode "none" it could never join a network later, so it leaves the internet network before it starts
+  if (!await hasInternetAccess(db, service.id)) {
+    await removeInternetNetwork(service.id, container.id);
+  }
   await container.start();
 }
 

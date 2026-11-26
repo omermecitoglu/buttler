@@ -121,7 +121,7 @@ describe("domains in Cloudflare", () => {
     await db.delete(dnsRecords);
     records = [];
     nextId = 1;
-    createService(db, { name: "app", type: "dockerhub", repository: "nginx", branch: "alpine" });
+    createService(db, { name: "app", type: "dockerhub", repository: "nginx", branch: "alpine", internetAccess: true });
     await db.update(services).set({ id: "srv" });
     mocks.cloudflareFetch.mockImplementation(respond);
     mocks.getConnectionState.mockResolvedValue("connected");

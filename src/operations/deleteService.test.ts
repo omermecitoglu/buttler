@@ -19,6 +19,7 @@ function create(name: string, volumeNames: string[]) {
     type: "dockerhub",
     repository: "postgres",
     branch: "17",
+    internetAccess: true,
     environmentVariables: [{ key: "URL", value: "http://localhost", scope: "runtime", isSecret: false }],
     volumes: volumeNames.map(volumeName => ({ name: volumeName, containerPath: `/${volumeName}` })),
   }).id;

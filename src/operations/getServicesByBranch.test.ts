@@ -10,13 +10,13 @@ describe("getServicesByBranch", () => {
   const db = drizzle({ client: new DatabaseSync(":memory:"), relations });
   migrate(db, { migrationsFolder: "drizzle" });
 
-  createService(db, { name: "main", type: "github", repository: "acme/app", branch: "main" });
-  createService(db, { name: "main by url", type: "github", repository: "https://github.com/Acme/App.git", branch: "main" });
-  createService(db, { name: "dev", type: "github", repository: "acme/app", branch: "dev" });
-  createService(db, { name: "another repository", type: "github", repository: "acme/app2", branch: "main" });
-  createService(db, { name: "invalid repository", type: "github", repository: "invalid", branch: "main" });
-  createService(db, { name: "no repository", type: "github", repository: null, branch: "main" });
-  createService(db, { name: "image", type: "dockerhub", repository: "acme/app", branch: "main" });
+  createService(db, { name: "main", type: "github", repository: "acme/app", branch: "main", internetAccess: true });
+  createService(db, { name: "main by url", type: "github", repository: "https://github.com/Acme/App.git", branch: "main", internetAccess: true });
+  createService(db, { name: "dev", type: "github", repository: "acme/app", branch: "dev", internetAccess: true });
+  createService(db, { name: "another repository", type: "github", repository: "acme/app2", branch: "main", internetAccess: true });
+  createService(db, { name: "invalid repository", type: "github", repository: "invalid", branch: "main", internetAccess: true });
+  createService(db, { name: "no repository", type: "github", repository: null, branch: "main", internetAccess: true });
+  createService(db, { name: "image", type: "dockerhub", repository: "acme/app", branch: "main", internetAccess: true });
 
   async function getNames(repository: string, branch: string) {
     const services = await getServicesByBranch(db, repository, branch);

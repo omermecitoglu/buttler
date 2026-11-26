@@ -41,7 +41,7 @@ async function createIngressNetwork(serviceId: string): Promise<IngressNetwork> 
   const network = await createButtlerNetwork({
     Name: name,
     Driver: "bridge",
-    // The containers keep reaching the outside through their other networks
+    // Only the internet network of a service reaches the outside
     Internal: true,
     Labels: {
       "com.docker.compose.project": "buttler",
