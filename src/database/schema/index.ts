@@ -5,5 +5,6 @@ export * from "./ports";
 export * from "./service-links";
 export * from "./services";
 export * from "./settings";
+export * from "./shared-variables";
 export * from "./users";
 export * from "./volumes";
