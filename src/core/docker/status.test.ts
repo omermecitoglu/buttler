@@ -54,6 +54,7 @@ const mockGetBuildingServiceIds = vi.fn();
 const mockSyncIngressNetwork = vi.fn();
 const mockEnsureInternetNetwork = vi.fn();
 const mockRemoveInternetNetwork = vi.fn();
+const mockConnectLinkNetworks = vi.fn();
 const mockHasInternetAccess = vi.fn();
 
 vi.mock("~/core/docker", () => ({
@@ -69,6 +70,10 @@ vi.mock("~/core/docker", () => ({
 
 vi.mock("./ingress", () => ({
   syncIngressNetwork: (...args: unknown[]) => mockSyncIngressNetwork(...args),
+}));
+
+vi.mock("./links", () => ({
+  connectLinkNetworks: (...args: unknown[]) => mockConnectLinkNetworks(...args),
 }));
 
 vi.mock("./internet", () => ({
@@ -516,6 +521,27 @@ describe("Docker status aggregator", () => {
       const [removal] = mockRemoveInternetNetwork.mock.invocationCallOrder;
       const [start] = mockContainer.start.mock.invocationCallOrder;
       expect(removal).toBeLessThan(start);
+    });
+
+    it("startServiceContainer connects the new container to its links before it's started", async () => {
+      mockDocker.listContainers.mockResolvedValue([]);
+      mockImage.inspect.mockResolvedValue({});
+      await startServiceContainer({ id: "srv-dh", type: "dockerhub", repository: "redis", branch: "alpine" });
+      expect(mockConnectLinkNetworks).toHaveBeenCalledWith("srv-dh");
+      const [, connection] = mockConnectLinkNetworks.mock.invocationCallOrder;
+      const [creation] = mockDocker.createContainer.mock.invocationCallOrder;
+      const [start] = mockContainer.start.mock.invocationCallOrder;
+      expect(connection).toBeGreaterThan(creation);
+      expect(connection).toBeLessThan(start);
+    });
+
+    it("startServiceContainer keeps the old container if a link network can't be created", async () => {
+      mockDocker.listContainers.mockResolvedValue([]);
+      mockImage.inspect.mockResolvedValue({});
+      mockConnectLinkNetworks.mockRejectedValueOnce(new Error("no subnet"));
+      await expect(startServiceContainer({ id: "srv-dh", type: "dockerhub", repository: "redis", branch: "alpine" }))
+        .rejects.toThrow("no subnet");
+      expect(mockDocker.createContainer).not.toHaveBeenCalled();
     });
 
     it("startServiceContainer keeps the old container if the internet network can't be created", async () => {

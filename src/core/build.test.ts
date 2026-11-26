@@ -29,6 +29,7 @@ vi.mock("~/core/docker", () => ({
   },
 }));
 vi.mock("~/core/docker/ingress", () => ({ syncIngressNetwork: vi.fn() }));
+vi.mock("~/core/docker/links", () => ({ connectLinkNetworks: vi.fn() }));
 vi.mock("~/core/docker/internet", () => ({
   ensureInternetNetwork: vi.fn((id: string) => Promise.resolve(`buttler-internet-${id}`)),
   removeInternetNetwork: vi.fn(),
