@@ -57,6 +57,38 @@ export function isServicePulling(serviceId: string): boolean {
   return activePullServices.has(serviceId);
 }
 
+const deletingServices = getSharedState("deleting-services", () => new Set<string>());
+// Counted, since the same service can be deployed by more than one request at once
+const activeDeploys = getSharedState("active-deploys", () => new Map<string, number>());
+
+export function markServiceDeleting(serviceId: string, isDeleting: boolean) {
+  if (isDeleting) {
+    deletingServices.add(serviceId);
+  } else {
+    deletingServices.delete(serviceId);
+  }
+}
+
+export function isServiceDeleting(serviceId: string): boolean {
+  return deletingServices.has(serviceId);
+}
+
+export function isServiceDeploying(serviceId: string): boolean {
+  return activeDeploys.has(serviceId);
+}
+
+export class ServiceDeletingError extends Error {
+  constructor(serviceId: string) {
+    super(`Service ${serviceId} is being deleted`);
+    this.name = "ServiceDeletingError";
+  }
+}
+
+/** A service that is being deleted must not be built, pulled, started or deployed, or it would lose its volumes */
+export function assertServiceNotDeleting(serviceId: string) {
+  if (isServiceDeleting(serviceId)) throw new ServiceDeletingError(serviceId);
+}
+
 export function parseContainerRuntimeStatus(container?: Docker.ContainerInfo): ContainerRuntimeStatus {
   if (!container) return "stopped";
 
@@ -253,6 +285,7 @@ export async function isImagePresentLocally(tag: string): Promise<boolean> {
 }
 
 export async function startServiceContainer(service: ServiceRef): Promise<void> {
+  assertServiceNotDeleting(service.id);
   if (service.type === "system" && service.name === "Reverse Proxy Server") {
     const { provisionReverseProxy } = await import("~/core/nginx");
     await provisionReverseProxy();
@@ -308,6 +341,7 @@ export async function startServiceContainer(service: ServiceRef): Promise<void> 
 
 /** Pulls the image of a Docker Hub service and replaces its container, which keeps running until the image is ready */
 export async function pullAndDeployService(service: ServiceRef): Promise<void> {
+  assertServiceNotDeleting(service.id);
   // The service stays marked until the container is replaced, otherwise it would look idle in between
   markServicePulling(service.id, true);
   try {
@@ -325,6 +359,22 @@ export async function pullAndDeployService(service: ServiceRef): Promise<void> {
 
 /** Replaces the container of a service (if there is any) with a new one that runs the given image */
 export async function deployServiceContainer(service: ServiceRef, image: string): Promise<void> {
+  // The check and the mark are made at once, so a deletion either refuses this deploy or waits for it
+  assertServiceNotDeleting(service.id);
+  activeDeploys.set(service.id, (activeDeploys.get(service.id) ?? 0) + 1);
+  try {
+    await replaceServiceContainer(service, image);
+  } finally {
+    const count = (activeDeploys.get(service.id) ?? 1) - 1;
+    if (count > 0) {
+      activeDeploys.set(service.id, count);
+    } else {
+      activeDeploys.delete(service.id);
+    }
+  }
+}
+
+async function replaceServiceContainer(service: ServiceRef, image: string) {
   // If the network can't be created, the old container keeps running
   await syncIngressNetwork(service.id);
 
@@ -424,6 +474,7 @@ export async function stopServiceContainer(service: ServiceIdentity): Promise<vo
 }
 
 export async function restartServiceContainer(service: ServiceRef): Promise<void> {
+  assertServiceNotDeleting(service.id);
   if (service.type === "system" && service.name === "Reverse Proxy Server") {
     const { provisionReverseProxy } = await import("~/core/nginx");
     await provisionReverseProxy();

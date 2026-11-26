@@ -1,7 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { BUTTLER_SERVICE_LABEL } from "./labels";
 import {
+  ServiceDeletingError,
   createServiceRuntimeState,
+  deployServiceContainer,
   extractContainerIpAddresses,
   extractContainerPorts,
   findServiceContainer,
@@ -9,8 +11,11 @@ import {
   getServiceRuntimeState,
   getServicesRuntimeStates,
   isServiceBuilding,
+  isServiceDeleting,
+  isServiceDeploying,
   isServicePulling,
   markServiceBuilding,
+  markServiceDeleting,
   markServicePulling,
   matchContainerForService,
   parseContainerRuntimeStatus,
@@ -119,6 +124,54 @@ describe("Docker status aggregator", () => {
       expect(isServicePulling("srv-1")).toBe(true);
       markServicePulling("srv-1", false);
       expect(isServicePulling("srv-1")).toBe(false);
+    });
+  });
+
+  describe("Deleting tracker", () => {
+    const service = { id: "srv-del", type: "dockerhub", repository: "nginx", branch: "latest" };
+
+    beforeEach(() => {
+      markServiceDeleting("srv-del", true);
+      return () => markServiceDeleting("srv-del", false);
+    });
+
+    it("tracks deleting status accurately", () => {
+      expect(isServiceDeleting("srv-del")).toBe(true);
+      markServiceDeleting("srv-del", false);
+      expect(isServiceDeleting("srv-del")).toBe(false);
+    });
+
+    it.each([
+      ["started", () => startServiceContainer(service)],
+      ["restarted", () => restartServiceContainer(service)],
+      ["pulled", () => pullAndDeployService(service)],
+      ["deployed", () => deployServiceContainer(service, "nginx:latest")],
+    ])("refuses to be %s", async (_, run) => {
+      await expect(run()).rejects.toThrow(ServiceDeletingError);
+      expect(mockDocker.createContainer).not.toHaveBeenCalled();
+      expect(mockContainer.stop).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("Deploying tracker", () => {
+    it("tracks every deploy of a service until the last one ends", async () => {
+      mockDocker.listContainers.mockResolvedValue([]);
+      mockDocker.createContainer.mockResolvedValue(mockContainer);
+      let release = () => undefined as void;
+      mockSyncIngressNetwork
+        .mockResolvedValueOnce(undefined)
+        .mockReturnValueOnce(new Promise<void>(resolve => {
+          release = resolve;
+        }));
+      const service = { id: "srv-dep", type: "dockerhub", repository: "nginx", branch: "latest" };
+      const first = deployServiceContainer(service, "nginx:latest");
+      const second = deployServiceContainer(service, "nginx:latest");
+      expect(isServiceDeploying("srv-dep")).toBe(true);
+      await first;
+      expect(isServiceDeploying("srv-dep")).toBe(true);
+      release();
+      await second;
+      expect(isServiceDeploying("srv-dep")).toBe(false);
     });
   });
 

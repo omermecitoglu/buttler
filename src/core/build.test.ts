@@ -3,7 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { buildAndDeploy, deleteBuildLog, findLatestImage, getBuildLogPath, getImageRepository, startBuilding, startGitHubService } from "./build";
-import { isServiceBuilding } from "./docker/status";
+import { ServiceDeletingError, isServiceBuilding, markServiceDeleting } from "./docker/status";
 
 const mocks = vi.hoisted(() => ({
   after: vi.fn(),
@@ -196,5 +196,35 @@ describe("build pipeline", () => {
   it("should build when there is no image to start from", async () => {
     await startGitHubService(service);
     expect(mocks.buildImage).toHaveBeenCalledTimes(1);
+  });
+
+  describe("while the service is being deleted", () => {
+    beforeEach(() => {
+      markServiceDeleting("srv", true);
+      return () => markServiceDeleting("srv", false);
+    });
+
+    it("should refuse to start building", () => {
+      expect(() => startBuilding(service)).toThrow(ServiceDeletingError);
+      expect(isServiceBuilding("srv")).toBe(false);
+      expect(mocks.after).not.toHaveBeenCalled();
+    });
+
+    it("should refuse to start from the latest image", async () => {
+      mocks.listImages.mockResolvedValue([{ Id: "a", Labels: {}, Created: 1 }]);
+      await expect(startGitHubService(service)).rejects.toThrow(ServiceDeletingError);
+      expect(mocks.createContainer).not.toHaveBeenCalled();
+    });
+
+    it("should skip a queued build", async () => {
+      markServiceDeleting("srv", false);
+      const first = buildAndDeploy(service);
+      const queued = buildAndDeploy(service);
+      markServiceDeleting("srv", true);
+      await first.catch(() => undefined);
+      await expect(queued).rejects.toThrow(ServiceDeletingError);
+      expect(mocks.cloneRepo).toHaveBeenCalledTimes(1);
+      expect(isServiceBuilding("srv")).toBe(false);
+    });
   });
 });
