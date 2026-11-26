@@ -30,6 +30,7 @@
 - The purpose of the `src/operations/` directory is to keep database operation functions isolated and abstract from the rest of the application.
 - If Drizzle is ever replaced with another ORM or database layer in the future, only `src/database/schema` and `src/operations/` need to be refactored.
 - Server actions, API routes, and background tasks should invoke these operations rather than performing direct ad-hoc database queries.
+- **Transactions are synchronous**: `node:sqlite` (`DatabaseSync`) is a synchronous driver, so a `db.transaction` callback must not be `async` or `await` anything; an async callback commits before its awaited queries run (see #40). Inside it, end each query with `.run()`, `.get()` or `.all()`, and do any async work (Docker, network, encryption that awaits) before or after the transaction.
 
 ## Environment Variables & Secrets
 
