@@ -1,20 +1,12 @@
-import { faHandPeace } from "@fortawesome/free-solid-svg-icons/faHandPeace";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { getTranslations } from "next-intl/server";
 import { Suspense } from "react";
 import Authorized from "~/components/auth/Authorized";
+import HomeGraph from "~/components/home/HomeGraph";
 
-export default async function(_page: PageProps<"/[locale]">) {
-  const t = await getTranslations("HomePage");
-
+export default function(_page: PageProps<"/[locale]">) {
   return (
     <Suspense fallback={null}>
       <Authorized>
-        <h1>
-          {t("title")}
-          {" "}
-          <FontAwesomeIcon icon={faHandPeace} />
-        </h1>
+        <HomeGraph />
       </Authorized>
     </Suspense>
   );

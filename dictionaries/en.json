@@ -1,6 +1,7 @@
 {
   "HomePage": {
-    "title": "Buttler"
+    "title": "Buttler",
+    "graph": "Services and their links"
   },
   "LoginPage": {
     "title": "Sign in to Buttler",
