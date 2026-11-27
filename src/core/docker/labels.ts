@@ -8,3 +8,5 @@ export const BUTTLER_NETWORK_LABEL = "buttler.network";
 export const BUTTLER_TUNNEL_LABEL = "buttler.tunnel-id";
 /** The link that a network belongs to */
 export const BUTTLER_LINK_LABEL = "buttler.link-id";
+/** Volumes without it are not created by Buttler, creating a volume that already exists doesn't add it */
+export const BUTTLER_VOLUME_LABEL = "buttler.volume";

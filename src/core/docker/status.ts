@@ -8,7 +8,7 @@ import hasInternetAccess from "~/operations/hasInternetAccess";
 import { getBuildingServiceIds } from "./builds";
 import { REVERSE_PROXY_CONTAINER_NAME, isOwnContainer } from "./containers";
 import { ensureInternetNetwork, removeInternetNetwork } from "./internet";
-import { BUTTLER_SERVICE_LABEL } from "./labels";
+import { BUTTLER_SERVICE_LABEL, BUTTLER_VOLUME_LABEL } from "./labels";
 import { connectLinkNetworks } from "./links";
 import type { PullProgress } from "./pull-progress";
 import type Docker from "dockerode";
@@ -417,7 +417,7 @@ async function replaceServiceContainer(service: ServiceRef, image: string) {
   if (service.volumes && service.volumes.length > 0) {
     for (const vol of service.volumes) {
       try {
-        await docker.createVolume({ Name: vol.name });
+        await docker.createVolume({ Name: vol.name, Labels: { [BUTTLER_VOLUME_LABEL]: "true" } });
       } catch {
         // ignore
       }

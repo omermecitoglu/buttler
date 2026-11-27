@@ -473,7 +473,7 @@ describe("Docker status aggregator", () => {
         environmentVariables: [{ key: "A", value: "B", scope: "runtime", isSecret: false }],
         volumes: [{ name: "vol1", containerPath: "/data" }],
       });
-      expect(mockDocker.createVolume).toHaveBeenCalledWith({ Name: "vol1" });
+      expect(mockDocker.createVolume).toHaveBeenCalledWith({ Name: "vol1", Labels: { "buttler.volume": "true" } });
       expect(mockDocker.createContainer).toHaveBeenCalledWith(expect.objectContaining({
         name: "buttler-service-srv-dh",
         Image: "redis:alpine",
