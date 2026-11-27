@@ -3,14 +3,20 @@ import fs from "node:fs";
 import path from "node:path";
 import { after } from "next/server";
 import { buildImage } from "~/core/docker";
-import { listServiceImages } from "~/core/docker/builds";
+import { listServiceImages, pruneServiceImages } from "~/core/docker/builds";
 import {
   BUTTLER_BRANCH_LABEL,
   BUTTLER_BUILT_AT_LABEL,
   BUTTLER_COMMIT_LABEL,
   BUTTLER_SERVICE_LABEL,
 } from "~/core/docker/labels";
-import { type ServiceRef, assertServiceNotDeleting, deployServiceContainer, markServiceBuilding } from "~/core/docker/status";
+import {
+  type ServiceRef,
+  assertServiceNotDeleting,
+  deployServiceContainer,
+  findServiceContainer,
+  markServiceBuilding,
+} from "~/core/docker/status";
 import { getBuildArgs, getBuildSecrets } from "~/core/environment-variables";
 import { cloneRepo, deleteRepo, parseRepository } from "~/core/git";
 import { getInstallationTokenForOwner } from "~/core/github/app";
@@ -38,6 +44,30 @@ export function getImageRepository(service: ServiceRef) {
 export async function findLatestImage(serviceId: string): Promise<string | null> {
   const images = await listServiceImages(serviceId);
   return images.at(0)?.id ?? null;
+}
+
+/** Returns the ID of the image that the container of a service runs, if it's one of its builds */
+async function findDeployedImage(serviceId: string): Promise<string | null> {
+  const container = await findServiceContainer({ id: serviceId });
+  if (!container) return null;
+  const [
+    { Image: imageId },
+    images,
+  ] = await Promise.all([
+    container.inspect(),
+    listServiceImages(serviceId),
+  ]);
+  return images.some(image => image.id === imageId) ? imageId : null;
+}
+
+/** A failed cleanup is done by the next build */
+async function cleanUpImages(serviceId: string) {
+  try {
+    await pruneServiceImages(serviceId);
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error(`Failed to remove the old images of service ${serviceId}:`, error);
+  }
 }
 
 function openBuildLog(serviceId: string) {
@@ -101,6 +131,7 @@ async function runPipeline(service: ServiceRef) {
       log.line(`Deploying ${imageId}`);
       await deployServiceContainer(service, imageId);
       log.line("Deployed");
+      await cleanUpImages(service.id);
     } catch (error) {
       output.flush();
       log.line(`Failed: ${output.redact(error instanceof Error ? error.message : String(error))}`);
@@ -155,16 +186,28 @@ export function startBuilding(service: ServiceRef) {
   });
 }
 
-/** Starts a service from its latest image, and builds it only if there is none */
+/**
+ * Starts a service from the build that it's on, so a restart keeps a rollback, otherwise from its latest image.
+ * It's built only if there is no image.
+ */
 export async function startGitHubService(service: ServiceRef): Promise<void> {
   assertServiceNotDeleting(service.id);
   const running = runningBuilds.get(service.id);
   if (running) return running;
 
-  const image = await findLatestImage(service.id);
+  const image = await findDeployedImage(service.id) ?? await findLatestImage(service.id);
   if (image) {
     await deployServiceContainer(service, image);
   } else {
     await buildAndDeploy(service);
   }
+}
+
+/** Deploys an earlier build of a service without building it again */
+export async function deployBuild(service: ServiceRef, imageId: string): Promise<void> {
+  const images = await listServiceImages(service.id);
+  if (!images.some(image => image.id === imageId)) {
+    throw new Error(`The image ${imageId} is not a build of service ${service.id}`);
+  }
+  await deployServiceContainer(service, imageId);
 }

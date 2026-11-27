@@ -2,7 +2,16 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { buildAndDeploy, deleteBuildLog, findLatestImage, getBuildLogPath, getImageRepository, startBuilding, startGitHubService } from "./build";
+import {
+  buildAndDeploy,
+  deleteBuildLog,
+  deployBuild,
+  findLatestImage,
+  getBuildLogPath,
+  getImageRepository,
+  startBuilding,
+  startGitHubService,
+} from "./build";
 import { ServiceDeletingError, isServiceBuilding, markServiceDeleting } from "./docker/status";
 
 const mocks = vi.hoisted(() => ({
@@ -13,7 +22,8 @@ const mocks = vi.hoisted(() => ({
   cloneRepo: vi.fn(),
   deleteRepo: vi.fn(),
   getToken: vi.fn(),
-  container: { start: vi.fn(), stop: vi.fn(), remove: vi.fn() },
+  container: { start: vi.fn(), stop: vi.fn(), remove: vi.fn(), rename: vi.fn(), inspect: vi.fn() },
+  removeImage: vi.fn(),
 }));
 
 vi.mock("server-only", () => ({}));
@@ -26,6 +36,7 @@ vi.mock("~/core/docker", () => ({
     getContainer: () => mocks.container,
     createContainer: mocks.createContainer,
     createVolume: vi.fn(),
+    getImage: (reference: string) => ({ remove: () => mocks.removeImage(reference) as Promise<unknown> }),
   },
 }));
 vi.mock("~/core/docker/links", () => ({ connectLinkNetworks: vi.fn() }));
@@ -74,6 +85,7 @@ describe("build pipeline", () => {
     mocks.buildImage.mockResolvedValue("sha256:new");
     mocks.createContainer.mockResolvedValue(mocks.container);
     mocks.listImages.mockResolvedValue([]);
+    mocks.container.inspect.mockResolvedValue({ Image: "sha256:unknown" });
   });
 
   afterEach(async () => {
@@ -196,6 +208,41 @@ describe("build pipeline", () => {
     await startGitHubService(service);
     expect(mocks.buildImage).not.toHaveBeenCalled();
     expect(mocks.createContainer).toHaveBeenCalledWith(expect.objectContaining({ Image: "a" }));
+  });
+
+  it("should start from the build that it's on, so a restart keeps a rollback", async () => {
+    mocks.listImages.mockResolvedValue([
+      { Id: "old", Labels: { "buttler.built-at": "2026-01-01T00:00:00Z" } },
+      { Id: "new", Labels: { "buttler.built-at": "2026-02-01T00:00:00Z" } },
+    ]);
+    mocks.container.inspect.mockResolvedValue({ Image: "old" });
+    await startGitHubService(service);
+    expect(mocks.createContainer).toHaveBeenCalledWith(expect.objectContaining({ Image: "old" }));
+  });
+
+  it("should deploy an earlier build without building it", async () => {
+    mocks.listImages.mockResolvedValue([{ Id: "old", Labels: {}, Created: 1 }]);
+    await deployBuild(service, "old");
+    expect(mocks.buildImage).not.toHaveBeenCalled();
+    expect(mocks.createContainer).toHaveBeenCalledWith(expect.objectContaining({ Image: "old" }));
+  });
+
+  it("should not deploy an image that isn't a build of the service", async () => {
+    mocks.listImages.mockResolvedValue([{ Id: "old", Labels: {}, Created: 1 }]);
+    await expect(deployBuild(service, "sha256:other")).rejects.toThrow("not a build");
+    expect(mocks.createContainer).not.toHaveBeenCalled();
+  });
+
+  it("should remove the old images after a build is deployed", async () => {
+    mocks.listImages.mockResolvedValue([1, 2, 3, 4, 5, 6].map(index => ({
+      Id: `sha256:${index}`,
+      RepoTags: [`buttler/my-app:c${index}`],
+      Labels: { "buttler.built-at": `2026-01-${String(10 + index)}T00:00:00Z` },
+    })));
+    await buildAndDeploy(service);
+    expect(mocks.removeImage.mock.calls).toEqual([["buttler/my-app:c1"]]);
+    const [deploy] = mocks.container.start.mock.invocationCallOrder;
+    expect(deploy).toBeLessThan(mocks.removeImage.mock.invocationCallOrder[0]);
   });
 
   it("should build when there is no image to start from", async () => {
