@@ -28,6 +28,7 @@ Docker is the single source of truth for builds, nothing about them is stored in
 - The ports a service's image exposes (`EXPOSE`, including those of a base image) are read from Docker when a page renders, never stored (`getExposedPortsOfService` in `src/data/services.ts`). Only TCP ports are kept.
 - The image is the latest build of a GitHub service, or the pulled image of a Docker Hub service. A missing image exposes nothing.
 - The first exposed port is the default container port of a new domain, before the first port mapping. The port mappings editor offers the exposed ports that are not mapped yet.
+- Port mappings are only applied when the container is created again. The port mappings editor offers to recreate it right away (`updateServiceAction` with `recreate`), otherwise they are applied by the next restart, start or deploy.
 
 ## Deletion
 
