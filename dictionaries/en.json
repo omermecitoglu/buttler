@@ -602,6 +602,14 @@
       "unavailable": "Failed to load the builds.",
       "deployed": "Deployed",
       "unknownCommit": "Unknown commit",
+      "commits": {
+        "sincePrevious": "Commits since {commit}",
+        "first": "Commit of the first build",
+        "loading": "Loading the commits…",
+        "unavailable": "Failed to load the commits from GitHub.",
+        "empty": "No new commits since the previous build.",
+        "more": "and {count, plural, one {# more commit} other {# more commits}}"
+      },
       "status": {
         "ready": "Ready",
         "building": "Building",
