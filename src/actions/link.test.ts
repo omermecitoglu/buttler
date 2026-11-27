@@ -6,6 +6,7 @@ const mocks = vi.hoisted(() => ({
   getService: vi.fn(),
   createServiceLink: vi.fn(),
   deleteServiceLink: vi.fn(),
+  getServiceLinks: vi.fn(),
   syncLinkNetwork: vi.fn(),
   updateTag: vi.fn(),
 }));
@@ -18,6 +19,7 @@ vi.mock("~/core/docker/links", () => ({ syncLinkNetwork: mocks.syncLinkNetwork }
 vi.mock("~/operations/getService", () => ({ default: mocks.getService }));
 vi.mock("~/operations/createServiceLink", () => ({ default: mocks.createServiceLink }));
 vi.mock("~/operations/deleteServiceLink", () => ({ default: mocks.deleteServiceLink }));
+vi.mock("~/operations/getServiceLinks", () => ({ default: mocks.getServiceLinks }));
 
 const link = { id: "l1", serviceAId: "api", serviceBId: "app", createdAt: "2026-11-26 10:00:00" };
 
@@ -38,6 +40,7 @@ describe("link actions", () => {
     mocks.getService.mockImplementation((_db: unknown, id: string) => Promise.resolve({ id, type: "github" }));
     mocks.createServiceLink.mockResolvedValue(link);
     mocks.deleteServiceLink.mockResolvedValue(link);
+    mocks.getServiceLinks.mockResolvedValue([link]);
   });
 
   it("should let members link services", async () => {
@@ -88,8 +91,19 @@ describe("link actions", () => {
   });
 
   it("should not remove a link of another service", async () => {
-    mocks.deleteServiceLink.mockResolvedValue(undefined);
+    mocks.getServiceLinks.mockResolvedValue([]);
     expect(await remove("l1")).toEqual({ "[error]": "remove_failed" });
+    expect(mocks.getServiceLinks).toHaveBeenCalledWith({}, "app");
+    expect(mocks.deleteServiceLink).not.toHaveBeenCalled();
+    expect(mocks.syncLinkNetwork).not.toHaveBeenCalled();
+  });
+
+  it("should not remove the links of system services", async () => {
+    mocks.getService.mockImplementation((_db: unknown, id: string) => {
+      return Promise.resolve({ id, type: id === "api" ? "system" : "github" });
+    });
+    expect(await remove("l1")).toEqual({ "[error]": "remove_failed" });
+    expect(mocks.deleteServiceLink).not.toHaveBeenCalled();
     expect(mocks.syncLinkNetwork).not.toHaveBeenCalled();
   });
 

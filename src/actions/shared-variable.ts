@@ -84,6 +84,11 @@ export const updateLinkInheritanceAction = defineFormAction({
   ): Promise<Record<string, string>> => {
     const link = (await getServiceLinks(db, serviceId)).find(({ id }) => id === linkId);
     if (!link) return displayMessage("error", "update_failed");
+    // The links of system services are made by Buttler
+    const linkedServices = await Promise.all([link.serviceAId, link.serviceBId].map(id => getService(db, id)));
+    if (linkedServices.some(service => !service || service.type === "system")) {
+      return displayMessage("error", "update_failed");
+    }
     const inherits = !!input.inherits;
     if (inherits) {
       const sharedVariables = await getSharedVariables(db, getLinkedServiceId(link, serviceId));

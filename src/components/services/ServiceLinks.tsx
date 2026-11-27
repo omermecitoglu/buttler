@@ -101,24 +101,32 @@ const ServiceLinks = async ({ params }: ServiceLinksProps) => {
                     >
                       {linkedService.name}
                     </Link>
-                    <p className="text-xs break-all text-slate-500">
-                      {t("hostDescription")}
-                      {" "}
-                      <code className="font-mono text-slate-400">{getServiceHost(linkedService.id)}</code>
-                    </p>
+                    {linkedService.type === "system" ? (
+                      <p className="text-xs text-slate-500">{t("systemLink")}</p>
+                    ) : (
+                      <p className="text-xs break-all text-slate-500">
+                        {t("hostDescription")}
+                        {" "}
+                        <code className="font-mono text-slate-400">{getServiceHost(linkedService.id)}</code>
+                      </p>
+                    )}
                   </div>
-                  <div className="ml-auto shrink-0">
-                    <RemoveLinkForm action={removeLinkAction.bind(null, id, linkId)} name={linkedService.name} />
-                  </div>
+                  {linkedService.type !== "system" && (
+                    <div className="ml-auto shrink-0">
+                      <RemoveLinkForm action={removeLinkAction.bind(null, id, linkId)} name={linkedService.name} />
+                    </div>
+                  )}
                 </div>
-                <LinkInheritanceForm
-                  action={updateLinkInheritanceAction.bind(null, id, linkId)}
-                  sourceName={linkedService.name}
-                  variables={offered.map(({ id: variableId, key }) => ({ id: variableId, key }))}
-                  inherits={inherits}
-                  names={names.map(({ sharedVariableId, name }) => ({ sharedVariableId, name }))}
-                  takenNames={inheritedVariables.filter(variable => variable.linkId !== linkId).map(({ name }) => name)}
-                />
+                {linkedService.type !== "system" && (
+                  <LinkInheritanceForm
+                    action={updateLinkInheritanceAction.bind(null, id, linkId)}
+                    sourceName={linkedService.name}
+                    variables={offered.map(({ id: variableId, key }) => ({ id: variableId, key }))}
+                    inherits={inherits}
+                    names={names.map(({ sharedVariableId, name }) => ({ sharedVariableId, name }))}
+                    takenNames={inheritedVariables.filter(variable => variable.linkId !== linkId).map(({ name }) => name)}
+                  />
+                )}
               </li>
             ))}
           </ul>

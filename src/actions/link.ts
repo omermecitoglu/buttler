@@ -9,6 +9,7 @@ import type { ServiceLinkDTO } from "~/models/service-link";
 import createServiceLink from "~/operations/createServiceLink";
 import deleteServiceLink from "~/operations/deleteServiceLink";
 import getService from "~/operations/getService";
+import getServiceLinks from "~/operations/getServiceLinks";
 import { userMiddleware } from "./middlewares/user";
 
 /** Both services show the link */
@@ -63,6 +64,10 @@ export const removeLinkAction = defineFormAction({
     serviceId: ServiceDTO["id"],
     linkId: ServiceLinkDTO["id"],
   ): Promise<Record<string, string>> => {
+    const existing = (await getServiceLinks(db, serviceId)).find(({ id }) => id === linkId);
+    if (!existing || !await isLinkable(existing.serviceAId) || !await isLinkable(existing.serviceBId)) {
+      return displayMessage("error", "remove_failed");
+    }
     const link = await deleteServiceLink(db, serviceId, linkId);
     if (!link) return displayMessage("error", "remove_failed");
     try {

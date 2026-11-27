@@ -592,6 +592,7 @@
       "title": "Links",
       "description": "Linked services can reach each other, and no other service can reach this one. Both sides can open connections.",
       "systemService": "System services are linked by Buttler.",
+      "systemLink": "Linked by Buttler while this service has a domain. It can't be changed here.",
       "hostDescription": "Reach it at",
       "empty": "This service isn't linked to any other service.",
       "noCandidates": "There is no other service to link.",
