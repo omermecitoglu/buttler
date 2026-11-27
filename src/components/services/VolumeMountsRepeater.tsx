@@ -3,17 +3,22 @@
 import { faHardDrive } from "@fortawesome/free-solid-svg-icons/faHardDrive";
 import { faPlus } from "@fortawesome/free-solid-svg-icons/faPlus";
 import { faTrash } from "@fortawesome/free-solid-svg-icons/faTrash";
+import { faTriangleExclamation } from "@fortawesome/free-solid-svg-icons/faTriangleExclamation";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { cn } from "@omer-x/tailwind-ui-kit/utils";
 import { useEffect, useState } from "react";
 import Button from "~/components/ui/button";
 import Input from "~/components/ui/input";
 import Label from "~/components/ui/label";
+import Select from "~/components/ui/select";
+import type { VolumeOptions } from "~/data/services";
 
 export type VolumeMountItem = {
   id?: string,
   containerPath: string,
   name?: string,
+  /** Whether the volume is picked from the ones that Buttler created, or its name is typed */
+  source?: "new" | "existing",
 };
 
 export type VolumeMountsRepeaterLabels = {
@@ -26,6 +31,11 @@ export type VolumeMountsRepeaterLabels = {
   volumeNameLabel?: string,
   volumeNamePlaceholder?: string,
   emptyMessage?: string,
+  sourceLabel?: string,
+  newVolume?: string,
+  existingVolume?: string,
+  chooseVolume?: string,
+  sharedWarning?: (services: string[]) => string,
 };
 
 export type VolumeMountsRepeaterProps = {
@@ -33,6 +43,7 @@ export type VolumeMountsRepeaterProps = {
   onChange?: (items: VolumeMountItem[]) => void,
   disabled?: boolean,
   labels?: VolumeMountsRepeaterLabels,
+  options?: VolumeOptions,
   className?: string,
 };
 
@@ -40,6 +51,7 @@ const createEmptyVolume = (): VolumeMountItem => ({
   id: typeof crypto !== "undefined" ? crypto.randomUUID() : Math.random().toString(),
   containerPath: "",
   name: "",
+  source: "new",
 });
 
 const VolumeMountsRepeater = ({
@@ -47,6 +59,7 @@ const VolumeMountsRepeater = ({
   onChange,
   disabled = false,
   labels,
+  options = { existing: [], usedBy: {} },
   className,
 }: VolumeMountsRepeaterProps) => {
   const [internalItems, setInternalItems] = useState<VolumeMountItem[]>(controlledItems ?? []);
@@ -70,9 +83,11 @@ const VolumeMountsRepeater = ({
     updateItems(internalItems.filter((_, idx) => idx !== indexToRemove));
   };
 
-  const handleChange = (index: number, field: "containerPath" | "name", value: string) => {
+  const handleChange = (index: number, field: "containerPath" | "name" | "source", value: string) => {
     const next = internalItems.map((item, idx) => {
       if (idx !== index) return item;
+      // A typed name is not one of the existing volumes, so it isn't kept
+      if (field === "source") return { ...item, source: value as VolumeMountItem["source"], name: "" };
       return {
         ...item,
         [field]: value,
@@ -90,6 +105,12 @@ const VolumeMountsRepeater = ({
   const volumeNameLabel = labels?.volumeNameLabel ?? "Volume Name (optional)";
   const volumeNamePlaceholder = labels?.volumeNamePlaceholder ?? "e.g. db-data (auto-generated if empty)";
   const emptyMessage = labels?.emptyMessage ?? "No storage mounts configured.";
+  const sourceLabel = labels?.sourceLabel ?? "Volume";
+  const newVolume = labels?.newVolume ?? "New";
+  const existingVolume = labels?.existingVolume ?? "Existing";
+  const chooseVolume = labels?.chooseVolume ?? "Choose a volume";
+  const sharedWarning = labels?.sharedWarning ??
+    ((services: string[]) => `Also used by ${services.join(", ")}, they share its data.`);
 
   return (
     <div className={cn("space-y-3 rounded-lg border border-slate-800 bg-slate-900/50 p-4", className)}>
@@ -139,51 +160,87 @@ const VolumeMountsRepeater = ({
           </div>
           {internalItems.map((item, index) => {
             const key = item.id ?? `vol-${index}`;
+            const isExisting = item.source === "existing";
+            const otherServices = options.usedBy[(item.name ?? "").trim()] ?? [];
             return (
-              <div
-                key={key}
-                className="grid grid-cols-[1fr_1fr_auto] items-center gap-2"
-              >
-                <div>
-                  <Label htmlFor={`vol-path-${index}`} className="sr-only">
-                    {containerPathLabel}
-                  </Label>
-                  <Input
-                    id={`vol-path-${index}`}
-                    type="text"
-                    size="sm"
-                    className="font-mono text-xs"
-                    placeholder={containerPathPlaceholder}
-                    value={item.containerPath}
-                    onChange={e => handleChange(index, "containerPath", e.target.value)}
+              <div key={key} className="space-y-1">
+                <div className="grid grid-cols-[1fr_1fr_auto] items-center gap-2">
+                  <div>
+                    <Label htmlFor={`vol-path-${index}`} className="sr-only">
+                      {containerPathLabel}
+                    </Label>
+                    <Input
+                      id={`vol-path-${index}`}
+                      type="text"
+                      size="sm"
+                      className="font-mono text-xs"
+                      placeholder={containerPathPlaceholder}
+                      value={item.containerPath}
+                      onChange={e => handleChange(index, "containerPath", e.target.value)}
+                      disabled={disabled}
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <Label htmlFor={`vol-source-${index}`} className="sr-only">
+                      {sourceLabel}
+                    </Label>
+                    <Select
+                      id={`vol-source-${index}`}
+                      className="h-8 w-28 shrink-0 text-xs"
+                      value={isExisting ? "existing" : "new"}
+                      onChange={e => handleChange(index, "source", e.target.value)}
+                      disabled={disabled}
+                    >
+                      <option value="new">{newVolume}</option>
+                      <option value="existing" disabled={options.existing.length === 0}>{existingVolume}</option>
+                    </Select>
+                    <Label htmlFor={`vol-name-${index}`} className="sr-only">
+                      {volumeNameLabel}
+                    </Label>
+                    {isExisting ? (
+                      <Select
+                        id={`vol-name-${index}`}
+                        className="h-8 min-w-0 text-xs"
+                        value={item.name ?? ""}
+                        onChange={e => handleChange(index, "name", e.target.value)}
+                        disabled={disabled}
+                      >
+                        <option value="" disabled>{chooseVolume}</option>
+                        {options.existing.map(name => (
+                          <option key={name} value={name}>{name}</option>
+                        ))}
+                      </Select>
+                    ) : (
+                      <Input
+                        id={`vol-name-${index}`}
+                        type="text"
+                        size="sm"
+                        className="min-w-0"
+                        placeholder={volumeNamePlaceholder}
+                        value={item.name ?? ""}
+                        onChange={e => handleChange(index, "name", e.target.value)}
+                        disabled={disabled}
+                      />
+                    )}
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="xs"
+                    onClick={() => handleRemove(index)}
                     disabled={disabled}
-                  />
+                    aria-label={removeButton}
+                    className="text-slate-400 hover:bg-rose-500/10 hover:text-rose-400"
+                  >
+                    <FontAwesomeIcon icon={faTrash} className="size-3.5" />
+                  </Button>
                 </div>
-                <div>
-                  <Label htmlFor={`vol-name-${index}`} className="sr-only">
-                    {volumeNameLabel}
-                  </Label>
-                  <Input
-                    id={`vol-name-${index}`}
-                    type="text"
-                    size="sm"
-                    placeholder={volumeNamePlaceholder}
-                    value={item.name ?? ""}
-                    onChange={e => handleChange(index, "name", e.target.value)}
-                    disabled={disabled}
-                  />
-                </div>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="xs"
-                  onClick={() => handleRemove(index)}
-                  disabled={disabled}
-                  aria-label={removeButton}
-                  className="text-slate-400 hover:bg-rose-500/10 hover:text-rose-400"
-                >
-                  <FontAwesomeIcon icon={faTrash} className="size-3.5" />
-                </Button>
+                {otherServices.length > 0 && (
+                  <p className="flex items-center gap-1.5 px-1 text-xs text-amber-400">
+                    <FontAwesomeIcon icon={faTriangleExclamation} className="size-3" />
+                    <span>{sharedWarning(otherServices)}</span>
+                  </p>
+                )}
               </div>
             );
           })}

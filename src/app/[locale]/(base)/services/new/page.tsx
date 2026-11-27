@@ -1,9 +1,19 @@
+import { connection } from "next/server";
 import { getLocale, getTranslations } from "next-intl/server";
 import { Suspense } from "react";
 import { createServiceAction } from "~/actions/service";
 import Authorized from "~/components/auth/Authorized";
 import NewServiceForm from "~/components/services/NewServiceForm";
 import ServicePanelSkeleton from "~/components/services/ServicePanelSkeleton";
+import { getVolumeOptions } from "~/data/services";
+import type { AppLocale } from "~/i18n/routing";
+
+/** The volumes are read from Docker, only for the users with access */
+async function NewServiceFormWithVolumes({ locale }: { locale: AppLocale }) {
+  await connection();
+  const volumeOptions = await getVolumeOptions();
+  return <NewServiceForm action={createServiceAction.bind(null, locale)} volumeOptions={volumeOptions} />;
+}
 
 export default async function(_page: PageProps<"/[locale]/services/new">) {
   const [
@@ -22,7 +32,7 @@ export default async function(_page: PageProps<"/[locale]/services/new">) {
       </div>
       <Suspense fallback={<ServicePanelSkeleton />}>
         <Authorized>
-          <NewServiceForm action={createServiceAction.bind(null, locale)} />
+          <NewServiceFormWithVolumes locale={locale} />
         </Authorized>
       </Suspense>
     </div>

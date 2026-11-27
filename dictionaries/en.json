@@ -417,7 +417,12 @@
       "containerPathPlaceholder": "e.g. /var/lib/mysql",
       "volumeNameLabel": "Volume Name",
       "volumeNamePlaceholder": "e.g. db-data",
-      "emptyMessage": "No storage mounts configured."
+      "emptyMessage": "No storage mounts configured.",
+      "sourceLabel": "Volume",
+      "newVolume": "New",
+      "existingVolume": "Existing",
+      "chooseVolume": "Choose a volume",
+      "sharedWarning": "Also used by {services}, they share its data."
     },
     "submit": "Create Service",
     "submitting": "Creating service...",

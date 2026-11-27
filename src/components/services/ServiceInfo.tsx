@@ -10,6 +10,7 @@ import {
   getExposedPortsOfService,
   getInheritedVariablesOfService,
   getServiceWithLiveStatus,
+  getVolumeOptions,
 } from "~/data/services";
 import { notFound } from "~/i18n/navigation";
 
@@ -28,6 +29,7 @@ const ServiceInfo = async ({ params }: ServiceInfoProps) => {
     tService,
     tScopes,
     format,
+    volumeOptions,
   ] = await Promise.all([
     getServiceWithLiveStatus(id),
     getInheritedVariablesOfService(id),
@@ -36,6 +38,7 @@ const ServiceInfo = async ({ params }: ServiceInfoProps) => {
     getTranslations("DashboardPage.service"),
     getTranslations("NewServicePage.envSection.scopes"),
     getFormatter(),
+    getVolumeOptions(id),
   ]);
   if (!service) notFound();
 
@@ -122,7 +125,7 @@ const ServiceInfo = async ({ params }: ServiceInfoProps) => {
         </ServiceInfoSection>
         <ServiceInfoSection
           title={t("volumes")}
-          action={renderEdit({ section: "volumes", volumes: service.volumes })}
+          action={renderEdit({ section: "volumes", volumes: service.volumes, options: volumeOptions })}
         >
           {service.volumes.length === 0 ? (
             <p className="text-sm text-slate-500">{t("noVolumes")}</p>

@@ -31,10 +31,12 @@ import Input from "~/components/ui/input";
 import Label from "~/components/ui/label";
 import { generatePassword, getDatabasePreset } from "~/core/database-presets";
 import type { SharedVariableSource } from "~/core/shared-variables";
+import type { VolumeOptions } from "~/data/services";
 import { Link } from "~/i18n/navigation";
 
 export type NewServiceFormProps = {
   action: (initialState: unknown, formData: FormData) => Promise<Record<string, string>>,
+  volumeOptions: VolumeOptions,
 };
 
 type ServiceSourceType = "github" | "dockerhub";
@@ -45,7 +47,7 @@ type PresetItem<T> = T & { preset?: string };
 /** The container name has the ID of the service, which isn't known yet */
 const previewHost = "buttler-service-…";
 
-const NewServiceForm = ({ action }: NewServiceFormProps) => {
+const NewServiceForm = ({ action, volumeOptions }: NewServiceFormProps) => {
   const t = useTranslations("NewServicePage");
   const labels = useServiceFormLabels();
 
@@ -286,6 +288,7 @@ const NewServiceForm = ({ action }: NewServiceFormProps) => {
         items={volumes}
         onChange={setVolumes}
         labels={labels.volumes}
+        options={volumeOptions}
       />
       {/* Form Action Buttons */}
       <div className="flex items-center justify-between pt-4 border-t border-slate-800">
