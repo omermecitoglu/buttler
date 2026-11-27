@@ -19,7 +19,7 @@ type Link = Pick<ServiceLinkDTO, "id" | "serviceAId" | "serviceBId">;
 /** Changes never overlap, otherwise they could undo each other */
 const enqueue = createQueue("link-queue");
 
-export function getLinkNetworkName(linkId: string) {
+function getLinkNetworkName(linkId: string) {
   return `buttler-link-${linkId}`;
 }
 

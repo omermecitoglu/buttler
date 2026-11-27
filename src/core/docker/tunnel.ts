@@ -5,9 +5,9 @@ import { BUTTLER_NETWORK_LABEL, BUTTLER_SERVICE_LABEL, BUTTLER_TUNNEL_LABEL } fr
 import { createButtlerNetwork } from "./networks";
 import type Docker from "dockerode";
 
-export const TUNNEL_CONTAINER_NAME = "buttler-cloudflared";
-export const TUNNEL_IMAGE = "cloudflare/cloudflared:latest";
-export const TUNNEL_NETWORK_NAME = "buttler-tunnel";
+const TUNNEL_CONTAINER_NAME = "buttler-cloudflared";
+const TUNNEL_IMAGE = "cloudflare/cloudflared:latest";
+const TUNNEL_NETWORK_NAME = "buttler-tunnel";
 
 const TUNNEL_NETWORK = "tunnel";
 

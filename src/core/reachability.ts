@@ -14,7 +14,7 @@ const GATEWAY_TIMEOUT = 504;
 /** Cloudflare responds with it while the tunnel is not connected */
 const TUNNEL_ERROR = 530;
 
-export const INSTANCE_PATH = "/auth/instance";
+const INSTANCE_PATH = "/auth/instance";
 
 export type ReachabilityProblem = {
   reason: "unknown_host" | "no_connection" | "no_tunnel" | "no_dashboard" | "other_response",

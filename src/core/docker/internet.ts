@@ -9,7 +9,7 @@ const INTERNET_NETWORK = "internet";
 /** Two deploys of the same service must not create two networks */
 const enqueue = createQueue("internet-queue");
 
-export function getInternetNetworkName(serviceId: string) {
+function getInternetNetworkName(serviceId: string) {
   return `buttler-internet-${serviceId}`;
 }
 

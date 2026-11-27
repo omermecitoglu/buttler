@@ -91,7 +91,3 @@ server {
 }
 ${dashboard ? generateDashboardServer(dashboard) : ""}${domains.map(generateServer).join("")}`;
 }
-
-export function generateNginxConfig(_appHostName?: string) {
-  return "events {}\n\nhttp {}\n";
-}

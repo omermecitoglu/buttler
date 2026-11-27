@@ -5,10 +5,10 @@ import { findFreeSubnet } from "./subnets";
 import type Docker from "dockerode";
 
 /** Outside of the default pools of Docker (172.17.0.0/12, 192.168.0.0/16) and of common LANs */
-export const BUTTLER_SUBNET_RANGE = "10.213.0.0/16";
+const BUTTLER_SUBNET_RANGE = "10.213.0.0/16";
 
 /** Enough for 2 containers, their replacements while they are deployed and the gateway */
-export const BUTTLER_SUBNET_PREFIX = 29;
+const BUTTLER_SUBNET_PREFIX = 29;
 
 /** Networks are never created at the same time, otherwise they could pick the same subnet */
 const enqueue = createQueue("network-subnet-queue");

@@ -6,6 +6,7 @@ import getDomains from "~/operations/getDomains";
 import { docker, executeCommandInContainer, pullImage } from "./docker";
 import { REVERSE_PROXY_CONTAINER_NAME } from "./docker/containers";
 import { removeIngressNetworks } from "./docker/ingress";
+import { BUTTLER_SERVICE_LABEL } from "./docker/labels";
 import { syncReverseProxyLinks } from "./docker/links";
 import { connectProxyToTunnel } from "./docker/tunnel";
 import { HOST_GATEWAY, generateProxyConfig } from "./nginx-conf";
@@ -16,7 +17,6 @@ import type { ContainerInspectInfo } from "dockerode";
 
 export { REVERSE_PROXY_CONTAINER_NAME };
 export const REVERSE_PROXY_IMAGE = "nginx:alpine";
-export const BUTTLER_SERVICE_LABEL = "buttler.service-id";
 
 export type ReverseProxyHealth = {
   exists: boolean,
@@ -34,7 +34,7 @@ const EXTRA_HOST = `${HOST_GATEWAY}:host-gateway`;
 /** Changes never overlap, otherwise they could restore the config of each other */
 const enqueue = createQueue("nginx-queue");
 
-export function getReverseProxyConfDir() {
+function getReverseProxyConfDir() {
   return path.dirname(getFilePath(CONF_DIR, CONF_FILE));
 }
 
@@ -272,8 +272,3 @@ export async function getReverseProxyHealth(): Promise<ReverseProxyHealth> {
     throw err;
   }
 }
-
-// Aliases for compatibility
-export const provisionNginx = provisionReverseProxy;
-export const getNginxHealth = getReverseProxyHealth;
-export const startReverseProxyService = provisionReverseProxy;

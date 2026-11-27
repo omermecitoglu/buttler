@@ -1,4 +1,4 @@
-import { createInsertSchema, createSelectSchema } from "drizzle-orm/zod";
+import { createSelectSchema } from "drizzle-orm/zod";
 import { createSharedRefinements } from "drizzle-zod-shared-refinements";
 import { sharedVariables } from "~/database/schema/shared-variables";
 import type z from "zod";
@@ -15,8 +15,4 @@ const sharedRefinements = createSharedRefinements(sharedVariables, {
 export const SharedVariableDTO = createSelectSchema(sharedVariables, sharedRefinements)
   .describe("Represents a variable that a service offers to its linked services");
 
-export const NewSharedVariableDTO = createInsertSchema(sharedVariables, sharedRefinements)
-  .describe("Data Transfer Object for creating a shared variable");
-
 export type SharedVariableDTO = z.infer<typeof SharedVariableDTO>;
-export type NewSharedVariableDTO = z.infer<typeof NewSharedVariableDTO>;

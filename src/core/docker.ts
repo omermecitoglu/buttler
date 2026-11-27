@@ -145,15 +145,6 @@ export async function getExposedPorts(imageName: string): Promise<number[]> {
   }
 }
 
-export async function removeImage(imageId: string) {
-  try {
-    const image = docker.getImage(imageId);
-    await image.remove();
-  } catch {
-    // do nothing
-  }
-}
-
 export type CommandResult = {
   exitCode: number | null,
   /** Both stdout and stderr */

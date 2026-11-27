@@ -1,4 +1,4 @@
-export class GitHubError extends Error {
+class GitHubError extends Error {
   constructor(message: string) {
     super(message);
     this.name = "GitHubError";
