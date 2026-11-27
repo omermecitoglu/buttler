@@ -2,6 +2,7 @@ import { docker } from "~/core/docker";
 import { listServiceImages } from "./builds";
 import { isOwnContainer } from "./containers";
 import { CONFLICT, NOT_FOUND, NOT_MODIFIED, ignoreStatus } from "./errors";
+import { listButtlerVolumes } from "./volumes";
 
 const volumeNamePattern = /^[a-zA-Z0-9][a-zA-Z0-9_.-]+$/;
 
@@ -28,10 +29,12 @@ export async function removeServiceImages(serviceId: string) {
   }
 }
 
-/** Removes volumes with their data, except the ones that other containers use */
+/** Removes volumes with their data, except the ones that other containers use or that Buttler didn't create */
 export async function removeVolumes(names: string[]) {
+  // Paths on the host and volumes from outside never have the label
+  const ownVolumes = new Set(await listButtlerVolumes());
   for (const name of new Set(names)) {
-    if (!isVolumeName(name)) continue;
+    if (!ownVolumes.has(name)) continue;
     await ignoreStatus(docker.getVolume(name).remove(), NOT_FOUND, CONFLICT);
   }
 }

@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({
   getImage: vi.fn(),
   getVolume: vi.fn(),
   listServiceImages: vi.fn(),
+  listButtlerVolumes: vi.fn(),
   stop: vi.fn(),
   remove: vi.fn(),
 }));
@@ -20,6 +21,7 @@ vi.mock("~/core/docker", () => ({
   },
 }));
 vi.mock("./builds", () => ({ listServiceImages: mocks.listServiceImages }));
+vi.mock("./volumes", () => ({ listButtlerVolumes: mocks.listButtlerVolumes }));
 
 const dockerError = (statusCode: number) => Object.assign(new Error(`status ${statusCode}`), { statusCode });
 
@@ -96,6 +98,10 @@ describe("removeServiceImages", () => {
 });
 
 describe("removeVolumes", () => {
+  beforeEach(() => {
+    mocks.listButtlerVolumes.mockResolvedValue(["cache", "data"]);
+  });
+
   it("should remove each volume once", async () => {
     await removeVolumes(["data", "cache", "data"]);
     expect(mocks.getVolume.mock.calls).toEqual([["data"], ["cache"]]);
@@ -105,6 +111,11 @@ describe("removeVolumes", () => {
   it("should never touch the paths on the host", async () => {
     await removeVolumes(["/srv/data", "../containers/app", "./data", "a/b"]);
     expect(mocks.getVolume).not.toHaveBeenCalled();
+  });
+
+  it("should never touch the volumes that Buttler didn't create", async () => {
+    await removeVolumes(["outside", "data"]);
+    expect(mocks.getVolume.mock.calls).toEqual([["data"]]);
   });
 
   it.each([404, 409])("should go on after the status %i", async statusCode => {
