@@ -609,13 +609,21 @@ describe("Docker status aggregator", () => {
         .rejects.toThrow("No container found for service srv-none");
     });
 
-    it("stopServiceContainer stops and removes found container", async () => {
+    it("stopServiceContainer stops found container and keeps it", async () => {
       mockDocker.listContainers.mockResolvedValue([
         { Id: "c-stop", Labels: { [BUTTLER_SERVICE_LABEL]: "srv-stop" } },
       ]);
       await stopServiceContainer({ id: "srv-stop" });
       expect(mockContainer.stop).toHaveBeenCalledWith({ t: 10 });
-      expect(mockContainer.remove).toHaveBeenCalledWith({ force: true });
+      expect(mockContainer.remove).not.toHaveBeenCalled();
+    });
+
+    it("stopServiceContainer throws if container cannot be stopped", async () => {
+      mockDocker.listContainers.mockResolvedValue([
+        { Id: "c-stop", Labels: { [BUTTLER_SERVICE_LABEL]: "srv-stop" } },
+      ]);
+      mockContainer.stop.mockRejectedValueOnce(Object.assign(new Error("boom"), { statusCode: 500 }));
+      await expect(stopServiceContainer({ id: "srv-stop" })).rejects.toThrow("boom");
     });
 
     it("stopServiceContainer is a no-op if container not found", async () => {

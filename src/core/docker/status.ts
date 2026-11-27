@@ -448,8 +448,9 @@ async function replaceServiceContainer(service: ServiceRef, image: string) {
     HostConfig: {
       Binds: binds,
       PortBindings: portBindings,
+      // A container that the user stopped stays stopped when Docker restarts
       RestartPolicy: {
-        Name: "always",
+        Name: "unless-stopped",
       },
       NetworkMode: internetNetwork,
     },
@@ -468,30 +469,15 @@ async function replaceServiceContainer(service: ServiceRef, image: string) {
   await container.start();
 }
 
+/** Stops the container of a service and keeps it, so its logs stay readable */
 export async function stopServiceContainer(service: ServiceIdentity): Promise<void> {
-  const container = await findServiceContainer(service);
-  if (!container) {
-    try {
-      const byName = docker.getContainer(`buttler-service-${service.id}`);
-      await byName.remove({ force: true });
-    } catch {
-      // ignore
-    }
-    return;
-  }
+  const container = await findServiceContainer(service) ?? docker.getContainer(`buttler-service-${service.id}`);
   try {
     await container.stop({ t: 10 });
   } catch (err: unknown) {
     const error = err as { statusCode?: number };
+    // 304: it's already stopped, 404: there is no container
     if (error.statusCode !== 304 && error.statusCode !== 404) {
-      // ignore
-    }
-  }
-  try {
-    await container.remove({ force: true });
-  } catch (err: unknown) {
-    const error = err as { statusCode?: number };
-    if (error.statusCode !== 404) {
       throw err;
     }
   }
