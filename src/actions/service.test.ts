@@ -532,6 +532,50 @@ describe("updateServiceAction", () => {
     expect(Object.entries(changes).filter(([, value]) => value !== undefined)).toEqual([["ports", []]]);
   });
 
+  describe("recreating the container", () => {
+    const service = { id: "srv", type: "dockerhub" };
+
+    function createPortsFormData() {
+      const formData = new FormData();
+      formData.append("ports", JSON.stringify([{ external: 8080, internal: 80 }]));
+      formData.append("recreate", "on");
+      return formData;
+    }
+
+    beforeEach(() => {
+      mockGetService.mockResolvedValue(service);
+      mockGetDeployableService.mockResolvedValue(service);
+      mockGetServiceRuntimeState.mockResolvedValue({ status: "running" });
+    });
+
+    it("recreates the container after the changes are saved", async () => {
+      expect(await updateServiceAction("srv", {}, createPortsFormData())).toEqual({});
+      expect(mockRestartServiceContainer).toHaveBeenCalledWith(service);
+      expect(mockRestartServiceContainer).toHaveBeenCalledAfter(mockUpdateService);
+      expect(mockRefresh).toHaveBeenCalled();
+    });
+
+    it("doesn't pass the choice on as a change", async () => {
+      await updateServiceAction("srv", {}, createPortsFormData());
+      const [, , changes] = mockUpdateService.mock.calls[0] as [unknown, unknown, Record<string, unknown>];
+      expect(changes).not.toHaveProperty("recreate");
+    });
+
+    it("changes nothing while the service is being pulled", async () => {
+      mockGetServiceRuntimeState.mockResolvedValue({ status: "pulling" });
+      expect(await updateServiceAction("srv", {}, createPortsFormData())).toEqual({ "[error]": "service_busy" });
+      expect(mockUpdateService).not.toHaveBeenCalled();
+      expect(mockRestartServiceContainer).not.toHaveBeenCalled();
+    });
+
+    it("keeps the saved changes when the container can't be recreated", async () => {
+      vi.spyOn(console, "error").mockImplementation(() => undefined);
+      mockRestartServiceContainer.mockRejectedValue(new Error("no docker"));
+      expect(await updateServiceAction("srv", {}, createPortsFormData())).toEqual({ "[error]": "recreate_failed" });
+      expect(mockUpdateService).toHaveBeenCalled();
+    });
+  });
+
   it("rejects a volume name that Docker doesn't accept", async () => {
     mockGetService.mockResolvedValue({ id: "srv", type: "dockerhub" });
     const formData = new FormData();
