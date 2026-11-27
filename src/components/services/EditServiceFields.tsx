@@ -5,6 +5,7 @@ import EditPortsField from "~/components/services/EditPortsField";
 import EditTextField from "~/components/services/EditTextField";
 import EditVariablesField, { type SavedVariable } from "~/components/services/EditVariablesField";
 import EditVolumesField from "~/components/services/EditVolumesField";
+import type { VolumeOptions } from "~/data/services";
 
 export type ServiceEdit =
   | { section: "name", name: string } |
@@ -19,7 +20,7 @@ export type ServiceEdit =
     isBusy: boolean,
   } |
   { section: "variables", isGitHub: boolean, variables: SavedVariable[] } |
-  { section: "volumes", volumes: { id: string, name: string, containerPath: string }[] };
+  { section: "volumes", volumes: { id: string, name: string, containerPath: string }[], options: VolumeOptions };
 
 export type EditServiceFieldsProps = {
   edit: ServiceEdit,
@@ -51,7 +52,7 @@ const EditServiceFields = ({ edit }: EditServiceFieldsProps) => {
     case "variables":
       return <EditVariablesField variables={edit.variables} hasBuild={edit.isGitHub} />;
     case "volumes":
-      return <EditVolumesField volumes={edit.volumes} />;
+      return <EditVolumesField volumes={edit.volumes} options={edit.options} />;
   }
 };
 

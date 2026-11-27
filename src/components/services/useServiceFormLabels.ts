@@ -1,8 +1,9 @@
-import { useTranslations } from "next-intl";
+import { useFormatter, useTranslations } from "next-intl";
 
 /** Labels of the sections that are shared by the forms of services */
 export default function useServiceFormLabels() {
   const t = useTranslations("NewServicePage");
+  const format = useFormatter();
 
   return {
     ports: {
@@ -51,6 +52,11 @@ export default function useServiceFormLabels() {
       volumeNameLabel: t("volumesSection.volumeNameLabel"),
       volumeNamePlaceholder: t("volumesSection.volumeNamePlaceholder"),
       emptyMessage: t("volumesSection.emptyMessage"),
+      sourceLabel: t("volumesSection.sourceLabel"),
+      newVolume: t("volumesSection.newVolume"),
+      existingVolume: t("volumesSection.existingVolume"),
+      chooseVolume: t("volumesSection.chooseVolume"),
+      sharedWarning: (services: string[]) => t("volumesSection.sharedWarning", { services: format.list(services) }),
     },
   };
 }
