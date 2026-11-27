@@ -1,3 +1,4 @@
+import { handleProxy, setLocalizedPathname } from "@omer-x/next-utils/proxy";
 import { type NextRequest, NextResponse } from "next/server";
 import createMiddleware from "next-intl/middleware";
 import { getAccess } from "./core/access";
@@ -9,20 +10,14 @@ import { routing } from "./i18n/routing";
 
 const handleI18nRouting = createMiddleware(routing);
 
-const publicPages = [
-  "/privacy-policy",
-  "/terms-of-service",
-];
-
-function startsWith(target: string, name: string[] | string): boolean {
-  if (Array.isArray(name)) {
-    return name.map(n => startsWith(target, n)).includes(true);
-  }
-  return new RegExp(`^/([a-z]{2}/)?${name.slice(1)}`).test(target);
+/** Keeps the locale of the request, but not its query */
+function redirectTo(request: NextRequest, pathname: string) {
+  const url = setLocalizedPathname(routing.locales, request.url, pathname);
+  url.search = "";
+  return NextResponse.redirect(url);
 }
 
 export async function proxy(request: NextRequest) {
-  const { pathname } = request.nextUrl;
   const [
     session,
     publicOrigin,
@@ -33,29 +28,28 @@ export async function proxy(request: NextRequest) {
     isInstalled(),
   ]);
 
+  // Only the setup is open until the installation is done
   if (!installed) {
-    if (!startsWith(pathname, ["/install"])) {
-      return NextResponse.redirect(new URL("/install", request.url));
-    }
-    return handleI18nRouting(request);
-  }
-
-  if (startsWith(pathname, ["/install"])) {
-    return NextResponse.redirect(new URL(getHomePath(publicOrigin), request.url));
+    return handleProxy(routing.locales, request, {
+      publicPages: ["/install"],
+      isLoggedIn: () => false,
+      redirectToHomePage: () => redirectTo(request, "/install"),
+      redirectToLoginPage: () => redirectTo(request, "/install"),
+      defaultProcedure: () => handleI18nRouting(request),
+    });
   }
 
   const access = await getAccess(session.userId);
-
-  if (startsWith(pathname, publicPages)) {
-    // public pages
-  } else if (startsWith(pathname, ["/login"])) {
-    if (access) {
-      return NextResponse.redirect(new URL(getHomePath(publicOrigin), request.url));
-    }
-  } else if (!access) {
-    return NextResponse.redirect(new URL("/login", request.url));
-  }
-  return handleI18nRouting(request);
+  const homePath = getHomePath(publicOrigin);
+  return handleProxy(routing.locales, request, {
+    // The setup is done, so it leads home whether the user is logged in or not
+    publicPages: ["/install"],
+    authPages: ["/login"],
+    isLoggedIn: () => access !== null,
+    redirectToHomePage: () => redirectTo(request, homePath),
+    redirectToLoginPage: () => redirectTo(request, "/login"),
+    defaultProcedure: pathname => (pathname === "/install" ? redirectTo(request, homePath) : handleI18nRouting(request)),
+  });
 }
 
 export const config = {
