@@ -223,6 +223,31 @@
       "cancel": "Cancel",
       "submit": "Download"
     },
+    "import": {
+      "button": "Import",
+      "title": "Import services",
+      "description": "Choose a file that was exported from Buttler. Nothing is created if a name, a domain or a port is already taken.",
+      "file": "Exported file",
+      "importing": "Importing...",
+      "close": "Close",
+      "done": "Done",
+      "imported": "{count, plural, one {# service was imported.} other {# services were imported.}}",
+      "deployed": "Being deployed",
+      "waiting": "Waiting for their secrets",
+      "waitingHelp": "Their secrets were left out of the file. Fill them in on the settings of each service, then deploy it.",
+      "conflicts": {
+        "title": "Nothing was imported, because some things are already taken:",
+        "name": "A service called \"{name}\" already exists.",
+        "domain": "{hostname} belongs to \"{owner}\".",
+        "dashboardDomain": "{hostname} is the domain of the dashboard.",
+        "port": "Port {port} is published by \"{owner}\"."
+      },
+      "messages": {
+        "invalid": "This file wasn't exported from Buttler, or it was changed.",
+        "unsupported_version": "This file was exported from another version of Buttler, and it can't be read.",
+        "failed": "The services couldn't be imported."
+      }
+    },
     "emptyState": {
       "title": "No services configured",
       "description": "Deploy your first service from GitHub or Docker Hub to get started.",
