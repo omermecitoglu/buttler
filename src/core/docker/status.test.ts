@@ -507,6 +507,34 @@ describe("Docker status aggregator", () => {
       expect(mockEnsureServiceNetwork).toHaveBeenCalledWith("srv-dh", true);
     });
 
+    it("startServiceContainer mounts the host's /dev and allows only the major numbers of the devices", async () => {
+      mockDocker.listContainers.mockResolvedValue([]);
+      mockImage.inspect.mockResolvedValue({});
+      await startServiceContainer({
+        id: "srv-dh",
+        type: "dockerhub",
+        repository: "cashier",
+        branch: "latest",
+        volumes: [{ name: "vol1", containerPath: "/data" }],
+        devices: [{ kind: "usb-printer" }],
+      });
+      expect(mockDocker.createContainer).toHaveBeenCalledWith(expect.objectContaining({
+        HostConfig: expect.objectContaining({
+          Binds: ["vol1:/data", "/dev:/host/dev:rslave"],
+          DeviceCgroupRules: ["c 180:* rwm"],
+        }),
+      }));
+    });
+
+    it("startServiceContainer gives a container without devices no access to the host's /dev", async () => {
+      mockDocker.listContainers.mockResolvedValue([]);
+      mockImage.inspect.mockResolvedValue({});
+      await startServiceContainer({ id: "srv-dh", type: "dockerhub", repository: "redis", branch: "alpine" });
+      expect(mockDocker.createContainer).toHaveBeenCalledWith(expect.objectContaining({
+        HostConfig: expect.objectContaining({ Binds: [], DeviceCgroupRules: [] }),
+      }));
+    });
+
     it("startServiceContainer keeps a container without internet access on its isolated network", async () => {
       mockDocker.listContainers.mockResolvedValue([]);
       mockImage.inspect.mockResolvedValue({});
