@@ -154,54 +154,6 @@ export async function removeImage(imageId: string) {
   }
 }
 
-export type CreateContainerOptions = {
-  readOnlyFiles?: Record<string, string>,
-  labels?: Record<string, string>,
-};
-
-export async function createContainer(
-  serviceName: string,
-  imageId: string,
-  env: Record<string, string>,
-  ports: Record<string, string>,
-  volumes: Record<string, string>,
-  networkIds: string[],
-  options: CreateContainerOptions = {},
-) {
-  const container = await docker.createContainer({
-    name: serviceName,
-    Image: imageId,
-    Labels: {
-      "com.docker.compose.project": "buttler",
-      ...options.labels,
-    },
-    Env: Object.entries(env).map(([key, value]) => `${key}=${value}`),
-    HostConfig: {
-      Binds: [
-        ...Object.entries(volumes).map(([key, value]) => `${key}:${value}`),
-        ...Object.entries(options.readOnlyFiles ?? {}).map(([source, destination]) => {
-          return `${source}:${destination}:ro`;
-        }),
-      ],
-      PortBindings: Object.fromEntries(Object.entries(ports).map(([external, internal]) => {
-        return [`${internal}/tcp`, [{ HostPort: external }]];
-      })),
-      RestartPolicy: {
-        Name: "always",
-      },
-    },
-    ExposedPorts: Object.fromEntries(Object.values(ports).map(port => [`${port}/tcp`, {}] as const)),
-    Tty: false,
-  });
-  await Promise.all(networkIds.map(networkId => connectContainerToNetwork(container.id, networkId)));
-  await container.start();
-  return container.id;
-}
-
-export async function removeContainer(containerId: string) {
-  await docker.getContainer(containerId).remove({ force: true });
-}
-
 export type CommandResult = {
   exitCode: number | null,
   /** Both stdout and stderr */
@@ -225,28 +177,4 @@ export async function executeCommandInContainer(containerId: string, command: st
     exitCode,
     output: Buffer.concat(chunks).toString("utf-8").replaceAll("\r\n", "\n").trim(),
   };
-}
-
-export async function createVolume(name: string) {
-  await docker.createVolume({
-    Name: name,
-    Driver: "local",
-    /* Labels: {
-      app: 'my_app',
-    }, */
-  });
-}
-
-async function connectContainerToNetwork(containerId: string, networkId: string) {
-  const network = docker.getNetwork(networkId);
-  await network.connect({
-    Container: containerId,
-  });
-}
-
-export async function getHostIp() {
-  const network = docker.getNetwork("bridge");
-  const inspection = await network.inspect();
-  const gateway = inspection.IPAM?.Config?.[0]?.Gateway;
-  return gateway as string;
 }
