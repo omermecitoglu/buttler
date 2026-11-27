@@ -10,6 +10,7 @@ import { REVERSE_PROXY_CONTAINER_NAME, isOwnContainer } from "./containers";
 import { ensureInternetNetwork, removeInternetNetwork } from "./internet";
 import { BUTTLER_SERVICE_LABEL } from "./labels";
 import { connectLinkNetworks } from "./links";
+import type { PullProgress } from "./pull-progress";
 import type Docker from "dockerode";
 
 export type ContainerRuntimeStatus = "running" | "stopped" | "exited" | "building" | "pulling" | "restarting";
@@ -49,16 +50,33 @@ export function isServiceBuilding(serviceId: string): boolean {
   return activeBuildServices.has(serviceId);
 }
 
+const pullProgresses = getSharedState("pull-progresses", () => new Map<string, PullProgress>());
+
 export function markServicePulling(serviceId: string, isPulling: boolean) {
   if (isPulling) {
     activePullServices.add(serviceId);
   } else {
     activePullServices.delete(serviceId);
+    pullProgresses.delete(serviceId);
   }
 }
 
 export function isServicePulling(serviceId: string): boolean {
   return activePullServices.has(serviceId);
+}
+
+/** Returns the progress of the image pull of a service, or null if it hasn't started downloading yet */
+export function getServicePullProgress(serviceId: string): PullProgress | null {
+  return pullProgresses.get(serviceId) ?? null;
+}
+
+type PullImage = (imageName: string, onProgress: (progress: PullProgress) => void) => Promise<unknown>;
+
+function pullServiceImage(serviceId: string, imageTag: string, pullImage: PullImage) {
+  return pullImage(imageTag, progress => {
+    // A late event must not bring back the progress of a finished pull
+    if (isServicePulling(serviceId)) pullProgresses.set(serviceId, progress);
+  });
 }
 
 const deletingServices = getSharedState("deleting-services", () => new Set<string>());
@@ -324,7 +342,7 @@ export async function startServiceContainer(service: ServiceRef): Promise<void> 
     markServicePulling(service.id, true);
     try {
       const { pullImage } = await import("~/core/docker");
-      await pullImage(imageTag);
+      await pullServiceImage(service.id, imageTag, pullImage);
     } finally {
       markServicePulling(service.id, false);
     }
@@ -344,7 +362,7 @@ export async function pullAndDeployService(service: ServiceRef): Promise<void> {
       throw new Error(`No Docker Hub image specified for service ${service.id}`);
     }
     const { pullImage } = await import("~/core/docker");
-    await pullImage(imageTag);
+    await pullServiceImage(service.id, imageTag, pullImage);
     await deployServiceContainer(service, imageTag);
   } finally {
     markServicePulling(service.id, false);

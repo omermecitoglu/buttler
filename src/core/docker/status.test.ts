@@ -8,6 +8,7 @@ import {
   extractContainerPorts,
   findServiceContainer,
   formatContainerUptime,
+  getServicePullProgress,
   getServiceRuntimeState,
   getServicesRuntimeStates,
   isServiceBuilding,
@@ -547,7 +548,7 @@ describe("Docker status aggregator", () => {
         repository: "postgres",
         branch: "15",
       });
-      expect(mockPullImage).toHaveBeenCalledWith("postgres:15");
+      expect(mockPullImage).toHaveBeenCalledWith("postgres:15", expect.any(Function));
       expect(mockContainer.start).toHaveBeenCalled();
     });
 
@@ -559,9 +560,21 @@ describe("Docker status aggregator", () => {
         return Promise.resolve(mockContainer);
       });
       await pullAndDeployService({ id: "srv-p", type: "dockerhub", repository: "redis", branch: "alpine" });
-      expect(mockPullImage).toHaveBeenCalledWith("redis:alpine");
+      expect(mockPullImage).toHaveBeenCalledWith("redis:alpine", expect.any(Function));
       expect(mockDocker.createContainer).toHaveBeenCalledWith(expect.objectContaining({ Image: "redis:alpine" }));
       expect(isServicePulling("srv-p")).toBe(false);
+    });
+
+    it("pullAndDeployService keeps the progress of the pull until it is done", async () => {
+      mockDocker.listContainers.mockResolvedValue([]);
+      const progress = { download: { current: 5, total: 10 }, extract: { current: 0, total: 10 } };
+      mockPullImage.mockImplementationOnce((_image: string, onProgress: (value: typeof progress) => void) => {
+        onProgress(progress);
+        expect(getServicePullProgress("srv-p")).toEqual(progress);
+        return Promise.resolve({});
+      });
+      await pullAndDeployService({ id: "srv-p", type: "dockerhub", repository: "redis" });
+      expect(getServicePullProgress("srv-p")).toBeNull();
     });
 
     it("pullAndDeployService keeps the container if the image cannot be pulled", async () => {
