@@ -1,10 +1,11 @@
 #!/usr/bin/env node
-import { type ChildProcess, spawn } from "node:child_process";
+import { type ChildProcess, execFile, spawn } from "node:child_process";
 import { closeSync, readFileSync } from "node:fs";
-import fs from "node:fs/promises";
+import fs, { constants } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { setTimeout as wait } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
+import { promisify } from "node:util";
 import { Command } from "commander";
 import { getLogPath, openLogFile } from "./core/log-file";
 import { getSetupLink } from "./core/setup-code";
@@ -24,6 +25,8 @@ const STOP_TIMEOUT = 10_000;
 const SERVER_ERROR = 500;
 
 const PID_FILE = "PID";
+
+const PACKAGE_NAME = "@omer-x/buttler";
 
 const __filename = fileURLToPath(import.meta.url);
 
@@ -153,6 +156,74 @@ async function restart() {
   await start(false);
 }
 
+/** An alpha prerelease (e.g. 1.2.0-alpha.3) stays on the alpha channel */
+function getReleaseTag(version: string) {
+  return version.includes("-alpha.") ? "alpha" : "latest";
+}
+
+/** Returns null if the registry can't be reached */
+async function getPublishedVersion(tag: string) {
+  try {
+    const { stdout } = await promisify(execFile)("npm", ["view", `${PACKAGE_NAME}@${tag}`, "version"]);
+    return stdout.trim();
+  } catch {
+    return null;
+  }
+}
+
+/** npm writes the new files next to the installed package, a system-wide Node needs sudo for it */
+async function canInstall() {
+  try {
+    await fs.access(resolve(__dirname, "../.."), constants.W_OK);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function runChildProcess(command: string, args: string[]) {
+  return new Promise<boolean>(done => {
+    const child = spawn(command, args, { stdio: "inherit" });
+    child.on("error", () => done(false));
+    child.on("exit", code => done(code === 0));
+  });
+}
+
+async function update() {
+  const installedVersion = getVersion();
+  const tag = getReleaseTag(installedVersion);
+  const publishedVersion = await getPublishedVersion(tag);
+  if (publishedVersion === null) {
+    console.error("the published version could not be checked");
+    process.exitCode = 1;
+    return;
+  }
+  if (publishedVersion === installedVersion) {
+    return console.log(`Buttler is up to date (${installedVersion})`);
+  }
+  const packageSpec = `${PACKAGE_NAME}@${tag}`;
+  if (!(await canInstall())) {
+    console.error("Buttler can't be updated without permission, run this command instead:");
+    console.error(`\n  sudo npm install -g ${packageSpec}\n`);
+    process.exitCode = 1;
+    return;
+  }
+  const wasRunning = await checkFile("", PID_FILE);
+  // npm replaces the files that the running server uses
+  if (wasRunning) await stop();
+  console.log(`updating Buttler from ${installedVersion} to ${publishedVersion}`);
+  const installed = await runChildProcess("npm", ["install", "-g", packageSpec]);
+  if (!installed) {
+    console.error("Buttler could not be updated");
+    process.exitCode = 1;
+  }
+  // This process still has the old code, the new one runs the new migrations at startup
+  if (wasRunning) {
+    const started = await runChildProcess(process.execPath, [__filename, "start"]);
+    if (!started) process.exitCode = 1;
+  }
+}
+
 const program = new Command();
 program.version(getVersion(), "-v, --version", "prints the version");
 program.command("version").description("prints the version").action(() => console.log(getVersion()));
@@ -160,4 +231,5 @@ program.command("dev").description("starts the application").action(() => start(
 program.command("start").description("starts the application").action(() => start(false));
 program.command("stop").description("stops the application").action(stop);
 program.command("restart").description("restarts the application").action(restart);
+program.command("update").description("updates the application and restarts it").action(update);
 program.parse(process.argv);
