@@ -31,6 +31,8 @@ export type EnvironmentVariableItem = {
   savedSecretKey?: string,
   /** Whether the value is edited in a textarea, which is turned on when lines are pasted into it */
   isMultiline?: boolean,
+  /** Shown under the variable, e.g. where it comes from */
+  note?: string,
 };
 
 export type EnvironmentVariablesRepeaterLabels = {
@@ -372,104 +374,104 @@ const EnvironmentVariablesRepeater = ({
           {internalItems.map((item, index) => {
             const key = item.id ?? `env-${index}`;
             return (
-              <div
-                key={key}
-                className={cn("grid items-start gap-2", columns)}
-              >
-                <div>
-                  <Label htmlFor={`env-key-${index}`} className="sr-only">
-                    {keyLabel}
-                  </Label>
-                  <Input
-                    id={`env-key-${index}`}
-                    type="text"
-                    size="sm"
-                    className="font-mono text-xs uppercase"
-                    placeholder={keyPlaceholder}
-                    value={item.key}
-                    onChange={e => handleChange(index, { key: e.target.value })}
-                    onPaste={e => handlePaste(index, "key", e)}
-                    disabled={disabled}
-                  />
-                </div>
-                <span className="text-center font-mono text-xs leading-8 text-slate-500 select-none">=</span>
-                <div>
-                  <Label htmlFor={`env-val-${index}`} className="sr-only">
-                    {valueLabel}
-                  </Label>
-                  {item.isMultiline ? (
-                    <Textarea
-                      id={`env-val-${index}`}
-                      autoGrow
-                      size="sm"
-                      autoComplete="off"
-                      spellCheck={false}
-                      className={cn("font-mono", item.isSecret && "[-webkit-text-security:disc]")}
-                      placeholder={valuePlaceholder}
-                      value={item.value}
-                      onChange={e => handleChange(index, { value: e.target.value })}
-                      onPaste={e => handlePaste(index, "value", e)}
-                      disabled={disabled}
-                    />
-                  ) : (
-                    <Input
-                      id={`env-val-${index}`}
-                      type={item.isSecret ? "password" : "text"}
-                      autoComplete={item.isSecret ? "new-password" : "off"}
-                      size="sm"
-                      className="font-mono text-xs"
-                      placeholder={item.isSecret && item.savedSecretKey === item.key.trim() && labels?.savedSecretPlaceholder
-                        ? labels.savedSecretPlaceholder
-                        : valuePlaceholder}
-                      value={item.value}
-                      onChange={e => handleChange(index, { value: e.target.value })}
-                      onPaste={e => handlePaste(index, "value", e)}
-                      disabled={disabled}
-                    />
-                  )}
-                </div>
-                {hasBuild && (
+              <div key={key} className="space-y-1">
+                <div className={cn("grid items-start gap-2", columns)}>
                   <div>
-                    <Label htmlFor={`env-scope-${index}`} className="sr-only">
-                      {scopeLabel}
+                    <Label htmlFor={`env-key-${index}`} className="sr-only">
+                      {keyLabel}
                     </Label>
-                    <Select
-                      id={`env-scope-${index}`}
-                      className="h-8 text-xs"
-                      value={item.scope}
-                      onChange={e => handleChange(index, { scope: e.target.value as EnvironmentVariableScope })}
+                    <Input
+                      id={`env-key-${index}`}
+                      type="text"
+                      size="sm"
+                      className="font-mono text-xs uppercase"
+                      placeholder={keyPlaceholder}
+                      value={item.key}
+                      onChange={e => handleChange(index, { key: e.target.value })}
+                      onPaste={e => handlePaste(index, "key", e)}
                       disabled={disabled}
-                    >
-                      {environmentVariableScopes.map(scope => (
-                        <option key={scope} value={scope}>{scopes[scope]}</option>
-                      ))}
-                    </Select>
+                    />
                   </div>
-                )}
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="xs"
-                  onClick={() => handleChange(index, { isSecret: !item.isSecret })}
-                  disabled={disabled}
-                  aria-label={secretLabel}
-                  aria-pressed={item.isSecret}
-                  title={secretLabel}
-                  className={item.isSecret ? "text-amber-400 hover:text-amber-300" : "text-slate-500 hover:text-slate-200"}
-                >
-                  <FontAwesomeIcon icon={item.isSecret ? faLock : faLockOpen} className="size-3.5" />
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="xs"
-                  onClick={() => handleRemove(index)}
-                  disabled={disabled}
-                  aria-label={removeButton}
-                  className="text-slate-400 hover:bg-rose-500/10 hover:text-rose-400"
-                >
-                  <FontAwesomeIcon icon={faTrash} className="size-3.5" />
-                </Button>
+                  <span className="text-center font-mono text-xs leading-8 text-slate-500 select-none">=</span>
+                  <div>
+                    <Label htmlFor={`env-val-${index}`} className="sr-only">
+                      {valueLabel}
+                    </Label>
+                    {item.isMultiline ? (
+                      <Textarea
+                        id={`env-val-${index}`}
+                        autoGrow
+                        size="sm"
+                        autoComplete="off"
+                        spellCheck={false}
+                        className={cn("font-mono", item.isSecret && "[-webkit-text-security:disc]")}
+                        placeholder={valuePlaceholder}
+                        value={item.value}
+                        onChange={e => handleChange(index, { value: e.target.value })}
+                        onPaste={e => handlePaste(index, "value", e)}
+                        disabled={disabled}
+                      />
+                    ) : (
+                      <Input
+                        id={`env-val-${index}`}
+                        type={item.isSecret ? "password" : "text"}
+                        autoComplete={item.isSecret ? "new-password" : "off"}
+                        size="sm"
+                        className="font-mono text-xs"
+                        placeholder={item.isSecret && item.savedSecretKey === item.key.trim() && labels?.savedSecretPlaceholder
+                          ? labels.savedSecretPlaceholder
+                          : valuePlaceholder}
+                        value={item.value}
+                        onChange={e => handleChange(index, { value: e.target.value })}
+                        onPaste={e => handlePaste(index, "value", e)}
+                        disabled={disabled}
+                      />
+                    )}
+                  </div>
+                  {hasBuild && (
+                    <div>
+                      <Label htmlFor={`env-scope-${index}`} className="sr-only">
+                        {scopeLabel}
+                      </Label>
+                      <Select
+                        id={`env-scope-${index}`}
+                        className="h-8 text-xs"
+                        value={item.scope}
+                        onChange={e => handleChange(index, { scope: e.target.value as EnvironmentVariableScope })}
+                        disabled={disabled}
+                      >
+                        {environmentVariableScopes.map(scope => (
+                          <option key={scope} value={scope}>{scopes[scope]}</option>
+                        ))}
+                      </Select>
+                    </div>
+                  )}
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="xs"
+                    onClick={() => handleChange(index, { isSecret: !item.isSecret })}
+                    disabled={disabled}
+                    aria-label={secretLabel}
+                    aria-pressed={item.isSecret}
+                    title={secretLabel}
+                    className={item.isSecret ? "text-amber-400 hover:text-amber-300" : "text-slate-500 hover:text-slate-200"}
+                  >
+                    <FontAwesomeIcon icon={item.isSecret ? faLock : faLockOpen} className="size-3.5" />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="xs"
+                    onClick={() => handleRemove(index)}
+                    disabled={disabled}
+                    aria-label={removeButton}
+                    className="text-slate-400 hover:bg-rose-500/10 hover:text-rose-400"
+                  >
+                    <FontAwesomeIcon icon={faTrash} className="size-3.5" />
+                  </Button>
+                </div>
+                {item.note && <p className="px-1 text-xs text-sky-400">{item.note}</p>}
               </div>
             );
           })}
