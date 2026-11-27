@@ -507,7 +507,7 @@ describe("Docker status aggregator", () => {
       expect(mockEnsureServiceNetwork).toHaveBeenCalledWith("srv-dh", true);
     });
 
-    it("startServiceContainer mounts the host's /dev and allows only the major numbers of the devices", async () => {
+    it("startServiceContainer mounts the host's /dev and allows only the device nodes of the chosen kinds", async () => {
       mockDocker.listContainers.mockResolvedValue([]);
       mockImage.inspect.mockResolvedValue({});
       await startServiceContainer({
@@ -521,7 +521,7 @@ describe("Docker status aggregator", () => {
       expect(mockDocker.createContainer).toHaveBeenCalledWith(expect.objectContaining({
         HostConfig: expect.objectContaining({
           Binds: ["vol1:/data", "/dev:/host/dev:rslave"],
-          DeviceCgroupRules: ["c 180:* rwm"],
+          DeviceCgroupRules: Array.from({ length: 16 }, (_, minor) => `c 180:${minor} rwm`),
         }),
       }));
     });
