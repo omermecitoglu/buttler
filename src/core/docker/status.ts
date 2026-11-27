@@ -6,7 +6,14 @@ import db from "~/database";
 import { TUNNEL_SERVICE_NAME } from "~/operations/getTunnelService";
 import hasInternetAccess from "~/operations/hasInternetAccess";
 import { getBuildingServiceIds } from "./builds";
-import { REVERSE_PROXY_CONTAINER_NAME, isOwnContainer } from "./containers";
+import {
+  REVERSE_PROXY_CONTAINER_NAME,
+  getReplacementContainerName,
+  getServiceContainerName,
+  hasContainerName,
+  isOwnContainer,
+} from "./containers";
+import { NOT_FOUND, NOT_MODIFIED, ignoreStatus } from "./errors";
 import { ensureInternetNetwork, removeInternetNetwork } from "./internet";
 import { BUTTLER_SERVICE_LABEL, BUTTLER_VOLUME_LABEL } from "./labels";
 import { connectLinkNetworks } from "./links";
@@ -149,7 +156,9 @@ export function matchContainerForService(
   service: { id: string, name?: string, type?: string },
   containers: Docker.ContainerInfo[],
 ): Docker.ContainerInfo | undefined {
-  const byLabel = containers.find(c => c.Labels[BUTTLER_SERVICE_LABEL] === service.id);
+  const labelled = containers.filter(c => c.Labels[BUTTLER_SERVICE_LABEL] === service.id);
+  // While a container is replaced, the old one keeps the name of the service
+  const byLabel = labelled.find(c => hasContainerName(c, getServiceContainerName(service.id))) ?? labelled.at(0);
   if (byLabel) return byLabel;
 
   if (service.type === "system" && service.name === "Reverse Proxy Server") {
@@ -387,27 +396,18 @@ async function replaceServiceContainer(service: ServiceRef, image: string) {
   // A network given at creation replaces the default bridge network, where every container could reach the others
   const internetNetwork = await ensureInternetNetwork(service.id);
 
-  const existingContainer = await findServiceContainer(service);
-  if (existingContainer) {
-    try {
-      await existingContainer.stop({ t: 10 });
-    } catch {
-      // ignore
-    }
-    try {
-      await existingContainer.remove({ force: true });
-    } catch {
-      // ignore
-    }
+  const ownContainers = (await docker.listContainers({ all: true })).filter(c => isOwnContainer(c, service.id));
+  const oldInfo = matchContainerForService(service, ownContainers);
+  // A replacement that a deploy left behind, e.g. when Buttler stopped in the middle of it
+  for (const leftover of ownContainers.filter(c => c.Id !== oldInfo?.Id)) {
+    await ignoreStatus(docker.getContainer(leftover.Id).remove({ force: true }), NOT_FOUND);
   }
 
-  const containerName = `buttler-service-${service.id}`;
-  try {
-    const byName = docker.getContainer(containerName);
-    await byName.remove({ force: true });
-  } catch {
-    // ignore
-  }
+  const serviceContainerName = getServiceContainerName(service.id);
+  // Container names are unique, so the new container has a temporary name while the old one exists
+  const containerName = oldInfo && hasContainerName(oldInfo, serviceContainerName)
+    ? getReplacementContainerName(service.id)
+    : serviceContainerName;
 
   if (service.volumes && service.volumes.length > 0) {
     for (const vol of service.volumes) {
@@ -456,17 +456,68 @@ async function replaceServiceContainer(service: ServiceRef, image: string) {
     Tty: false,
   });
 
-  await connectLinkNetworks(service.id);
-  // With NetworkMode "none" it could never join a network later, so it leaves the internet network before it starts
-  if (!await hasInternetAccess(db, service.id)) {
-    await removeInternetNetwork(service.id, container.id);
+  const hasInternet = await hasInternetAccess(db, service.id);
+  const oldContainer = oldInfo ? docker.getContainer(oldInfo.Id) : null;
+  // Two containers can't publish the same host port and shouldn't write to the same volume
+  const needsDowntime = !!oldInfo && (Object.keys(portBindings).length > 0 || binds.length > 0);
+  const wasRunning = oldInfo?.State === "running" || oldInfo?.State === "restarting";
+  try {
+    // The links reach the new container by an alias, the old one keeps the name until it's removed
+    await connectLinkNetworks(service.id);
+    // With NetworkMode "none" it could never join a network later, so it leaves the internet network before it starts
+    if (!hasInternet) {
+      await removeInternetNetwork(service.id, container.id);
+    }
+    if (needsDowntime) {
+      await ignoreStatus(oldContainer!.stop({ t: 10 }), NOT_MODIFIED, NOT_FOUND);
+    }
+    await container.start();
+  } catch (error) {
+    // A failed deployment leaves the service on its old container
+    await ignoreStatus(container.remove({ force: true }), NOT_FOUND);
+    if (needsDowntime && wasRunning) {
+      try {
+        await ignoreStatus(oldContainer!.start(), NOT_MODIFIED, NOT_FOUND);
+      } catch (startError) {
+        // eslint-disable-next-line no-console
+        console.error(`Failed to start the old container of service ${service.id} again:`, startError);
+      }
+    }
+    throw error;
   }
-  await container.start();
+
+  // The new container runs, so a failure from here on is only logged
+  if (oldContainer) {
+    try {
+      await ignoreStatus(oldContainer.stop({ t: 10 }), NOT_MODIFIED, NOT_FOUND);
+      await ignoreStatus(oldContainer.remove({ force: true }), NOT_FOUND);
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error(`Failed to remove the old container of service ${service.id}:`, error);
+    }
+  }
+  if (containerName !== serviceContainerName) {
+    try {
+      await container.rename({ name: serviceContainerName });
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error(`Failed to rename the new container of service ${service.id}:`, error);
+    }
+  }
+  // The old container may have kept the internet network of a service that has no internet access anymore
+  if (!hasInternet) {
+    try {
+      await removeInternetNetwork(service.id);
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error(`Failed to remove the internet network of service ${service.id}:`, error);
+    }
+  }
 }
 
 /** Stops the container of a service and keeps it, so its logs stay readable */
 export async function stopServiceContainer(service: ServiceIdentity): Promise<void> {
-  const container = await findServiceContainer(service) ?? docker.getContainer(`buttler-service-${service.id}`);
+  const container = await findServiceContainer(service) ?? docker.getContainer(getServiceContainerName(service.id));
   try {
     await container.stop({ t: 10 });
   } catch (err: unknown) {
@@ -485,6 +536,9 @@ export async function restartServiceContainer(service: ServiceRef): Promise<void
     await provisionReverseProxy();
     return;
   }
-  await stopServiceContainer(service);
+  // Their start replaces the container, which keeps running until its replacement has started
+  if (service.type !== "dockerhub" && service.type !== "github") {
+    await stopServiceContainer(service);
+  }
   await startServiceContainer(service);
 }

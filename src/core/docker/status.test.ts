@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { BUTTLER_SERVICE_LABEL } from "./labels";
 import {
   ServiceDeletingError,
@@ -33,6 +33,7 @@ const mockContainer = {
   stop: vi.fn(),
   restart: vi.fn(),
   remove: vi.fn(),
+  rename: vi.fn(),
 };
 
 const mockImage = {
@@ -315,6 +316,14 @@ describe("Docker status aggregator", () => {
       expect(matched).toBeUndefined();
     });
 
+    it("prefers the container with the name of the service while it's replaced", () => {
+      const replacing = [
+        { Id: "c-new", Names: ["/buttler-service-srv-1-next"], Labels: { [BUTTLER_SERVICE_LABEL]: "srv-1" } },
+        { Id: "c-old", Names: ["/buttler-service-srv-1"], Labels: { [BUTTLER_SERVICE_LABEL]: "srv-1" } },
+      ] as unknown as Docker.ContainerInfo[];
+      expect(matchContainerForService({ id: "srv-1" }, replacing)?.Id).toBe("c-old");
+    });
+
     it("returns undefined if no match", () => {
       const matched = matchContainerForService({ id: "srv-unknown", name: "non-existent" }, containers);
       expect(matched).toBeUndefined();
@@ -449,7 +458,7 @@ describe("Docker status aggregator", () => {
 
     it("startServiceContainer starts found container for custom non-dockerhub service", async () => {
       mockDocker.listContainers.mockResolvedValue([
-        { Id: "c-start", Labels: { [BUTTLER_SERVICE_LABEL]: "srv-s" } },
+        { Id: "c-start", Names: ["/buttler-service-srv-s"], Labels: { [BUTTLER_SERVICE_LABEL]: "srv-s" } },
       ]);
       await startServiceContainer({ id: "srv-s", type: "custom" });
       expect(mockContainer.start).toHaveBeenCalled();
@@ -611,7 +620,7 @@ describe("Docker status aggregator", () => {
 
     it("stopServiceContainer stops found container and keeps it", async () => {
       mockDocker.listContainers.mockResolvedValue([
-        { Id: "c-stop", Labels: { [BUTTLER_SERVICE_LABEL]: "srv-stop" } },
+        { Id: "c-stop", Names: ["/buttler-service-srv-stop"], Labels: { [BUTTLER_SERVICE_LABEL]: "srv-stop" } },
       ]);
       await stopServiceContainer({ id: "srv-stop" });
       expect(mockContainer.stop).toHaveBeenCalledWith({ t: 10 });
@@ -620,7 +629,7 @@ describe("Docker status aggregator", () => {
 
     it("stopServiceContainer throws if container cannot be stopped", async () => {
       mockDocker.listContainers.mockResolvedValue([
-        { Id: "c-stop", Labels: { [BUTTLER_SERVICE_LABEL]: "srv-stop" } },
+        { Id: "c-stop", Names: ["/buttler-service-srv-stop"], Labels: { [BUTTLER_SERVICE_LABEL]: "srv-stop" } },
       ]);
       mockContainer.stop.mockRejectedValueOnce(Object.assign(new Error("boom"), { statusCode: 500 }));
       await expect(stopServiceContainer({ id: "srv-stop" })).rejects.toThrow("boom");
@@ -637,9 +646,9 @@ describe("Docker status aggregator", () => {
       expect(mockProvisionReverseProxy).toHaveBeenCalled();
     });
 
-    it("restartServiceContainer restarts container by stopping and starting", async () => {
+    it("restartServiceContainer replaces a Docker Hub container, which runs until the new one has started", async () => {
       mockDocker.listContainers.mockResolvedValue([
-        { Id: "c-restart", Labels: { [BUTTLER_SERVICE_LABEL]: "srv-r" } },
+        { Id: "c-restart", Names: ["/buttler-service-srv-r"], Labels: { [BUTTLER_SERVICE_LABEL]: "srv-r" } },
       ]);
       mockImage.inspect.mockResolvedValue({});
       await restartServiceContainer({
@@ -647,10 +656,126 @@ describe("Docker status aggregator", () => {
         type: "dockerhub",
         repository: "redis",
       });
-      expect(mockContainer.stop).toHaveBeenCalled();
-      expect(mockContainer.remove).toHaveBeenCalled();
       expect(mockDocker.createContainer).toHaveBeenCalled();
-      expect(mockContainer.start).toHaveBeenCalled();
+      const [start] = mockContainer.start.mock.invocationCallOrder;
+      const [stop] = mockContainer.stop.mock.invocationCallOrder;
+      expect(start).toBeLessThan(stop);
+      expect(mockContainer.remove).toHaveBeenCalled();
+    });
+
+    it("restartServiceContainer stops a container that its start doesn't replace", async () => {
+      mockDocker.listContainers.mockResolvedValue([
+        { Id: "c-restart", Names: ["/buttler-service-srv-r"], Labels: { [BUTTLER_SERVICE_LABEL]: "srv-r" } },
+      ]);
+      await restartServiceContainer({ id: "srv-r", type: "custom" });
+      const [stop] = mockContainer.stop.mock.invocationCallOrder;
+      const [start] = mockContainer.start.mock.invocationCallOrder;
+      expect(stop).toBeLessThan(start);
+    });
+  });
+
+  describe("Replacing a container", () => {
+    const oldContainer = {
+      id: "old-container",
+      start: vi.fn(),
+      stop: vi.fn(),
+      remove: vi.fn(),
+    };
+    const leftover = { remove: vi.fn() };
+    const service = { id: "srv-x", type: "dockerhub", repository: "redis" };
+    const withPorts = { ...service, ports: [{ external: 8080, internal: 80 }] };
+    const withVolumes = { ...service, volumes: [{ name: "data", containerPath: "/data" }] };
+
+    function oldInfo(state = "running", name = "/buttler-service-srv-x") {
+      return { Id: "c-old", Names: [name], State: state, Labels: { [BUTTLER_SERVICE_LABEL]: "srv-x" } };
+    }
+
+    function order(mock: { mock: { invocationCallOrder: number[] } }) {
+      return mock.mock.invocationCallOrder[0];
+    }
+
+    beforeEach(() => {
+      mockDocker.getContainer.mockImplementation((id: string) => {
+        if (id === "c-old") return oldContainer as unknown as typeof mockContainer;
+        if (id === "c-leftover") return leftover as unknown as typeof mockContainer;
+        return mockContainer;
+      });
+      mockDocker.listContainers.mockResolvedValue([oldInfo()]);
+    });
+
+    afterEach(() => {
+      mockDocker.getContainer.mockImplementation(() => mockContainer);
+    });
+
+    it("starts the new container before the old one is removed, under a temporary name", async () => {
+      await deployServiceContainer(service, "redis:latest");
+      expect(mockDocker.createContainer).toHaveBeenCalledWith(expect.objectContaining({
+        name: "buttler-service-srv-x-next",
+      }));
+      expect(order(mockContainer.start)).toBeLessThan(order(oldContainer.stop));
+      expect(order(oldContainer.stop)).toBeLessThan(order(oldContainer.remove));
+      expect(order(oldContainer.remove)).toBeLessThan(order(mockContainer.rename));
+      expect(mockContainer.rename).toHaveBeenCalledWith({ name: "buttler-service-srv-x" });
+    });
+
+    it.each([
+      ["published ports", withPorts],
+      ["volumes", withVolumes],
+    ])("stops the old container before the new one is started, if the service has %s", async (_, target) => {
+      await deployServiceContainer(target, "redis:latest");
+      expect(order(oldContainer.stop)).toBeLessThan(order(mockContainer.start));
+      expect(oldContainer.remove).toHaveBeenCalled();
+    });
+
+    it("keeps the old container running if the new one can't be started", async () => {
+      mockContainer.start.mockRejectedValueOnce(new Error("no such file"));
+      await expect(deployServiceContainer(service, "redis:latest")).rejects.toThrow("no such file");
+      expect(mockContainer.remove).toHaveBeenCalledWith({ force: true });
+      expect(oldContainer.stop).not.toHaveBeenCalled();
+      expect(oldContainer.remove).not.toHaveBeenCalled();
+      expect(mockContainer.rename).not.toHaveBeenCalled();
+    });
+
+    it("starts the old container again if the new one can't be started", async () => {
+      mockContainer.start.mockRejectedValueOnce(new Error("port is already allocated"));
+      await expect(deployServiceContainer(withPorts, "redis:latest")).rejects.toThrow("port is already allocated");
+      expect(mockContainer.remove).toHaveBeenCalledWith({ force: true });
+      expect(oldContainer.start).toHaveBeenCalled();
+      expect(oldContainer.remove).not.toHaveBeenCalled();
+    });
+
+    it("doesn't start an old container that was stopped", async () => {
+      mockDocker.listContainers.mockResolvedValue([oldInfo("exited")]);
+      mockContainer.start.mockRejectedValueOnce(new Error("port is already allocated"));
+      await expect(deployServiceContainer(withPorts, "redis:latest")).rejects.toThrow();
+      expect(oldContainer.start).not.toHaveBeenCalled();
+    });
+
+    it("removes a replacement that an earlier deploy left behind", async () => {
+      mockDocker.listContainers.mockResolvedValue([
+        { Id: "c-leftover", Names: ["/buttler-service-srv-x-next"], Labels: { [BUTTLER_SERVICE_LABEL]: "srv-x" } },
+        oldInfo(),
+      ]);
+      await deployServiceContainer(service, "redis:latest");
+      expect(leftover.remove).toHaveBeenCalledWith({ force: true });
+      expect(order(leftover.remove)).toBeLessThan(order(mockDocker.createContainer));
+    });
+
+    it("gives the new container the name of the service if the old one doesn't have it", async () => {
+      mockDocker.listContainers.mockResolvedValue([oldInfo("running", "/buttler-service-srv-x-next")]);
+      await deployServiceContainer(service, "redis:latest");
+      expect(mockDocker.createContainer).toHaveBeenCalledWith(expect.objectContaining({
+        name: "buttler-service-srv-x",
+      }));
+      expect(oldContainer.remove).toHaveBeenCalled();
+      expect(mockContainer.rename).not.toHaveBeenCalled();
+    });
+
+    it("removes the internet network after the old container, if the service has no internet access", async () => {
+      mockHasInternetAccess.mockResolvedValue(false);
+      await deployServiceContainer(service, "redis:latest");
+      expect(mockRemoveInternetNetwork.mock.calls).toEqual([["srv-x", "new-container"], ["srv-x"]]);
+      expect(order(oldContainer.remove)).toBeLessThan(mockRemoveInternetNetwork.mock.invocationCallOrder[1]);
     });
   });
 });
