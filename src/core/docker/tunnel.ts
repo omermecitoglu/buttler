@@ -106,7 +106,7 @@ export async function startTunnelContainer({ serviceId, tunnelId, token }: Tunne
       // It must not reach the services, so it's not in the default network
       NetworkMode: network.name,
       RestartPolicy: {
-        Name: "always",
+        Name: "unless-stopped",
       },
     },
     Tty: false,

@@ -88,7 +88,7 @@ describe("tunnel container", () => {
       Cmd: ["tunnel", "--no-autoupdate", "run"],
       Env: ["TUNNEL_TOKEN=token"],
       Labels: labels,
-      HostConfig: { NetworkMode: "buttler-tunnel", RestartPolicy: { Name: "always" } },
+      HostConfig: { NetworkMode: "buttler-tunnel", RestartPolicy: { Name: "unless-stopped" } },
       Tty: false,
     });
     expect(newContainer.start).toHaveBeenCalledTimes(1);
