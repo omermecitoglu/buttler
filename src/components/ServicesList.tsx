@@ -33,6 +33,10 @@ const ServicesList = async () => {
       pulling: t("service.status.pulling"),
       restarting: t("service.status.restarting"),
     },
+    pullProgress: {
+      download: t("service.pullProgress.download"),
+      extract: t("service.pullProgress.extract"),
+    },
     types: {
       github: t("service.types.github"),
       dockerhub: t("service.types.dockerhub"),

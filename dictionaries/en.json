@@ -272,6 +272,10 @@
         "pulling": "Pulling image",
         "restarting": "Restarting"
       },
+      "pullProgress": {
+        "download": "Download",
+        "extract": "Extraction"
+      },
       "types": {
         "github": "GitHub",
         "dockerhub": "Docker Hub",
