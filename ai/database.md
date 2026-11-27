@@ -36,6 +36,8 @@
 
 - Each variable has a `scope` (`build`, `runtime` or `both`, default `runtime`) and an `is_secret` flag. Use the helpers in `src/core/environment-variables.ts` to pick the variables for a build or a container.
 - Secret values are encrypted in the operations layer (AES-256-GCM, `src/core/secrets.ts`). The key is generated at `$HOME/.buttler/secret.key` (`BUTTLER_HOME` overrides the directory). It must never be stored in the database or backed up together with it.
+- The credentials of the GitHub App (`github_private_key`, `github_client_secret`, `github_webhook_secret`) and the `session_password` are encrypted by `setSetting` and decrypted by `getSetting` (`src/core/settings.ts`), with the key of the setting as the context. A value that can't be decrypted reads as `null`.
+- `secureStoredSettings` runs at startup, before `prepareSetup`. It encrypts the plain values of older versions. If the credentials of the GitHub App can't be decrypted (the key file was lost), it removes them and sets `installed` to `false`: `prepareSetup` creates a setup link even though there is an admin, the setup goes back to the GitHub App, and the admin keeps the role. A lost session password is replaced on its first use, everyone logs in again.
 - Secrets are write-only: `getService` returns `null` for their values. Only `getDeployableService` decrypts them, and its result must never be cached or sent to the browser.
 - Secrets never become Docker build args. They are served to BuildKit by the build session (`src/core/docker/build-session.ts`).
 
