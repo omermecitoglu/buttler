@@ -14,6 +14,7 @@ import createServiceLink from "./createServiceLink";
 import getServiceRecipe from "./getServiceRecipe";
 import getSharedVariables from "./getSharedVariables";
 import updateLinkInheritance from "./updateLinkInheritance";
+import updateService from "./updateService";
 
 const client = new DatabaseSync(":memory:");
 const db = drizzle({ client, relations });
@@ -58,6 +59,7 @@ describe("getServiceRecipe", () => {
       sharedVariables: [{ key: "DB_HOST", template: "{host}" }],
     });
     createDomain(db, { hostname: "db.example.com", serviceId: id, port: 5432 });
+    updateService(db, id, { devices: ["usb-printer"] });
 
     const recipe = await getServiceRecipe(db, [id]);
 
@@ -71,6 +73,7 @@ describe("getServiceRecipe", () => {
         repository: "postgres",
         branch: "latest",
         internetAccess: false,
+        devices: ["usb-printer"],
         ports: [{ external: 5432, internal: 5432 }],
         volumes: [{ name: "pgdata", containerPath: "/var/lib/postgresql/data" }],
         environmentVariables: [{ key: "POSTGRES_USER", value: "admin", scope: "runtime", isSecret: false }],

@@ -18,6 +18,7 @@ import getSharedVariables from "./getSharedVariables";
 import importServiceRecipe from "./importServiceRecipe";
 import setDashboardDomain from "./setDashboardDomain";
 import updateLinkInheritance from "./updateLinkInheritance";
+import updateService from "./updateService";
 
 const client = new DatabaseSync(":memory:");
 const db = drizzle({ client, relations });
@@ -44,6 +45,7 @@ function recipeOf(...recipeServices: Partial<ServiceRecipe["services"][number]>[
       repository: "redis",
       branch: "latest",
       internetAccess: true,
+      devices: [],
       ports: [],
       volumes: [],
       environmentVariables: [],
@@ -85,6 +87,7 @@ describe("importServiceRecipe", () => {
       sharedVariables: [{ key: "DB_HOST", template: "{host}" }],
     });
     const apiId = create("api");
+    updateService(db, apiId, { devices: ["usb-printer"] });
     createDomain(db, { hostname: "api.example.com", serviceId: apiId, port: 3000 });
     const link = await createServiceLink(db, dbId, apiId);
     const [shared] = await getSharedVariables(db, dbId);
@@ -105,6 +108,13 @@ describe("importServiceRecipe", () => {
     ]));
     const renamed: ServiceRecipe = JSON.parse(JSON.stringify(imported), (_key, value) => ids.get(value) ?? value);
     expect(normalize(renamed)).toEqual(normalize(recipe));
+  });
+
+  it("should read the files of older versions without devices", () => {
+    const { devices: _devices, ...service } = recipeOf({}).services[0];
+    const recipe = ServiceRecipeSchema.parse({ version: 1, services: [service], links: [] });
+
+    expect(recipe.services[0].devices).toEqual([]);
   });
 
   it("should create secrets with empty values and report them", async () => {

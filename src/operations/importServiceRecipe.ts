@@ -2,6 +2,7 @@ import { eq, inArray } from "drizzle-orm";
 import { encryptSecret } from "~/core/secrets";
 import type { ServiceRecipe } from "~/core/service-recipe";
 import type database from "~/database";
+import { devices as devicesTable } from "~/database/schema/devices";
 import { domains as domainsTable } from "~/database/schema/domains";
 import { environmentVariables as environmentVariablesTable } from "~/database/schema/environment-variables";
 import { ports as portsTable } from "~/database/schema/ports";
@@ -81,6 +82,9 @@ export default async function importServiceRecipe(db: typeof database, recipe: S
         branch: service.branch,
         internetAccess: service.internetAccess,
       }).run();
+      if (service.devices.length > 0) {
+        tx.insert(devicesTable).values([...new Set(service.devices)].map(kind => ({ serviceId, kind }))).run();
+      }
       if (service.ports.length > 0) {
         tx.insert(portsTable).values(service.ports.map(port => ({ serviceId, ...port }))).run();
       }
