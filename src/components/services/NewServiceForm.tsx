@@ -17,6 +17,9 @@ import InternetAccessChoice from "~/components/services/InternetAccessChoice";
 import PortMappingsRepeater, {
   type PortMappingItem,
 } from "~/components/services/PortMappingsRepeater";
+import SharedVariablesRepeater, {
+  type SharedVariableItem,
+} from "~/components/services/SharedVariablesRepeater";
 import VolumeMountsRepeater, {
   type VolumeMountItem,
 } from "~/components/services/VolumeMountsRepeater";
@@ -26,6 +29,8 @@ import Card from "~/components/ui/card";
 import Form from "~/components/ui/form";
 import Input from "~/components/ui/input";
 import Label from "~/components/ui/label";
+import { generatePassword, getDatabasePreset } from "~/core/database-presets";
+import type { SharedVariableSource } from "~/core/shared-variables";
 import { Link } from "~/i18n/navigation";
 
 export type NewServiceFormProps = {
@@ -33,6 +38,12 @@ export type NewServiceFormProps = {
 };
 
 type ServiceSourceType = "github" | "dockerhub";
+
+/** The image of the preset that added an item, which removes it when another image is chosen */
+type PresetItem<T> = T & { preset?: string };
+
+/** The container name has the ID of the service, which isn't known yet */
+const previewHost = "buttler-service-…";
 
 const NewServiceForm = ({ action }: NewServiceFormProps) => {
   const t = useTranslations("NewServicePage");
@@ -42,14 +53,49 @@ const NewServiceForm = ({ action }: NewServiceFormProps) => {
   const [repository, setRepository] = useState<string>("");
   const [branch, setBranch] = useState<string>("");
   const [ports, setPorts] = useState<PortMappingItem[]>([]);
-  const [envVars, setEnvVars] = useState<EnvironmentVariableItem[]>([]);
+  const [envVars, setEnvVars] = useState<PresetItem<EnvironmentVariableItem>[]>([]);
+  const [sharedVars, setSharedVars] = useState<PresetItem<SharedVariableItem>[]>([]);
   const [volumes, setVolumes] = useState<VolumeMountItem[]>([]);
   // There is no default, the user must choose
   const [internetAccess, setInternetAccess] = useState<boolean | null>(null);
 
   const nameInputId = useId();
 
+  const presetImage = sourceType === "dockerhub" ? getDatabasePreset(repository)?.image : undefined;
+
+  /** Replaces the items of the previous preset, the ones that are already there are kept */
+  const applyPreset = (image: string) => {
+    const preset = getDatabasePreset(image);
+    if (preset?.image === presetImage) return;
+    const note = preset ? t("sharedSection.presetNote", { image: preset.image }) : undefined;
+    const keptEnvVars = envVars.filter(({ preset: added }) => !added);
+    const keptSharedVars = sharedVars.filter(({ preset: added }) => !added);
+    const envKeys = keptEnvVars.map(({ key }) => key.trim());
+    const sharedKeys = keptSharedVars.map(({ key }) => key.trim());
+    setEnvVars([
+      ...keptEnvVars,
+      ...(preset?.variables ?? [])
+        .filter(({ key }) => !envKeys.includes(key))
+        .map(({ key, value }) => ({
+          id: crypto.randomUUID(),
+          key,
+          value: value ?? generatePassword(),
+          scope: "runtime" as const,
+          isSecret: value === null,
+          note,
+          preset: preset?.image,
+        })),
+    ]);
+    setSharedVars([
+      ...keptSharedVars,
+      ...(preset?.sharedVariables ?? [])
+        .filter(({ key }) => !sharedKeys.includes(key))
+        .map(({ key, template }) => ({ uid: crypto.randomUUID(), key, template, note, preset: preset?.image })),
+    ]);
+  };
+
   const handleSourceTypeChange = (type: ServiceSourceType) => {
+    applyPreset("");
     setSourceType(type);
     setRepository("");
     setBranch(type === "dockerhub" ? "latest" : "");
@@ -71,6 +117,21 @@ const NewServiceForm = ({ action }: NewServiceFormProps) => {
       isSecret: e.isSecret,
     }));
 
+  const cleanSharedVars = sharedVars
+    .filter(v => v.key.trim() !== "")
+    .map(v => ({ key: v.key.trim(), template: v.template }));
+
+  const sharedSource: SharedVariableSource = {
+    host: previewHost,
+    variables: cleanEnvVars.map(variable => ({
+      ...variable,
+      // Services without a build step only have runtime variables
+      scope: sourceType === "github" ? variable.scope : "runtime",
+      // Secrets are masked in the preview
+      value: variable.isSecret ? null : variable.value,
+    })),
+  };
+
   const cleanVolumes = volumes
     .filter(v => v.containerPath.trim() !== "")
     .map(v => ({
@@ -90,6 +151,8 @@ const NewServiceForm = ({ action }: NewServiceFormProps) => {
     VOLUME_NAME_REQUIRED: t("messages.volume_name_required"),
     INVALID_VOLUME_NAME: t("messages.invalid_volume_name"),
     INTERNET_ACCESS_REQUIRED: t("messages.internet_access_required"),
+    INVALID_SHARED_VARIABLES: t("messages.invalid_shared_variables"),
+    DUPLICATE_SHARED_VARIABLES: t("messages.duplicate_shared_variables"),
   };
 
   return (
@@ -104,6 +167,7 @@ const NewServiceForm = ({ action }: NewServiceFormProps) => {
       <input type="hidden" name="ports" value={JSON.stringify(cleanPorts)} />
       <input type="hidden" name="environmentVariables" value={JSON.stringify(cleanEnvVars)} />
       <input type="hidden" name="volumes" value={JSON.stringify(cleanVolumes)} />
+      <input type="hidden" name="sharedVariables" value={JSON.stringify(cleanSharedVars)} />
       {/* Source Selection Card */}
       <Card className="flex flex-col gap-6 p-6">
         <div>
@@ -155,7 +219,10 @@ const NewServiceForm = ({ action }: NewServiceFormProps) => {
             <DockerHubSourcePicker
               selectedImage={repository}
               selectedTag={branch}
-              onSelectImage={img => setRepository(img)}
+              onSelectImage={img => {
+                applyPreset(img);
+                setRepository(img);
+              }}
               onSelectTag={tag => setBranch(tag)}
             />
           )}
@@ -206,6 +273,14 @@ const NewServiceForm = ({ action }: NewServiceFormProps) => {
         hasBuild={sourceType === "github"}
         labels={labels.env}
       />
+      {/* Shared Variables Section */}
+      <Card className="flex flex-col gap-4 p-6">
+        <div>
+          <h2 className="text-base font-semibold text-slate-100">{t("sharedSection.title")}</h2>
+          <p className="mt-1 text-xs text-slate-400">{t("sharedSection.description")}</p>
+        </div>
+        <SharedVariablesRepeater items={sharedVars} onChange={setSharedVars} source={sharedSource} />
+      </Card>
       {/* Volume Mounts Section */}
       <VolumeMountsRepeater
         items={volumes}
