@@ -44,6 +44,8 @@ const ServiceInfo = async ({ params }: ServiceInfoProps) => {
 
   const exposedPorts = await getExposedPortsOfService(service);
   const { runtime, deployedImage } = service;
+  const hasContainer = runtime.containerId !== null;
+  const isBusy = runtime.status === "pulling" || runtime.status === "building";
   const notAvailable = t("notAvailable");
   const isGitHub = service.type === "github";
 
@@ -104,8 +106,8 @@ const ServiceInfo = async ({ params }: ServiceInfoProps) => {
             section: "ports",
             ports: service.ports,
             exposedPorts,
-            hasContainer: runtime.containerId !== null,
-            isBusy: runtime.status === "pulling" || runtime.status === "building",
+            hasContainer,
+            isBusy,
           })}
         >
           {service.ports.length === 0 ? (
@@ -125,7 +127,13 @@ const ServiceInfo = async ({ params }: ServiceInfoProps) => {
         </ServiceInfoSection>
         <ServiceInfoSection
           title={t("volumes")}
-          action={renderEdit({ section: "volumes", volumes: service.volumes, options: volumeOptions })}
+          action={renderEdit({
+            section: "volumes",
+            volumes: service.volumes,
+            options: volumeOptions,
+            hasContainer,
+            isBusy,
+          })}
         >
           {service.volumes.length === 0 ? (
             <p className="text-sm text-slate-500">{t("noVolumes")}</p>
