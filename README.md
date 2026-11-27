@@ -1,4 +1,4 @@
-<img src="https://raw.githubusercontent.com/omermecitoglu/buttler/main/src/assets/logo.png" alt="Jukebox Logo" width="150" height="150">
+<img src="https://raw.githubusercontent.com/omermecitoglu/buttler/main/src/assets/logo.png" alt="Buttler Logo" width="150" height="150">
 
 # Buttler
 
@@ -13,8 +13,6 @@
 ## Table of Contents
 - [Overview](#overview)
   - [Features](#features)
-  - [Planned features](#planned-features)
-  - [Known bugs](#known-bugs)
 - [Requirements](#requirements)
 - [Installation](#installation)
 - [Setup](#setup)
@@ -24,60 +22,39 @@
   - [Installation Scope](#installation-scope)
   - [First Login](#first-login)
 - [Usage](#usage)
-- [Screenshots](#screenshots)
+- [Data and Secrets](#data-and-secrets)
+- [Upgrading from v1](#upgrading-from-v1)
 - [Contributing](#contributing)
 - [License](#license)
 
 ## Overview
 
-Buttler automates CI/CD workflows using Docker and GitHub webhooks
+Buttler runs your apps on your own computer or server with Docker, and puts them on your domain through a Cloudflare tunnel. It builds GitHub repositories on every push, and runs images from Docker Hub.
+
+Your computer doesn't need a public IP address or an open port, the tunnel is the only way in.
 
 ### Features
 
-- Dark Mode ([see screenshots](#dark-mode))
-- Mega.io integration to save database backups ([see screenshots](#settings))
-- Hosting applications from a GitHub repository ([see screenshots](#custom-service))
-  - must have a `Dockerfile` in its root directory
-  - can be a private repo, but [ssh key](https://docs.github.com/en/authentication/connecting-to-github-with-ssh/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent) of the hosting machine must be added to [Deploy keys](https://docs.github.com/en/authentication/connecting-to-github-with-ssh/managing-deploy-keys)
-  - Creates a new build image automatically via [GitHub webhooks](https://docs.github.com/en/webhooks/about-webhooks) and deploys it
-- Database services ([see screenshots](#database-service))
-  - Engines:
-    - [PostgreSQL](https://www.postgresql.org)
-    - [MySQL](https://www.mysql.com) *(not implemented yet)*
-    - [MongoDB](https://www.mongodb.com) *(not implemented yet)*
-    - [Redis](https://redis.io)
-  - can be linked to other services ([see screenshots](#linking-services))
-- Services dashboard ([see screenshots](#list-of-services))
-- Edit service page ([see screenshots](#edit-service-page))
-  - Manage service ports
-  - Manage environment variables
-  - Copy-paste env variables easily
-- Service details page ([see screenshots](#service-details))
-  - Container logs ([see screenshots](#container-logs))
-  - List of build images ([see screenshots](#list-of-build-images))
-  - Button fir triggering a manual build for custom services  ([see screenshots](#manual-build))
-  - Button for triggering a manual backup for database services ([see screenshots](#manual-backup))
-- Linking services ([see screenshots](#linking-services))
-  - Creates private network between service containers
-  - Custom service inherits necessary env variables automatically for the database ([see screenshots](#Auto-env-inheritance))
-
-### Planned features
-
-You can find the planned features [here](https://github.com/omermecitoglu/buttler/issues?q=is%3Aopen+is%3Aissue+label%3Aenhancement)
-
-### Known bugs
-
-You can see the known bugs [here](https://github.com/omermecitoglu/buttler/issues?q=is%3Aopen+is%3Aissue+label%3Abug)
+- **GitHub services**: a repository with a `Dockerfile` is built and deployed on every push to its branch, through the webhooks of a GitHub App. Private repositories work without deploy keys.
+  - The Builds tab lists the builds with the commits between them.
+  - Any of the last 5 builds can be deployed again without building, older images are removed.
+- **Docker Hub services**: any image and tag, updated with the "Redeploy" button.
+- **Deploys without downtime**: the old container keeps running until its replacement has started, and stays if the new one fails. Services with published ports or volumes have a short downtime while they are switched.
+- **Domains**: the subdomains of your Cloudflare domains, with HTTPS at Cloudflare.
+- **Isolated services**: every service has its own network, and can't reach the others unless they are linked. Internet access can be turned off per service.
+- **Links**: a link lets two services reach each other by a stable address. A service can share variables, like its address or a password, and the linked services inherit them.
+- **Environment variables**: for the build, the runtime or both. Secrets are encrypted, and are never build args.
+- **Ports and volumes**: published host ports and Docker volumes.
+- **Live logs**: of the containers and the builds.
+- **Import and export**: services as recipes, without their secrets.
+- **Users**: the admin lets other GitHub accounts in.
 
 ## Requirements
 
-To use `Buttler`, you'll need the following dependencies installed in your machine:
-
-- [Node.js](https://nodejs.org) >= v22.5
-- [NPM](https://www.npmjs.com)
+- [Node.js](https://nodejs.org) >= v22.5 and [npm](https://www.npmjs.com)
 - [Docker](https://www.docker.com)
-
-You also need a [Cloudflare](https://www.cloudflare.com) account with a domain. Your computer doesn't need a public IP address or an open port.
+- A [Cloudflare](https://www.cloudflare.com) account with a domain
+- A [GitHub](https://github.com) account, for the GitHub App that Buttler creates during the setup
 
 ## Installation
 
@@ -100,139 +77,87 @@ An interrupted setup continues where it stopped, open the link again.
 
 ## GitHub App Setup
 
-Buttler integrates with GitHub via a GitHub App for secure user authentication, webhook event delivery, and repository management.
+Buttler uses a GitHub App to log you in, to receive the push webhooks and to clone your repositories.
 
-You can set up the GitHub App using either the automated Manifest flow or by configuring it manually in your GitHub Developer settings.
+You can create the GitHub App with the manifest flow, or configure it yourself in the developer settings of GitHub.
 
 ### Option A: GitHub App Manifest Flow (Recommended)
 
-The recommended setup is the streamlined 1-click manifest flow:
-
-1. In the third step of the [setup](#setup), follow the prompt to automatically register the GitHub App with pre-configured settings, URLs, and permissions.
-2. Complete the app registration on GitHub and install the app to your account or organization.
-3. Buttler will automatically receive and store the required credentials (`Client ID`, `Client Secret`, etc.).
+1. In the third step of the [setup](#setup), choose a name (and an organization, if the app should belong to one) and continue to GitHub.
+2. Create the app on GitHub, and install it on your account or organization.
+3. Buttler receives and stores the credentials of the app.
 
 ### Option B: Manual GitHub App Configuration
 
-If you prefer to create and configure the GitHub App manually:
-
-1. Go to **GitHub Settings** > **Developer settings** > **GitHub Apps** > **New GitHub App** (or your organization's settings).
-2. Configure the following **App settings**:
-   - **GitHub App name**: Choose a unique name (e.g., `Buttler-<your-name>`).
+1. Go to **GitHub Settings** > **Developer settings** > **GitHub Apps** > **New GitHub App** (or the settings of your organization).
+2. Configure the app:
    - **Homepage URL**: `https://<your-domain>`, the domain that you chose in the setup.
-   - **Authorization callback URLs**: `https://<your-domain>/auth/github` and `http://localhost:7777/auth/github`, so you can log in without the tunnel too
+   - **Callback URLs**: `https://<your-domain>/auth/github` and `http://localhost:7777/auth/github`, so you can log in without the tunnel too.
+   - **Setup URL**: `https://<your-domain>/services/new`, with **Redirect on update** checked.
    - **Webhook URL**: `https://<your-domain>/webhooks/github`
-   - **Webhook secret**: Enter a secret token. Deliveries are rejected unless the same secret is configured in Buttler.
-3. Configure the required **Permissions**:
-   - **Repository permissions**:
-     - **Contents**: `Read-only` (to clone code and inspect `Dockerfile` and repository contents)
-     - **Metadata**: `Read-only` (mandatory permission to inspect repository metadata)
-     - **Webhooks**: `Read and write` (to subscribe to and manage repository push/event webhooks)
-   - **User permissions**:
-     - **User permissions** > `read:user` (to access user profile and email identity for authentication)
-4. Generate credentials:
-   - Under **General**, note the **Client ID** and generate a **Client secret**.
-5. In Buttler:
-   - Enter your **Client ID** and **Client Secret** on the `/install` setup page (or in Settings).
+   - **Webhook secret**: a random secret. Deliveries are rejected unless Buttler has the same one.
+3. Permissions and events:
+   - **Repository permissions**: **Contents** `Read-only` and **Metadata** `Read-only`.
+   - **Subscribe to events**: **Push**.
+4. Create the app, then generate a **private key** and a **client secret**.
+5. In the third step of the setup, enter the **App ID**, the private key, the client secret and the webhook secret.
 
 ### Installation Scope
 
-When installing the GitHub App onto your personal account or organization:
+When you install the GitHub App on your account or organization:
 
-- Choose **"Only select repositories"** rather than "All repositories".
-- Selecting only the repositories you intend to deploy with Buttler adheres to the principle of least privilege, ensuring Buttler only accesses authorized codebases.
-- You can grant or revoke access to additional repositories at any time from your GitHub App installation settings.
+- Choose **"Only select repositories"** rather than "All repositories", so Buttler can only read the repositories that you deploy with it.
+- You can add or remove repositories at any time in the installation settings of the app.
 
 ### First Login
 
 Everyone is denied by default. The person who opened the setup link and logs in becomes the **admin** of the instance.
 
 > [!IMPORTANT]
-> Whoever has the setup link can become the admin, so don't share it. It stops working after the first login. If you lose it, run `buttler start` again. Instances that were installed before this version and don't have an admin need it too.
+> Whoever has the setup link can become the admin, so don't share it. It stops working after the first login. If you lose it, run `buttler start` again.
 
 The admin can let other people in by adding their GitHub handles in **Settings**.
 
 ## Usage
 
-To launch the application
+| Command | |
+|---------|---|
+| `buttler start` | Starts Buttler in the background. It prints the setup link until the setup is complete, and the address of the dashboard (`http://localhost:7777`) afterwards. |
+| `buttler stop` | Stops Buttler. The containers of your services keep running. |
+| `buttler restart` | Stops and starts Buttler. |
+| `buttler update` | Installs the latest version of the same channel (`latest` or `alpha`) and starts it again. If npm needs `sudo`, it prints the command instead. |
+| `buttler version` | Prints the version, also `buttler -v`. |
 
-```bash
-buttler start
-```
+The server log is at `~/.buttler/buttler.log`, the log of the previous start is `buttler.log.old`.
 
-It prints the setup link during the first start, and the address of the dashboard (`http://localhost:7777`) afterwards.
+## Data and Secrets
 
-The server log is at `~/.buttler/buttler.log`.
+Buttler keeps its data in `~/.buttler`:
 
-To terminate the application
+- `database.sqlite`: the services, the users and the settings.
+- `secret.key`: the key that encrypts the secrets in the database (secret variables, the credentials of the GitHub App and of Cloudflare, the session key). A copy of the database is not enough to get into your instance.
+- `logs/builds`: the build logs.
 
-```bash
-buttler stop
-```
+> [!WARNING]
+> Keep `secret.key` safe, and never store it together with a copy of the database. Without it, the secrets can't be decrypted. Buttler goes back to the setup (Cloudflare and the GitHub App), `buttler start` prints a new setup link for it, and the admin keeps the role. Secret variables have to be entered again.
 
-To relaunch the application
+Docker knows the rest: the containers, the images of the builds, the volumes and the networks are never copied into the database.
 
-```bash
-buttler restart
-```
+## Upgrading from v1
 
-## Screenshots
+v2 is a clean install. It doesn't import anything from v1.
 
-### Dark Mode
+1. Stop v1 with `buttler stop`, in the directory where you started it.
+2. Install v2 and run the [setup](#setup).
+3. Create your services again. Docker Hub images and repositories are deployed the same way, but databases are ordinary Docker Hub services now, linked to the services that use them.
 
-![Screenshot 01](https://raw.githubusercontent.com/omermecitoglu/buttler/main/screenshots/01.png)
+What happens to the data of v1:
 
-### Settings
-
-![Screenshot 02](https://raw.githubusercontent.com/omermecitoglu/buttler/main/screenshots/02.png)
-
-### Custom service
-
-![Screenshot 03](https://raw.githubusercontent.com/omermecitoglu/buttler/main/screenshots/03.png)
-
-### Database service
-
-![Screenshot 04](https://raw.githubusercontent.com/omermecitoglu/buttler/main/screenshots/04.png)
-
-### List of services
-
-![Screenshot 05](https://raw.githubusercontent.com/omermecitoglu/buttler/main/screenshots/05.png)
-
-### Edit service page
-
-![Screenshot 06](https://raw.githubusercontent.com/omermecitoglu/buttler/main/screenshots/06.png)
-
-![Screenshot 07](https://raw.githubusercontent.com/omermecitoglu/buttler/main/screenshots/07.png)
-
-### Service details
-
-![Screenshot 10](https://raw.githubusercontent.com/omermecitoglu/buttler/main/screenshots/10.png)
-
-### Manual Build
-
-![Screenshot 08](https://raw.githubusercontent.com/omermecitoglu/buttler/main/screenshots/08.png)
-
-### List of build images
-
-![Screenshot 09](https://raw.githubusercontent.com/omermecitoglu/buttler/main/screenshots/09.png)
-
-### Manual backup
-
-![Screenshot 11](https://raw.githubusercontent.com/omermecitoglu/buttler/main/screenshots/11.png)
-
-### Container logs
-
-![Screenshot 12](https://raw.githubusercontent.com/omermecitoglu/buttler/main/screenshots/12.png)
-
-### Linking services
-
-![Screenshot 13](https://raw.githubusercontent.com/omermecitoglu/buttler/main/screenshots/13.png)
-
-![Screenshot 14](https://raw.githubusercontent.com/omermecitoglu/buttler/main/screenshots/14.png)
-
-### Auto env inheritance
-
-![Screenshot 15](https://raw.githubusercontent.com/omermecitoglu/buttler/main/screenshots/15.png)
+- **The database of v1** (`buttler.db` and `PID` in the directory where you ran `buttler start`) is not read by v2. Delete it when you don't need it anymore.
+- **The containers of v1** are not managed by v2, which only sees the containers that it created itself. They keep running, and keep their ports, because v1 created them with the `always` restart policy. Stop and remove them with `docker rm -f <name>` before v2 needs the same ports.
+- **The volumes of v1** are kept. A storage mount of v2 can use one of them by typing its name, so a database keeps its data.
+- **The images and networks of v1** are kept, remove them with Docker when you don't need them.
+- **Backups**: v2 doesn't back up databases. Back up your volumes yourself.
 
 ## Contributing
 
