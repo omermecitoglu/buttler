@@ -214,6 +214,15 @@
     "addService": "Add service",
     "refresh": "Refresh",
     "refreshing": "Refreshing...",
+    "export": {
+      "button": "Export",
+      "title": "Export services",
+      "description": "Download a file to create the same services on another Buttler. The values of secrets are left out, and so are the links to the services that aren't chosen.",
+      "services": "Services to export",
+      "close": "Close",
+      "cancel": "Cancel",
+      "submit": "Download"
+    },
     "emptyState": {
       "title": "No services configured",
       "description": "Deploy your first service from GitHub or Docker Hub to get started.",
