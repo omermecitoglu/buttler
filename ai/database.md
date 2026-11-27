@@ -79,3 +79,7 @@
 - It holds the settings that the database keeps: source, internet access, ports, volumes (only the name and the path, never the data), environment variables, domains, shared variables, and the links with their inherit checkboxes and renamed variables.
 - System services are left out, Buttler creates them itself. The values of secrets are always `null`. A link is only kept when both of its services are chosen.
 - Service names aren't unique, so the links refer to the services by their ID in the file. Those IDs are only references, they aren't kept by an import.
+- `importServices` (`src/actions/service.ts`) imports a recipe, only the admin can do it because it adds domains. `ServiceRecipeSchema` also checks what a file refers to, since it can be edited by hand.
+- `importServiceRecipe` checks the names, the domains (of services and the dashboard) and the published host ports in the same transaction that creates everything, so nothing is created when one of them is taken. It returns every conflict.
+- Imported services get new IDs. Secrets are created with an empty value.
+- After an import, the services are deployed unless they have a secret or inherit one, those wait until the user fills them in. A domain whose zone isn't in Cloudflare is still imported, the domain sync marks it.
