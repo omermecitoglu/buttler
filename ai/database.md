@@ -61,6 +61,8 @@
 - `shared_variable_names` only holds the renamed variables, by the ID of the shared variable, so a rename survives a new key. `saveSharedVariables` updates the variables with an ID in place, because replacing them would delete their names.
 - `getInheritedVariables` resolves what a service inherits. When two inherited variables have the same name, the one of the older link is kept. A value built from a secret is a secret, and it's `null` unless it's decrypted for a deploy.
 - The actions block two inherited variables with the same name, and new hand-written variables with an inherited name. If both exist anyway, the hand-written one wins.
+- The new service form prefills the shared variables of the official `postgres`, `mysql`, `mariadb`, `redis` and `mongo` images, and the variables of the image they refer to, with generated passwords (`src/core/database-presets.ts`). Only the repo name is matched, the tag is ignored.
+- Presets only exist in the form, nothing marks the saved variables. Choosing another image replaces the prefilled ones, edited or not.
 
 ## Users & Access
 
