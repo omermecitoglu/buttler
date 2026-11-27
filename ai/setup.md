@@ -26,3 +26,5 @@
 - `src/cli.ts` is bundled by tsdown into a single file, without the rest of the app. The modules that it shares with the server (`setup-code.ts`, `log-file.ts`, `storage.ts`) must not use `server-only` or the database.
 - The output of `buttler start` goes to `~/.buttler/buttler.log`. The log of the previous start is kept as `buttler.log.old`.
 - The server responds after `instrumentation.ts` is done, which may have to pull images. `buttler start` waits up to 5 minutes for it.
+- `buttler version` and `buttler -v` print the version from the `package.json` of the package, which is read at runtime.
+- `buttler update` follows the channel of the installed version: an alpha prerelease updates to the `alpha` tag, everything else to `latest`. It checks the write permission before it stops the server, and prints the `sudo` command instead of escalating. The server is stopped during the install, because npm replaces the files under `ui/`, and is started again by a new `buttler start` process, even if the install failed. A server that wasn't running isn't started.
