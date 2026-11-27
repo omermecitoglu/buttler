@@ -227,7 +227,7 @@ export async function provisionReverseProxy(options?: { db?: typeof db }) {
       ],
       ExtraHosts: [EXTRA_HOST],
       RestartPolicy: {
-        Name: "always",
+        Name: "unless-stopped",
       },
     },
     Tty: false,
