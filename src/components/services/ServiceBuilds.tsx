@@ -1,9 +1,11 @@
 import { cn } from "@omer-x/tailwind-ui-kit/utils";
 import { connection } from "next/server";
 import { getFormatter, getTranslations } from "next-intl/server";
+import { deployBuildAction } from "~/actions/service";
 import BuildCommits from "~/components/services/BuildCommits";
+import DeployBuildForm from "~/components/services/DeployBuildForm";
 import Card from "~/components/ui/card";
-import type { ServiceBuild } from "~/core/docker/builds";
+import { IMAGES_TO_KEEP, type ServiceBuild } from "~/core/docker/builds";
 import { getBuildsOfService, getServiceWithLiveStatus } from "~/data/services";
 import { notFound } from "~/i18n/navigation";
 
@@ -74,6 +76,12 @@ const ServiceBuilds = async ({ params }: ServiceBuildsProps) => {
                   <span>{format.dateTime(new Date(build.builtAt), { dateStyle: "medium", timeStyle: "short" })}</span>
                 )}
               </span>
+              {build.status === "ready" && build.id !== service.runtime.imageId && (
+                <DeployBuildForm
+                  action={deployBuildAction.bind(null, id, build.id)}
+                  commit={build.commit?.slice(0, 7) ?? build.id.slice(7, 19)}
+                />
+              )}
             </div>
             {build.commit && (
               <BuildCommits serviceId={id} commit={build.commit} previousCommit={previousCommits[index]} />
@@ -87,6 +95,7 @@ const ServiceBuilds = async ({ params }: ServiceBuildsProps) => {
           </li>
         ))}
       </ul>
+      <p className="border-t border-slate-800/80 px-6 py-3 text-xs text-slate-500">{t("kept", { count: IMAGES_TO_KEEP })}</p>
     </Card>
   );
 };

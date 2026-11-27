@@ -4,7 +4,7 @@ import { refresh, updateTag } from "next/cache";
 import { after } from "next/server";
 import z from "zod";
 import { requireAdmin, requireUser } from "~/core/auth";
-import { deleteBuildLog, findLatestImage, startBuilding } from "~/core/build";
+import { deleteBuildLog, deployBuild, findLatestImage, startBuilding } from "~/core/build";
 import { syncDomains } from "~/core/cloudflare/domains";
 import { removeInternetNetwork } from "~/core/docker/internet";
 import { removeLinkNetworks, syncReverseProxyLinks } from "~/core/docker/links";
@@ -205,6 +205,27 @@ export const updateInternetAccessAction = defineFormAction({
     if (!input.recreate) return displayMessage("success", "saved");
     if (!await recreateContainer(serviceId)) return displayMessage("error", "recreate_failed");
     return displayMessage("success", "recreated");
+  },
+});
+
+/** Deploys an earlier build of a GitHub service, without building it again */
+export const deployBuildAction = defineFormAction({
+  middlewares: [userMiddleware],
+  schema: z.object({}),
+  action: () => async (serviceId: string, imageId: string): Promise<Record<string, string>> => {
+    const service = await getService(db, serviceId);
+    if (!service || service.type !== "github") return displayMessage("error", "deploy_failed");
+    if (!await canRecreateContainer(service)) return displayMessage("error", "service_busy");
+    try {
+      await deployBuild(await getServiceToDeploy(serviceId), imageId);
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error(`Failed to deploy the build ${imageId} of service ${serviceId}:`, error);
+      return displayMessage("error", "deploy_failed");
+    } finally {
+      refresh();
+    }
+    return {};
   },
 });
 

@@ -602,6 +602,14 @@
       "notBuilt": "Only GitHub services are built by Buttler.",
       "unavailable": "Failed to load the builds.",
       "deployed": "Deployed",
+      "deploy": "Deploy",
+      "deploying": "Deploying…",
+      "deployBuild": "Deploy the build {commit}",
+      "kept": "The last {count} builds are kept, older images are removed.",
+      "messages": {
+        "deploy_failed": "The build could not be deployed. The reason is in the server log.",
+        "service_busy": "The service is being built, pulled or deployed. Try again when it's done."
+      },
       "unknownCommit": "Unknown commit",
       "commits": {
         "sincePrevious": "Commits since {commit}",
