@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { type ChildProcess, spawn } from "node:child_process";
-import { closeSync } from "node:fs";
+import { closeSync, readFileSync } from "node:fs";
 import fs from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { setTimeout as wait } from "node:timers/promises";
@@ -25,9 +25,18 @@ const SERVER_ERROR = 500;
 
 const PID_FILE = "PID";
 
+const __filename = fileURLToPath(import.meta.url);
+
+const __dirname = dirname(__filename);
+
+/** Both the bundle in "bin" and the source in "src" are one level below the package root */
+function getVersion() {
+  const content = readFileSync(resolve(__dirname, "../package.json"), "utf-8");
+  const { version } = JSON.parse(content) as { version: string };
+  return version;
+}
+
 function spawnChildProcess(detached: boolean, debug: boolean) {
-  const __filename = fileURLToPath(import.meta.url);
-  const __dirname = dirname(__filename);
   const appPath = resolve(__dirname, "../ui/server.js");
   // The output would be lost, because nobody is watching a detached process
   const logFile = detached ? openLogFile() : null;
@@ -145,6 +154,8 @@ async function restart() {
 }
 
 const program = new Command();
+program.version(getVersion(), "-v, --version", "prints the version");
+program.command("version").description("prints the version").action(() => console.log(getVersion()));
 program.command("dev").description("starts the application").action(() => start(true));
 program.command("start").description("starts the application").action(() => start(false));
 program.command("stop").description("stops the application").action(stop);
