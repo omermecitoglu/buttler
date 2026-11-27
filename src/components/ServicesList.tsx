@@ -4,16 +4,21 @@ import EmptyServicesState from "~/components/EmptyServicesState";
 import ServiceCard from "~/components/ServiceCard";
 import ServicesPoller from "~/components/ServicesPoller";
 import { getServicesWithLiveStatus } from "~/data/services";
+import db from "~/database";
+import getShowSystemServices from "~/operations/getShowSystemServices";
 
 const ServicesList = async () => {
   await connection();
   const [
-    services,
+    allServices,
+    showSystemServices,
     t,
   ] = await Promise.all([
     getServicesWithLiveStatus(),
+    getShowSystemServices(db),
     getTranslations("DashboardPage"),
   ]);
+  const services = showSystemServices ? allServices : allServices.filter(service => service.type !== "system");
 
   const cardLabels = {
     source: t("service.source"),
