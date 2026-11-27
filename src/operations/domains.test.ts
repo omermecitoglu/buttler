@@ -13,7 +13,6 @@ import deleteService from "./deleteService";
 import getDashboardDomain from "./getDashboardDomain";
 import getDomains from "./getDomains";
 import getService from "./getService";
-import getServicesWithDomains from "./getServicesWithDomains";
 import setDashboardDomain from "./setDashboardDomain";
 
 const client = new DatabaseSync(":memory:");
@@ -43,15 +42,6 @@ describe("domain operations", () => {
       { hostname: "app.example.com", port: 3000 },
       { hostname: "www.example.com", port: 80 },
     ]);
-  });
-
-  it("should list each service with domains once", async () => {
-    const id = create("app");
-    create("other");
-    expect(await getServicesWithDomains(db)).toEqual([]);
-    createDomain(db, { hostname: "www.example.com", serviceId: id, port: 80 });
-    createDomain(db, { hostname: "app.example.com", serviceId: id, port: 80 });
-    expect(await getServicesWithDomains(db)).toEqual([id]);
   });
 
   it("should list the domains of all services", async () => {

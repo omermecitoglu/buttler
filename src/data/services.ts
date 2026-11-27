@@ -15,7 +15,6 @@ import getInheritedVariables from "~/operations/getInheritedVariables";
 import getService from "~/operations/getService";
 import getServiceLinks from "~/operations/getServiceLinks";
 import getServices from "~/operations/getServices";
-import getServicesWithDomains from "~/operations/getServicesWithDomains";
 import getSharedVariableNames from "~/operations/getSharedVariableNames";
 import getSharedVariables from "~/operations/getSharedVariables";
 import getSharedVolumes from "~/operations/getSharedVolumes";
@@ -167,12 +166,10 @@ export async function getServiceGraph() {
   const [
     services,
     links,
-    servicesWithDomains,
   ] = await Promise.all([
     getServices(db),
     getServiceLinks(db),
-    getServicesWithDomains(db),
   ]);
   const reverseProxy = services.find(service => service.type === "system" && service.name === REVERSE_PROXY_SERVICE_NAME);
-  return buildServiceGraph(services, links, reverseProxy?.id ?? null, servicesWithDomains);
+  return buildServiceGraph(services, links, reverseProxy?.id ?? null);
 }
