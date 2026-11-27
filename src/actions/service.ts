@@ -3,11 +3,11 @@ import { defineFormAction, displayMessage } from "@omer-x/next-form-actions";
 import { refresh, updateTag } from "next/cache";
 import { after } from "next/server";
 import z from "zod";
-import { requireUser } from "~/core/auth";
+import { requireAdmin, requireUser } from "~/core/auth";
 import { deleteBuildLog, findLatestImage, startBuilding } from "~/core/build";
 import { syncDomains } from "~/core/cloudflare/domains";
 import { removeInternetNetwork } from "~/core/docker/internet";
-import { removeLinkNetworks } from "~/core/docker/links";
+import { removeLinkNetworks, syncReverseProxyLinks } from "~/core/docker/links";
 import { isVolumeName, removeServiceContainers, removeServiceImages, removeVolumes } from "~/core/docker/removal";
 import {
   type ServiceIdentity,
@@ -26,8 +26,9 @@ import {
 } from "~/core/docker/status";
 import { getServiceImageTag } from "~/core/dockerhub";
 import { environmentVariableScopes } from "~/core/environment-variables";
-import { deleteFromReverseProxy } from "~/core/nginx";
+import { deleteFromReverseProxy, syncReverseProxyConfig } from "~/core/nginx";
 import { isServiceBusy } from "~/core/recreate";
+import { SERVICE_RECIPE_VERSION, ServiceRecipeSchema } from "~/core/service-recipe";
 import db from "~/database";
 import { redirect } from "~/i18n/navigation";
 import type { AppLocale } from "~/i18n/routing";
@@ -38,6 +39,7 @@ import getDeployableService from "~/operations/getDeployableService";
 import getInheritedVariables from "~/operations/getInheritedVariables";
 import getService from "~/operations/getService";
 import getSharedVolumes from "~/operations/getSharedVolumes";
+import importServiceRecipe, { type ServiceRecipeConflict } from "~/operations/importServiceRecipe";
 import updateService, { MissingSecretValueError } from "~/operations/updateService";
 import { jsonField } from "~/utils/jsonField";
 import { adminMiddleware } from "./middlewares/admin";
@@ -318,6 +320,61 @@ function startPulling(service: ServiceRef) {
       console.error(`Failed to pull and deploy service ${service.id}:`, error);
     }
   });
+}
+
+export type ImportServicesResult =
+  | { status: "invalid" | "unsupported_version" } |
+  { status: "conflicts", conflicts: ServiceRecipeConflict[] } |
+  { status: "imported", deployed: string[], waiting: string[] };
+
+/** Creates the services of an exported file, and deploys the ones that have no empty secrets */
+export async function importServices(content: string): Promise<ImportServicesResult> {
+  // An import can add domains, which only the admin can do
+  await requireAdmin();
+  let json: unknown;
+  try {
+    json = JSON.parse(content);
+  } catch {
+    return { status: "invalid" };
+  }
+  const parsed = ServiceRecipeSchema.safeParse(json);
+  if (!parsed.success) {
+    const version = typeof json === "object" && json !== null && "version" in json ? json.version : undefined;
+    return { status: typeof version === "number" && version !== SERVICE_RECIPE_VERSION ? "unsupported_version" : "invalid" };
+  }
+
+  const result = await importServiceRecipe(db, parsed.data);
+  if ("conflicts" in result) return { status: "conflicts", conflicts: result.conflicts };
+
+  if (parsed.data.services.some(({ domains }) => domains.length > 0)) {
+    try {
+      await syncReverseProxyLinks();
+      await syncReverseProxyConfig();
+    } catch (error) {
+      // The domains are saved, the next sync tries again
+      // eslint-disable-next-line no-console
+      console.error("Failed to add the imported domains to the reverse proxy:", error);
+    }
+    // A domain whose zone isn't in Cloudflare is marked, it becomes public when the zone is there
+    await syncDomains();
+  }
+  const ready = result.services.filter(({ hasSecrets }) => !hasSecrets);
+  for (const { id } of ready) {
+    const service = await getServiceToDeploy(id);
+    if (service.type === "github") {
+      startBuilding(service);
+    } else {
+      startPulling(service);
+    }
+  }
+  updateTag("getAllServices()");
+  updateTag("getServiceGraph()");
+  updateTag("getLinksOfService(...)");
+  return {
+    status: "imported",
+    deployed: ready.map(({ name }) => name),
+    waiting: result.services.filter(({ hasSecrets }) => hasSecrets).map(({ name }) => name),
+  };
 }
 
 export async function startService(serviceId: string): Promise<ServiceActionResult> {

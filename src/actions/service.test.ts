@@ -3,6 +3,7 @@ import { MissingSecretValueError } from "~/operations/updateService";
 import {
   createServiceAction,
   deleteServiceAction,
+  importServices,
   redeployService,
   restartService,
   startService,
@@ -47,6 +48,9 @@ const mockRefresh = vi.fn();
 const mockUpdateTag = vi.fn();
 const mockRedirect = vi.fn();
 const mockGetInheritedVariables = vi.fn();
+const mockImportServiceRecipe = vi.fn();
+const mockSyncReverseProxyLinks = vi.fn();
+const mockSyncReverseProxyConfig = vi.fn();
 
 vi.mock("~/database", () => ({
   default: {},
@@ -66,6 +70,10 @@ vi.mock("~/operations/getDeployableService", () => ({
 
 vi.mock("~/operations/createService", () => ({
   default: (...args: unknown[]) => mockCreateService(...args),
+}));
+
+vi.mock("~/operations/importServiceRecipe", () => ({
+  default: (...args: unknown[]) => mockImportServiceRecipe(...args),
 }));
 
 vi.mock("~/operations/updateService", () => ({
@@ -98,10 +106,12 @@ vi.mock("~/core/docker/internet", () => ({
 
 vi.mock("~/core/docker/links", () => ({
   removeLinkNetworks: (...args: unknown[]) => mockRemoveLinkNetworks(...args),
+  syncReverseProxyLinks: (...args: unknown[]) => mockSyncReverseProxyLinks(...args),
 }));
 
 vi.mock("~/core/nginx", () => ({
   deleteFromReverseProxy: (...args: unknown[]) => mockDeleteFromReverseProxy(...args),
+  syncReverseProxyConfig: (...args: unknown[]) => mockSyncReverseProxyConfig(...args),
 }));
 
 vi.mock("~/core/docker/removal", () => ({
@@ -838,5 +848,81 @@ describe("updateInternetAccessAction", () => {
     mockGetService.mockResolvedValue({ id: "srv", type: "system" });
     expect(await updateInternetAccessAction("srv", {}, createFormData("no"))).toEqual({ "[error]": "update_failed" });
     expect(mockUpdateService).not.toHaveBeenCalled();
+  });
+});
+
+describe("importServices", () => {
+  const service = {
+    id: "old-id",
+    name: "db",
+    type: "dockerhub",
+    repository: "postgres",
+    branch: "latest",
+    internetAccess: true,
+    ports: [],
+    volumes: [],
+    environmentVariables: [],
+    domains: [],
+    sharedVariables: [],
+  };
+
+  function file(services: object[] = [service], version: unknown = 1) {
+    return JSON.stringify({ version, services, links: [] });
+  }
+
+  beforeEach(() => {
+    vi.resetAllMocks();
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+    mockGetDeployableService.mockImplementation((_db: unknown, id: string) => Promise.resolve({ id, type: "dockerhub" }));
+  });
+
+  it("rejects the users who are not the admin", async () => {
+    mockRequireAdmin.mockRejectedValue(new Error("403"));
+    await expect(importServices(file())).rejects.toThrow("403");
+    expect(mockImportServiceRecipe).not.toHaveBeenCalled();
+  });
+
+  it.each(["not json", "null", JSON.stringify({ version: 1, services: [{ name: "db" }], links: [] })])(
+    "rejects a file that isn't an export",
+    async content => {
+      expect(await importServices(content)).toEqual({ status: "invalid" });
+      expect(mockImportServiceRecipe).not.toHaveBeenCalled();
+    },
+  );
+
+  it("rejects the files of other versions", async () => {
+    expect(await importServices(file([service], 2))).toEqual({ status: "unsupported_version" });
+    expect(mockImportServiceRecipe).not.toHaveBeenCalled();
+  });
+
+  it("lists the conflicts without deploying anything", async () => {
+    const conflicts = [{ type: "name", name: "db" }];
+    mockImportServiceRecipe.mockResolvedValue({ conflicts });
+    expect(await importServices(file())).toEqual({ status: "conflicts", conflicts });
+    expect(mockMarkServicePulling).not.toHaveBeenCalled();
+    expect(mockStartBuilding).not.toHaveBeenCalled();
+  });
+
+  it("only deploys the services without empty secrets", async () => {
+    mockImportServiceRecipe.mockResolvedValue({ services: [
+      { id: "db-id", name: "db", hasSecrets: true },
+      { id: "cache-id", name: "cache", hasSecrets: false },
+    ] });
+
+    expect(await importServices(file())).toEqual({ status: "imported", deployed: ["cache"], waiting: ["db"] });
+    expect(mockMarkServicePulling).toHaveBeenCalledExactlyOnceWith("cache-id", true);
+    expect(mockSyncReverseProxyLinks).not.toHaveBeenCalled();
+    expect(mockUpdateTag).toHaveBeenCalledWith("getAllServices()");
+  });
+
+  it("serves the imported domains even if the reverse proxy can't be reloaded", async () => {
+    mockImportServiceRecipe.mockResolvedValue({ services: [{ id: "db-id", name: "db", hasSecrets: false }] });
+    mockSyncReverseProxyConfig.mockRejectedValue(new Error("reload failed"));
+
+    const result = await importServices(file([{ ...service, domains: [{ hostname: "db.example.com", port: 5432 }] }]));
+
+    expect(result).toEqual({ status: "imported", deployed: ["db"], waiting: [] });
+    expect(mockSyncReverseProxyLinks).toHaveBeenCalled();
+    expect(mockSyncDomains).toHaveBeenCalled();
   });
 });
