@@ -19,6 +19,7 @@ import getServices from "~/operations/getServices";
 import getSharedVariableNames from "~/operations/getSharedVariableNames";
 import getSharedVariables from "~/operations/getSharedVariables";
 import getSharedVolumes from "~/operations/getSharedVolumes";
+import getVolumeUsers from "~/operations/getVolumeUsers";
 
 export type ServiceWithRuntime = Awaited<ReturnType<typeof getServices>>[number] & {
   runtime: ServiceRuntimeState,
@@ -113,6 +114,25 @@ function getKeptReason(name: string, sharedNames: string[], ownNames: string[]):
   if (!ownNames.includes(name)) return "outside";
   if (sharedNames.includes(name)) return "shared";
   return null;
+}
+
+export type VolumeOptions = {
+  /** The volumes that Buttler created, which can be picked for a storage mount */
+  existing: string[],
+  /** The other services that mount a volume, by its name */
+  usedBy: Record<string, string[]>,
+};
+
+/** Returns what the storage mounts of a service can use. Docker is the source of truth, so nothing is cached */
+export async function getVolumeOptions(exceptServiceId?: ServiceDTO["id"]): Promise<VolumeOptions> {
+  const [
+    existing,
+    usedBy,
+  ] = await Promise.all([
+    listButtlerVolumes(),
+    getVolumeUsers(db, exceptServiceId),
+  ]);
+  return { existing, usedBy };
 }
 
 /**
