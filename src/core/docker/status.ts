@@ -117,13 +117,8 @@ export function parseContainerRuntimeStatus(container?: Docker.ContainerInfo): C
   const state = container.State.toLowerCase();
   if (state === "running") return "running";
   if (state === "restarting") return "restarting";
-  if (state === "created" || state === "paused") return "stopped";
-  if (state === "exited") {
-    if (container.Status.startsWith("Exited (0)")) {
-      return "stopped";
-    }
-    return "exited";
-  }
+  // The restart policy starts a container again whenever it exits, so an exited one was stopped on purpose
+  if (state === "created" || state === "paused" || state === "exited") return "stopped";
   return "exited";
 }
 

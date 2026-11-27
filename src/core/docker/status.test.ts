@@ -210,18 +210,18 @@ describe("Docker status aggregator", () => {
       expect(parseContainerRuntimeStatus({ State: "paused" } as Docker.ContainerInfo)).toBe("stopped");
     });
 
-    it("returns stopped for exited (0) status", () => {
+    it("returns stopped for exited state, whatever the exit code", () => {
       expect(parseContainerRuntimeStatus({
         State: "exited",
         Status: "Exited (0) 5 minutes ago",
       } as Docker.ContainerInfo)).toBe("stopped");
-    });
-
-    it("returns exited for crashed/non-zero exit code", () => {
       expect(parseContainerRuntimeStatus({
         State: "exited",
-        Status: "Exited (1) 2 minutes ago",
-      } as Docker.ContainerInfo)).toBe("exited");
+        Status: "Exited (143) 2 minutes ago",
+      } as Docker.ContainerInfo)).toBe("stopped");
+    });
+
+    it("returns exited for dead state", () => {
       expect(parseContainerRuntimeStatus({
         State: "dead",
         Status: "Dead",
