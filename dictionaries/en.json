@@ -439,9 +439,14 @@
       },
       "help": {
         "restart": "Restart the service to apply the changes.",
+        "recreateNow": "The container is recreated with the changes when you save.",
+        "onRestart": "The changes won't take effect until the container is restarted.",
+        "onStart": "The service has no container, the changes apply when it's started.",
+        "onDeploy": "The changes apply when the running build or pull deploys a new container.",
         "build": "The changes are applied with the next build.",
         "variables": "Restart the service to apply the changes. Changes to the build variables need a new build."
       },
+      "recreate": "Recreate the container now",
       "close": "Close",
       "cancel": "Cancel",
       "save": "Save changes",
@@ -450,6 +455,8 @@
       "secretPlaceholder": "Leave empty to keep the saved value",
       "messages": {
         "update_failed": "Failed to save the changes. Check that host ports and variable keys are unique, and try again.",
+        "recreate_failed": "The changes were saved, but the container could not be recreated. The reason is in the server log.",
+        "service_busy": "The service is being built, pulled or deleted. Nothing was changed, try again when it's done.",
         "secret_value_required": "Enter the value again for secrets that are renamed or no longer secret.",
         "inherited_variable_name": "A variable with this name is inherited from a link. Choose another name, or rename the inherited one on the links tab.",
         "field_required": "Name and source fields are required.",
