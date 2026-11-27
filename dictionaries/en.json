@@ -317,6 +317,11 @@
       "title": "Internet Access",
       "description": "Whether the container can reach the internet. It never makes the service reachable by other services. This can be changed later in the settings."
     },
+    "sharedSection": {
+      "title": "Shared Variables",
+      "description": "Variables that linked services can inherit. They can be changed later on the \"Links\" tab.",
+      "presetNote": "Added by the {image} preset"
+    },
     "portsSection": {
       "title": "Port Mappings",
       "description": "Map host ports to container ports for network access.",
@@ -378,7 +383,9 @@
       "invalid_volumes": "One or more storage mounts are invalid.",
       "volume_name_required": "Volume name is required for all storage mounts.",
       "invalid_volume_name": "Volume names may only contain letters, digits, \"_\", \".\" and \"-\", start with a letter or digit and be at least 2 characters long. To mount a folder on the host, enter its absolute path.",
-      "internet_access_required": "Choose whether the service has internet access."
+      "internet_access_required": "Choose whether the service has internet access.",
+      "invalid_shared_variables": "One or more shared variables are invalid.",
+      "duplicate_shared_variables": "Two shared variables have the same name."
     }
   },
   "ServicePage": {
