@@ -1,12 +1,14 @@
 import { connection } from "next/server";
 import { getLocale, getTranslations } from "next-intl/server";
 import { Suspense } from "react";
-import { deleteServiceAction, updateInternetAccessAction } from "~/actions/service";
+import { deleteServiceAction, updateDevicesAction, updateInternetAccessAction } from "~/actions/service";
 import DeleteServiceModal from "~/components/services/DeleteServiceModal";
+import DevicesForm from "~/components/services/DevicesForm";
 import InternetAccessForm from "~/components/services/InternetAccessForm";
 import ServiceDomains from "~/components/services/ServiceDomains";
 import ServicePanelSkeleton from "~/components/services/ServicePanelSkeleton";
 import Card from "~/components/ui/card";
+import { HOST_DEV_PATH } from "~/core/devices";
 import { getServiceWithLiveStatus, getVolumesOfService } from "~/data/services";
 import { notFound } from "~/i18n/navigation";
 
@@ -44,6 +46,18 @@ const ServiceSettings = async ({ params }: ServiceSettingsProps) => {
         <InternetAccessForm
           action={updateInternetAccessAction.bind(null, service.id)}
           hasInternetAccess={service.internetAccess}
+          hasContainer={service.runtime.containerId !== null}
+          isBusy={status === "pulling" || status === "building"}
+        />
+      </Card>
+      <Card className="flex flex-col gap-6 p-6">
+        <div>
+          <h2 className="text-base font-semibold text-slate-100">{t("devices.title")}</h2>
+          <p className="mt-1 text-xs text-slate-400">{t("devices.description", { path: HOST_DEV_PATH })}</p>
+        </div>
+        <DevicesForm
+          action={updateDevicesAction.bind(null, service.id)}
+          devices={service.devices.map(device => device.kind)}
           hasContainer={service.runtime.containerId !== null}
           isBusy={status === "pulling" || status === "building"}
         />
