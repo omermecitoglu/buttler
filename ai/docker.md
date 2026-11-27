@@ -11,6 +11,13 @@ Docker is the single source of truth for builds, nothing about them is stored in
 - The history is read through the `/grpc` endpoint of Docker. The endpoint is deprecated in favour of native gRPC over the Docker socket, which older Docker versions don't support.
 - When the history is not available, only the `ready` builds are listed.
 
+## Rollbacks and Old Images
+
+- The "Deploy" button of a ready build deploys it again without building (`deployBuildAction`, `deployBuild` in `src/core/build.ts`). The image must be a build of the service, and the service must not be busy.
+- A start or restart of a GitHub service (and so every recreation) deploys the build that its container runs, so a rollback is kept. Only when there is none it's the latest build. "Rebuild" builds the latest commit.
+- After a build is deployed, `pruneServiceImages` (`src/core/docker/builds.ts`) keeps the newest `IMAGES_TO_KEEP` (5) images of the service, and never removes an image that a container uses. A failed cleanup is only logged, the next build does it.
+- Images are removed by their tags, so an image that has others is only untagged, and by their ID if they have none (a newer build of the same commit took them). Docker refuses to remove an image that a container uses, also a stopped one, so nothing is forced.
+
 ## Build Triggers
 
 - GitHub App webhooks are received at `/webhooks/github` (`src/app/webhooks/github/route.ts`). A push builds every service with the same repository and branch, after the response is sent.
