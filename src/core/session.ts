@@ -50,7 +50,8 @@ export async function getSession() {
     origin,
   ] = await Promise.all([
     getOrCreateSessionPassword(),
-    getPublicOrigin(),
+    // Without a host header the origin is unknown, and the cookie stays secure
+    getPublicOrigin().catch(() => ""),
   ]);
   return await getIronSession<SessionData>(await cookies(), {
     cookieName: SESSION_COOKIE_NAME,
