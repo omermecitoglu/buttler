@@ -24,6 +24,17 @@ Docker is the single source of truth for builds, nothing about them is stored in
 - The progress of a pull is kept in memory (`getServicePullProgress`) and streamed by `/api/services/[id]/pull/stream`. It's shown as two bars, the download and the extraction, on the service page and in the service list. Docker only knows the size of a layer once its download starts, so the totals grow and the bars can move back early on.
 - A deploy always starts the new container, so "Rebuild" and "Redeploy" also start a stopped service.
 
+## Replacing Containers
+
+- A deploy never removes the old container before the new one has started (`replaceServiceContainer` in `src/core/docker/status.ts`). Deploys, redeploys, starts, restarts and recreations all go through it.
+- Container names are unique, so the new container is created as `buttler-service-<id>-next` and renamed when the old one is removed. While both exist, `matchContainerForService` prefers the one with the name of the service.
+- A service without published ports or volumes switches without downtime: the new container starts while the old one runs, then the old one is stopped and removed.
+- Two containers can't publish the same host port and shouldn't write to the same volume, so a service with either stops the old container right before the new one starts.
+- If the new container can't be created, connected or started, it's removed and the service stays on the old container, which is started again if it was running.
+- "Started" means Docker started it. A container that crashes afterwards is the fault of the app, Buttler doesn't roll it back.
+- Once the new container runs, a failure to remove the old one or to rename the new one is only logged. The next deploy removes every other container of the service before it starts.
+- A restart of a Docker Hub or GitHub service doesn't stop the container first, its start replaces it anyway.
+
 ## Exposed Ports
 
 - The ports a service's image exposes (`EXPOSE`, including those of a base image) are read from Docker when a page renders, never stored (`getExposedPortsOfService` in `src/data/services.ts`). Only TCP ports are kept.
@@ -54,9 +65,9 @@ Docker is the single source of truth for builds, nothing about them is stored in
 ## Service Links
 
 - A link is the only way two services can reach each other. It's two-sided, Docker can't enforce a direction, and there is at most one link per pair (`service_links`, see `ai/database.md`).
-- Every link has its own internal network (`src/core/docker/links.ts`), named `buttler-link-<link id>` and labelled `buttler.network=link` and `buttler.link-id`. Only the two containers are on it, and they reach each other by the container name, `buttler-service-<service id>`.
+- Every link has its own internal network (`src/core/docker/links.ts`), named `buttler-link-<link id>` and labelled `buttler.network=link` and `buttler.link-id`. Only the two containers are on it (and a replacement while one is deployed), and they reach each other by `buttler-service-<service id>`. It's the container name and also an alias on every link network, so the replacement is reached by it before it's renamed.
 - Adding or removing a link connects or disconnects the containers right away (`syncLinkNetwork`). A link whose network can't be set up isn't kept, and a link whose network can't be removed is restored, because the services could still reach each other.
-- A deploy connects the container to the networks of all its links (`connectLinkNetworks`), before the old container is replaced and again before the new one is started. A stopped service has no container, it's connected when it's started.
+- A deploy connects the container to the networks of all its links (`connectLinkNetworks`), before the new container is created and again before it's started. While both are on the network, the alias resolves to both of them. A stopped service has no container, it's connected when it's started.
 - A deletion removes the link networks before the database row, the links are deleted with it.
 - `syncLinkNetworks` runs at startup, it connects every link again and removes the networks of the links that are gone.
 - Only the containers of services are disconnected, a network that is used by an unrelated container is kept.
@@ -75,7 +86,7 @@ Docker is the single source of truth for builds, nothing about them is stored in
 
 ## Network Subnets
 
-- Docker's default pools run out at about 30 networks, so every network that Buttler creates gets an explicit `/29` subnet (2 containers and the gateway) from `10.213.0.0/16`, which is outside of Docker's default pools and of common LANs (`src/core/docker/networks.ts`).
+- Docker's default pools run out at about 30 networks, so every network that Buttler creates gets an explicit `/29` subnet (2 containers, their replacements and the gateway) from `10.213.0.0/16`, which is outside of Docker's default pools and of common LANs (`src/core/docker/networks.ts`).
 - Always create networks with `createButtlerNetwork`. It picks the first subnet that no network of Docker or interface of the host overlaps, so the subnets of removed networks are reused. Nothing is stored in SQLite.
 - Networks are created one after another, otherwise two of them could pick the same subnet.
 - Networks that were created before (the tunnel network without a subnet) keep working until they are replaced.
@@ -88,7 +99,7 @@ Docker is the single source of truth for builds, nothing about them is stored in
 - A domain change is undone if Nginx can't be reloaded. A domain that can't be removed is still served, so it stays in SQLite.
 - `deleteFromReverseProxy` removes the domains of a service from the config right before its row is deleted. They are served again if the service is kept. The tunnel and the DNS records are cleaned up before, see `ai/cloudflare.md`.
 - Changes run one after another, and read the domains when it's their turn.
-- The upstream is the container name of the service (`buttler-service-<service id>`), which stays the same when the container is replaced. It's in a variable and resolved by Docker (`127.0.0.11`), so a service that isn't running leads to a 502 instead of a config that can't be loaded. The answers are only cached for 5 seconds, because a new container can have a new IP.
+- The upstream is the name of the service container (`buttler-service-<service id>`), which stays the same when the container is replaced, because the replacement has it as an alias on the link. It's in a variable and resolved by Docker (`127.0.0.11`), so a service that isn't running leads to a 502 instead of a config that can't be loaded. The answers are only cached for 5 seconds, because a new container can have a new IP.
 - The dashboard is served at the domain that the admin sets on the settings page. Buttler runs on the host, so Nginx reaches it at `host.docker.internal`, on the port in `PORT`. The firewall of the host must let the Docker network reach that port, and Buttler must not only listen on the loopback interface.
 - `host.docker.internal` is in the hosts file of the container (`ExtraHosts`). The embedded DNS of Docker isn't expected to know it, so it's not in a variable. `provisionReverseProxy` replaces the containers of older versions, which don't have it.
 - Nginx publishes no ports, the Cloudflare tunnel is the only way to reach the domains from outside. The containers of older versions, which publish them, are replaced.
