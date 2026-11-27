@@ -52,6 +52,7 @@
 - The `service_links` table holds the links between services. The pair is stored in order (`service_a_id < service_b_id`, a check constraint) with a unique index, so there is at most one link per pair, whichever side adds it. `createServiceLink` sorts the IDs.
 - Both foreign keys cascade, so the links of a service are deleted with it.
 - The networks of the links are only in Docker, see `ai/docker.md`.
+- Nginx has a link to every service with a domain. Its rows are kept in sync with the `domains` table by `syncReverseProxyLinks`, in a single transaction, see `ai/docker.md`.
 
 ## Shared Variables
 
