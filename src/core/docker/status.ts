@@ -7,7 +7,6 @@ import { TUNNEL_SERVICE_NAME } from "~/operations/getTunnelService";
 import hasInternetAccess from "~/operations/hasInternetAccess";
 import { getBuildingServiceIds } from "./builds";
 import { REVERSE_PROXY_CONTAINER_NAME, isOwnContainer } from "./containers";
-import { syncIngressNetwork } from "./ingress";
 import { ensureInternetNetwork, removeInternetNetwork } from "./internet";
 import { BUTTLER_SERVICE_LABEL } from "./labels";
 import { connectLinkNetworks } from "./links";
@@ -371,7 +370,6 @@ export async function deployServiceContainer(service: ServiceRef, image: string)
 
 async function replaceServiceContainer(service: ServiceRef, image: string) {
   // If the networks can't be created, the old container keeps running
-  await syncIngressNetwork(service.id);
   await connectLinkNetworks(service.id);
   // A network given at creation replaces the default bridge network, where every container could reach the others
   const internetNetwork = await ensureInternetNetwork(service.id);
@@ -444,7 +442,6 @@ async function replaceServiceContainer(service: ServiceRef, image: string) {
     Tty: false,
   });
 
-  await syncIngressNetwork(service.id);
   await connectLinkNetworks(service.id);
   // With NetworkMode "none" it could never join a network later, so it leaves the internet network before it starts
   if (!await hasInternetAccess(db, service.id)) {

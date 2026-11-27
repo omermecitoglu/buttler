@@ -36,7 +36,6 @@ const mockGetSharedVolumes = vi.fn();
 const mockGetServiceRuntimeState = vi.fn();
 const mockRemoveServiceContainers = vi.fn();
 const mockRemoveServiceImages = vi.fn();
-const mockRemoveIngressNetwork = vi.fn();
 const mockRemoveInternetNetwork = vi.fn();
 const mockRemoveLinkNetworks = vi.fn();
 const mockDeleteFromReverseProxy = vi.fn();
@@ -91,10 +90,6 @@ vi.mock("~/operations/getSharedVolumes", () => ({
 
 vi.mock("~/core/cloudflare/domains", () => ({
   syncDomains: (...args: unknown[]) => mockSyncDomains(...args),
-}));
-
-vi.mock("~/core/docker/ingress", () => ({
-  removeIngressNetwork: (...args: unknown[]) => mockRemoveIngressNetwork(...args),
 }));
 
 vi.mock("~/core/docker/internet", () => ({
@@ -653,11 +648,8 @@ describe("deleteServiceAction", () => {
     expect(mockRedirect).toHaveBeenCalledWith({ locale: "en", href: "/services" });
   });
 
-  it("removes the ingress and internet networks after the container", async () => {
+  it("removes the internet and link networks after the container", async () => {
     await submit();
-    expect(mockRemoveIngressNetwork).toHaveBeenCalledWith("srv");
-    expect(mockRemoveIngressNetwork).toHaveBeenCalledAfter(mockRemoveServiceContainers);
-    expect(mockRemoveIngressNetwork).toHaveBeenCalledBefore(mockDeleteService);
     expect(mockRemoveInternetNetwork).toHaveBeenCalledWith("srv");
     expect(mockRemoveInternetNetwork).toHaveBeenCalledAfter(mockRemoveServiceContainers);
     expect(mockRemoveInternetNetwork).toHaveBeenCalledBefore(mockDeleteService);
@@ -666,8 +658,8 @@ describe("deleteServiceAction", () => {
     expect(mockRemoveLinkNetworks).toHaveBeenCalledBefore(mockDeleteService);
   });
 
-  it("keeps the service if its ingress network can't be removed", async () => {
-    mockRemoveIngressNetwork.mockRejectedValue(new Error("no docker"));
+  it("keeps the service if its link networks can't be removed", async () => {
+    mockRemoveLinkNetworks.mockRejectedValue(new Error("no docker"));
     expect(await submit()).toEqual({ "[error]": "delete_failed" });
     expect(mockDeleteService).not.toHaveBeenCalled();
   });

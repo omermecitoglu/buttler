@@ -7,7 +7,7 @@ const mocks = vi.hoisted(() => ({
   getService: vi.fn(),
   createDomain: vi.fn(),
   deleteDomain: vi.fn(),
-  syncIngressNetwork: vi.fn(),
+  syncReverseProxyLinks: vi.fn(),
   syncReverseProxyConfig: vi.fn(),
   updateTag: vi.fn(),
   refresh: vi.fn(),
@@ -31,7 +31,7 @@ vi.mock("~/core/session", () => ({ getSession: mocks.getSession }));
 vi.mock("~/core/access", () => ({ getAccess: mocks.getAccess }));
 vi.mock("~/core/settings", () => ({}));
 vi.mock("~/core/cloudflare/domains", () => ({ findDomainZone: mocks.findDomainZone, syncDomains: mocks.syncDomains }));
-vi.mock("~/core/docker/ingress", () => ({ syncIngressNetwork: mocks.syncIngressNetwork }));
+vi.mock("~/core/docker/links", () => ({ syncReverseProxyLinks: mocks.syncReverseProxyLinks }));
 vi.mock("~/core/nginx", () => ({ syncReverseProxyConfig: mocks.syncReverseProxyConfig }));
 vi.mock("~/operations/getService", () => ({ default: mocks.getService }));
 vi.mock("~/operations/createDomain", () => ({ default: mocks.createDomain }));
@@ -64,15 +64,15 @@ describe("domain actions", () => {
     expect(mocks.updateTag).toHaveBeenCalledWith("getSingleService(srv)");
   });
 
-  it("should connect the service after a domain is added", async () => {
+  it("should link the service to nginx after a domain is added", async () => {
     await add("app");
-    expect(mocks.syncIngressNetwork).toHaveBeenCalledWith("srv");
-    expect(mocks.syncIngressNetwork).toHaveBeenCalledAfter(mocks.createDomain);
+    expect(mocks.syncReverseProxyLinks).toHaveBeenCalledWith("srv");
+    expect(mocks.syncReverseProxyLinks).toHaveBeenCalledAfter(mocks.createDomain);
   });
 
   it("should not keep the domain if the service can't be connected", async () => {
     vi.spyOn(console, "error").mockImplementation(() => undefined);
-    mocks.syncIngressNetwork.mockRejectedValue(new Error("no docker"));
+    mocks.syncReverseProxyLinks.mockRejectedValue(new Error("no docker"));
     expect(await add("app")).toEqual({ "[error]": "connect_failed" });
     expect(mocks.deleteDomain).toHaveBeenCalledWith({}, "srv", "app.example.com");
     expect(mocks.updateTag).not.toHaveBeenCalled();
@@ -90,7 +90,7 @@ describe("domain actions", () => {
     expect(await add("app")).toEqual({ "[error]": "reload_failed" });
     expect(mocks.deleteDomain).toHaveBeenCalledWith({}, "srv", "app.example.com");
     // Once for the new domain, once without it
-    expect(mocks.syncIngressNetwork).toHaveBeenCalledTimes(2);
+    expect(mocks.syncReverseProxyLinks).toHaveBeenCalledTimes(2);
     expect(mocks.syncReverseProxyConfig).toHaveBeenCalledTimes(2);
     expect(mocks.updateTag).not.toHaveBeenCalled();
   });
@@ -175,15 +175,15 @@ describe("domain actions", () => {
     expect(mocks.updateTag).toHaveBeenCalledWith("getSingleService(srv)");
   });
 
-  it("should disconnect the service after a domain is removed", async () => {
+  it("should sync the link to nginx after a domain is removed", async () => {
     await removeDomainAction("srv", "app.example.com", {}, new FormData());
-    expect(mocks.syncIngressNetwork).toHaveBeenCalledWith("srv");
-    expect(mocks.syncIngressNetwork).toHaveBeenCalledAfter(mocks.deleteDomain);
+    expect(mocks.syncReverseProxyLinks).toHaveBeenCalledWith("srv");
+    expect(mocks.syncReverseProxyLinks).toHaveBeenCalledAfter(mocks.deleteDomain);
   });
 
   it("should remove the domain even if the service can't be disconnected", async () => {
     vi.spyOn(console, "error").mockImplementation(() => undefined);
-    mocks.syncIngressNetwork.mockRejectedValue(new Error("no docker"));
+    mocks.syncReverseProxyLinks.mockRejectedValue(new Error("no docker"));
     expect(await removeDomainAction("srv", "app.example.com", {}, new FormData())).toEqual({});
     expect(mocks.updateTag).toHaveBeenCalledWith("getSingleService(srv)");
   });
@@ -191,7 +191,7 @@ describe("domain actions", () => {
   it("should reload Nginx before the service is disconnected", async () => {
     await removeDomainAction("srv", "app.example.com", {}, new FormData());
     expect(mocks.syncReverseProxyConfig).toHaveBeenCalledAfter(mocks.deleteDomain);
-    expect(mocks.syncReverseProxyConfig).toHaveBeenCalledBefore(mocks.syncIngressNetwork);
+    expect(mocks.syncReverseProxyConfig).toHaveBeenCalledBefore(mocks.syncReverseProxyLinks);
   });
 
   it("should keep the domain if Nginx can't be reloaded without it", async () => {

@@ -1,6 +1,6 @@
 import os from "node:os";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { connectLinkNetworks, removeLinkNetworks, syncLinkNetwork, syncLinkNetworks } from "./links";
+import { connectLinkNetworks, removeLinkNetworks, syncLinkNetwork, syncLinkNetworks, syncReverseProxyLinks } from "./links";
 
 type FakeNetwork = { Id: string, Name: string, Internal?: boolean, Labels?: Record<string, string> };
 type FakeLink = { id: string, serviceAId: string, serviceBId: string };
@@ -13,10 +13,12 @@ const mocks = vi.hoisted(() => ({
   disconnect: vi.fn(),
   remove: vi.fn(),
   getServiceLinks: vi.fn(),
+  updateReverseProxyLinks: vi.fn(),
 }));
 
 vi.mock("~/database", () => ({ default: {} }));
 vi.mock("~/operations/getServiceLinks", () => ({ default: mocks.getServiceLinks }));
+vi.mock("~/operations/syncReverseProxyLinks", () => ({ default: mocks.updateReverseProxyLinks }));
 vi.mock("~/core/docker", () => ({
   docker: {
     listNetworks: mocks.listNetworks,
@@ -116,6 +118,44 @@ describe("syncLinkNetwork", () => {
     await expect(syncLinkNetwork("l1")).resolves.toBeUndefined();
     expect(mocks.disconnect.mock.calls).toEqual([["id-buttler-link-l1", { Container: "ca", Force: true }]]);
     expect(mocks.remove).toHaveBeenCalledWith("id-buttler-link-l1");
+  });
+});
+
+describe("syncReverseProxyLinks", () => {
+  it("syncs the networks of the links that nginx has or had with the service", async () => {
+    links = [{ id: "l1", serviceAId: "a", serviceBId: "proxy" }];
+    networks = [linkNetwork("l2")];
+    mocks.updateReverseProxyLinks.mockReturnValue(["l1", "l2"]);
+    mocks.listContainers.mockResolvedValue([
+      container("ca", "a"),
+      container("nginx", "proxy", ["buttler-link-l2"]),
+    ]);
+    await syncReverseProxyLinks("a");
+    expect(mocks.updateReverseProxyLinks).toHaveBeenCalledWith({}, "a");
+    expect(mocks.connect.mock.calls).toEqual([
+      ["id-buttler-link-l1", { Container: "ca" }],
+      ["id-buttler-link-l1", { Container: "nginx" }],
+    ]);
+    expect(mocks.disconnect.mock.calls).toEqual([["id-buttler-link-l2", { Container: "nginx", Force: true }]]);
+    expect(networks.map(network => network.Name)).toEqual(["buttler-link-l2", "buttler-link-l1"]);
+  });
+
+  it("fails if the network of the service can't be set up", async () => {
+    links = [{ id: "l1", serviceAId: "a", serviceBId: "proxy" }];
+    mocks.updateReverseProxyLinks.mockReturnValue(["l1"]);
+    mocks.createNetwork.mockRejectedValue(new Error("no free subnet"));
+    await expect(syncReverseProxyLinks("a")).rejects.toThrow("no free subnet");
+  });
+
+  it("goes on after a link that failed, when all services are synced", async () => {
+    links = [{ id: "l1", serviceAId: "a", serviceBId: "proxy" }, { id: "l2", serviceAId: "b", serviceBId: "proxy" }];
+    mocks.updateReverseProxyLinks.mockReturnValue(["l1", "l2"]);
+    mocks.createNetwork.mockRejectedValueOnce(new Error("no free subnet"));
+    const logError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    await syncReverseProxyLinks();
+    expect(mocks.updateReverseProxyLinks).toHaveBeenCalledWith({}, undefined);
+    expect(mocks.createNetwork).toHaveBeenCalledTimes(2);
+    expect(logError).toHaveBeenCalledTimes(1);
   });
 });
 
