@@ -11,6 +11,7 @@ import { removeInternetNetwork } from "~/core/docker/internet";
 import { removeLinkNetworks } from "~/core/docker/links";
 import { isVolumeName, removeServiceContainers, removeServiceImages, removeVolumes } from "~/core/docker/removal";
 import {
+  type ServiceIdentity,
   type ServiceRef,
   assertServiceNotDeleting,
   getServiceRuntimeState,
@@ -41,6 +42,8 @@ import updateService, { MissingSecretValueError } from "~/operations/updateServi
 import { jsonField } from "~/utils/jsonField";
 import { adminMiddleware } from "./middlewares/admin";
 import { userMiddleware } from "./middlewares/user";
+
+const recreateField = z.literal("on").optional();
 
 const portsField = jsonField("invalid_ports", z.array(z.object({
   external: z.coerce.number().int().min(1).max(65535),
@@ -137,10 +140,13 @@ export const updateServiceAction = defineFormAction({
       value: z.string().nullable(),
     }))).optional(),
     volumes: volumesField.optional(),
+    // Otherwise the changes apply the next time the container is created
+    recreate: recreateField,
   }),
-  action: input => async (serviceId: string): Promise<Record<string, string>> => {
+  action: ({ recreate, ...input }) => async (serviceId: string): Promise<Record<string, string>> => {
     const service = await getService(db, serviceId);
     if (!service || service.type === "system") return displayMessage("error", "update_failed");
+    if (recreate && !await canRecreateContainer(service)) return displayMessage("error", "service_busy");
     // Only the services with a build step can use the other scopes
     const environmentVariables = service.type === "github"
       ? input.environmentVariables
@@ -163,6 +169,7 @@ export const updateServiceAction = defineFormAction({
     updateTag(`getSingleService(${serviceId})`);
     // Linked services may inherit variables that are built from them
     updateTag("getInheritedVariablesOfService(...)");
+    if (recreate && !await recreateContainer(serviceId)) return displayMessage("error", "recreate_failed");
     return {};
   },
 });
@@ -172,18 +179,12 @@ export const updateInternetAccessAction = defineFormAction({
   schema: z.object({
     internetAccess: internetAccessField,
     // Otherwise the change applies the next time the container is created
-    recreate: z.literal("on").optional(),
+    recreate: recreateField,
   }),
   action: input => async (serviceId: string): Promise<Record<string, string>> => {
     const service = await getService(db, serviceId);
     if (!service || service.type === "system") return displayMessage("error", "update_failed");
-    if (input.recreate) {
-      const { status } = await getServiceRuntimeState(service);
-      // The container is replaced anyway, and replacing it at the same time would fail
-      if (status === "building" || status === "pulling" || isServiceBusy(serviceId)) {
-        return displayMessage("error", "service_busy");
-      }
-    }
+    if (input.recreate && !await canRecreateContainer(service)) return displayMessage("error", "service_busy");
     try {
       updateService(db, serviceId, { internetAccess: input.internetAccess });
     } catch {
@@ -192,18 +193,30 @@ export const updateInternetAccessAction = defineFormAction({
     updateTag("getAllServices()");
     updateTag(`getSingleService(${serviceId})`);
     if (!input.recreate) return displayMessage("success", "saved");
-    try {
-      await restartServiceContainer(await getServiceToDeploy(serviceId));
-    } catch (error) {
-      // eslint-disable-next-line no-console
-      console.error(`Failed to recreate the container of service ${serviceId}:`, error);
-      return displayMessage("error", "recreate_failed");
-    } finally {
-      refresh();
-    }
+    if (!await recreateContainer(serviceId)) return displayMessage("error", "recreate_failed");
     return displayMessage("success", "recreated");
   },
 });
+
+/** The container is replaced anyway while it's built or pulled, and replacing it at the same time would fail */
+async function canRecreateContainer(service: ServiceIdentity) {
+  const { status } = await getServiceRuntimeState(service);
+  return status !== "building" && status !== "pulling" && !isServiceBusy(service.id);
+}
+
+/** Creates the container again, so it gets the saved changes */
+async function recreateContainer(serviceId: string) {
+  try {
+    await restartServiceContainer(await getServiceToDeploy(serviceId));
+    return true;
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error(`Failed to recreate the container of service ${serviceId}:`, error);
+    return false;
+  } finally {
+    refresh();
+  }
+}
 
 /** The service itself is deleted last, so a deletion that fails can be tried again */
 async function removeService({ id, volumes }: { id: string, volumes: { name: string }[] }, chosenVolumes: string[]) {
