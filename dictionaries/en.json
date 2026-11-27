@@ -137,6 +137,16 @@
         "remove_failed": "This user could not be removed."
       }
     },
+    "systemServices": {
+      "title": "System services",
+      "description": "Buttler runs the reverse proxy and the Cloudflare tunnel as services of its own. Their pages keep working when they are hidden from the services list.",
+      "show": "Show system services in the services list",
+      "save": "Save",
+      "saving": "Saving...",
+      "messages": {
+        "saved": "Saved."
+      }
+    },
     "domain": {
       "title": "Dashboard domain",
       "description": "The public hostname of this Buttler dashboard.",
