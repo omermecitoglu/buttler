@@ -97,7 +97,13 @@ const ServiceInfo = async ({ params }: ServiceInfoProps) => {
         </ServiceInfoSection>
         <ServiceInfoSection
           title={t("ports")}
-          action={renderEdit({ section: "ports", ports: service.ports, exposedPorts })}
+          action={renderEdit({
+            section: "ports",
+            ports: service.ports,
+            exposedPorts,
+            hasContainer: runtime.containerId !== null,
+            isBusy: runtime.status === "pulling" || runtime.status === "building",
+          })}
         >
           {service.ports.length === 0 ? (
             <p className="text-sm text-slate-500">{t("noPorts")}</p>

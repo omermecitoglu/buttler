@@ -9,7 +9,15 @@ import EditVolumesField from "~/components/services/EditVolumesField";
 export type ServiceEdit =
   | { section: "name", name: string } |
   { section: "source", isGitHub: boolean, repository: string, branch: string } |
-  { section: "ports", ports: { external: number, internal: number }[], exposedPorts: number[] } |
+  {
+    section: "ports",
+    ports: { external: number, internal: number }[],
+    exposedPorts: number[],
+    /** Without a container, the changes apply when the service is started */
+    hasContainer: boolean,
+    /** A build or a pull replaces the container anyway */
+    isBusy: boolean,
+  } |
   { section: "variables", isGitHub: boolean, variables: SavedVariable[] } |
   { section: "volumes", volumes: { id: string, name: string, containerPath: string }[] };
 
