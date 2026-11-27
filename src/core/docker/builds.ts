@@ -1,5 +1,6 @@
 import { docker } from "~/core/docker";
 import { type BuildRecord, listBuildRecords } from "./build-history";
+import { CONFLICT, NOT_FOUND, ignoreStatus } from "./errors";
 import {
   BUTTLER_BRANCH_LABEL,
   BUTTLER_BUILT_AT_LABEL,
@@ -104,4 +105,30 @@ export async function getBuildingServiceIds(): Promise<Set<string>> {
     .filter(record => parseRecord(record)?.status === "building")
     .map(record => record.labels[BUTTLER_SERVICE_LABEL])
     .filter(Boolean));
+}
+
+/** How many images of a service are kept for rollbacks, the newest ones */
+export const IMAGES_TO_KEEP = 5;
+
+/** Removing a tag only untags an image that has others, the last one removes it */
+async function removeImage(image: ServiceImage) {
+  // Docker refuses to remove an image that a container uses, also a stopped one
+  for (const reference of image.tags.length > 0 ? image.tags : [image.id]) {
+    await ignoreStatus(docker.getImage(reference).remove(), NOT_FOUND, CONFLICT);
+  }
+}
+
+/** Removes the older images of a service, except the ones that a container uses, e.g. after a rollback */
+export async function pruneServiceImages(serviceId: string) {
+  const [
+    images,
+    containers,
+  ] = await Promise.all([
+    listServiceImages(serviceId),
+    docker.listContainers({ all: true }),
+  ]);
+  const usedImages = new Set(containers.map(container => container.ImageID));
+  for (const image of images.slice(IMAGES_TO_KEEP)) {
+    if (!usedImages.has(image.id)) await removeImage(image);
+  }
 }

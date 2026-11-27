@@ -1,13 +1,22 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { getBuildingServiceIds, getServiceBuilds, listServiceImages } from "./builds";
+import { IMAGES_TO_KEEP, getBuildingServiceIds, getServiceBuilds, listServiceImages, pruneServiceImages } from "./builds";
 import type { BuildRecord } from "./build-history";
 
 const mocks = vi.hoisted(() => ({
   listImages: vi.fn(),
   listBuildRecords: vi.fn(),
+  listContainers: vi.fn(),
+  removeImage: vi.fn(),
 }));
 
-vi.mock("~/core/docker", () => ({ docker: { listImages: mocks.listImages, modem: "modem" } }));
+vi.mock("~/core/docker", () => ({
+  docker: {
+    listImages: mocks.listImages,
+    listContainers: mocks.listContainers,
+    getImage: (reference: string) => ({ remove: () => mocks.removeImage(reference) as Promise<unknown> }),
+    modem: "modem",
+  },
+}));
 vi.mock("./build-history", () => ({ listBuildRecords: mocks.listBuildRecords }));
 
 const labels = (serviceId: string, commit: string, builtAt: string) => ({
@@ -124,5 +133,58 @@ describe("builds", () => {
 
   it("should find the services that are being built", async () => {
     expect(await getBuildingServiceIds()).toEqual(new Set(["srv"]));
+  });
+});
+
+describe("pruneServiceImages", () => {
+  const image = (index: number, tags: string[] | null = [`buttler/app:c${index}`]) => ({
+    Id: `sha256:${index}`,
+    RepoTags: tags,
+    Labels: labels("srv", `c${index}`, `2026-01-${String(10 + index)}T00:00:00.000Z`),
+    Size: 1,
+    Created: 1,
+  });
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.listContainers.mockResolvedValue([]);
+    mocks.removeImage.mockResolvedValue(undefined);
+  });
+
+  it("should keep the newest images", async () => {
+    mocks.listImages.mockResolvedValue([1, 2, 3, 4, 5, 6, 7].map(index => image(index)));
+    await pruneServiceImages("srv");
+    expect(IMAGES_TO_KEEP).toBe(5);
+    expect(mocks.removeImage.mock.calls).toEqual([["buttler/app:c2"], ["buttler/app:c1"]]);
+  });
+
+  it("should never remove an image that a container uses", async () => {
+    mocks.listImages.mockResolvedValue([1, 2, 3, 4, 5, 6, 7].map(index => image(index)));
+    mocks.listContainers.mockResolvedValue([{ ImageID: "sha256:1" }]);
+    await pruneServiceImages("srv");
+    expect(mocks.removeImage.mock.calls).toEqual([["buttler/app:c2"]]);
+  });
+
+  it("should remove every tag of an image, or the ID of one without tags", async () => {
+    mocks.listImages.mockResolvedValue([
+      ...[3, 4, 5, 6, 7].map(index => image(index)),
+      image(2, ["buttler/old-name:c2", "buttler/app:c2"]),
+      image(1, ["<none>:<none>"]),
+    ]);
+    await pruneServiceImages("srv");
+    expect(mocks.removeImage.mock.calls).toEqual([["buttler/old-name:c2"], ["buttler/app:c2"], ["sha256:1"]]);
+  });
+
+  it("should ignore an image that is used or removed in the meantime", async () => {
+    mocks.listImages.mockResolvedValue([1, 2, 3, 4, 5, 6, 7].map(index => image(index)));
+    mocks.removeImage.mockRejectedValueOnce(Object.assign(new Error("conflict"), { statusCode: 409 }));
+    mocks.removeImage.mockRejectedValueOnce(Object.assign(new Error("gone"), { statusCode: 404 }));
+    await expect(pruneServiceImages("srv")).resolves.toBeUndefined();
+  });
+
+  it("should keep everything while there are only a few images", async () => {
+    mocks.listImages.mockResolvedValue([1, 2, 3].map(index => image(index)));
+    await pruneServiceImages("srv");
+    expect(mocks.removeImage).not.toHaveBeenCalled();
   });
 });
