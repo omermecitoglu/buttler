@@ -15,10 +15,15 @@ export type EditServiceFormProps = {
   onClose: () => void,
 };
 
+/** Ports and storage mounts can't be changed on an existing container */
+function canRecreate(edit: ServiceEdit) {
+  return "hasContainer" in edit && edit.hasContainer && !edit.isBusy;
+}
+
 /** Tells what needs to be done to apply the changes */
 function getHelpKey(edit: ServiceEdit, recreate: boolean) {
   if (edit.section === "name") return null;
-  if (edit.section === "ports") {
+  if ("hasContainer" in edit) {
     if (!edit.hasContainer) return "onStart";
     if (edit.isBusy) return "onDeploy";
     return recreate ? "recreateNow" : "onRestart";
@@ -34,7 +39,6 @@ const EditServiceForm = ({ action, edit, onClose }: EditServiceFormProps) => {
   const [isSaving, setIsSaving] = useState(false);
   // Controlled, so it isn't reset when the action fails
   const [recreate, setRecreate] = useState(false);
-  const canRecreate = edit.section === "ports" && edit.hasContainer && !edit.isBusy;
   const helpKey = getHelpKey(edit, recreate);
 
   const handleAction = async (state: unknown, formData: FormData) => {
@@ -66,7 +70,7 @@ const EditServiceForm = ({ action, edit, onClose }: EditServiceFormProps) => {
   return (
     <Form action={handleAction} messages={messages} className="flex w-full flex-col items-stretch gap-6">
       <EditServiceFields edit={edit} />
-      {canRecreate && (
+      {canRecreate(edit) && (
         <div className="flex items-start gap-2">
           <input
             id={recreateId}

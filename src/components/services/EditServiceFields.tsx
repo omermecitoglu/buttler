@@ -7,20 +7,28 @@ import EditVariablesField, { type SavedVariable } from "~/components/services/Ed
 import EditVolumesField from "~/components/services/EditVolumesField";
 import type { VolumeOptions } from "~/data/services";
 
+/** Docker can't change these settings of an existing container, so it has to be recreated */
+type ContainerState = {
+  /** Without a container, the changes apply when the service is started */
+  hasContainer: boolean,
+  /** A build or a pull replaces the container anyway */
+  isBusy: boolean,
+};
+
 export type ServiceEdit =
   | { section: "name", name: string } |
   { section: "source", isGitHub: boolean, repository: string, branch: string } |
-  {
+  ({
     section: "ports",
     ports: { external: number, internal: number }[],
     exposedPorts: number[],
-    /** Without a container, the changes apply when the service is started */
-    hasContainer: boolean,
-    /** A build or a pull replaces the container anyway */
-    isBusy: boolean,
-  } |
+  } & ContainerState) |
   { section: "variables", isGitHub: boolean, variables: SavedVariable[] } |
-  { section: "volumes", volumes: { id: string, name: string, containerPath: string }[], options: VolumeOptions };
+  ({
+    section: "volumes",
+    volumes: { id: string, name: string, containerPath: string }[],
+    options: VolumeOptions,
+  } & ContainerState);
 
 export type EditServiceFieldsProps = {
   edit: ServiceEdit,
