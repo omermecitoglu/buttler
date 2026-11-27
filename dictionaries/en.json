@@ -234,7 +234,7 @@
       "imported": "{count, plural, one {# service was imported.} other {# services were imported.}}",
       "deployed": "Being deployed",
       "waiting": "Waiting for their secrets",
-      "waitingHelp": "Their secrets were left out of the file. Fill them in on the settings of each service, then deploy it.",
+      "waitingHelp": "Their secrets were left out of the file. Fill them in with \"Edit environment variables\" on the page of each service, then start it.",
       "conflicts": {
         "title": "Nothing was imported, because some things are already taken:",
         "name": "A service called \"{name}\" already exists.",
