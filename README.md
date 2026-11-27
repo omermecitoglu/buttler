@@ -51,7 +51,7 @@ Your computer doesn't need a public IP address or an open port, the tunnel is th
 
 ## Requirements
 
-- [Node.js](https://nodejs.org) >= v22.5 and [npm](https://www.npmjs.com)
+- [Node.js](https://nodejs.org) >= v24 and [npm](https://www.npmjs.com)
 - [Docker](https://www.docker.com)
 - A [Cloudflare](https://www.cloudflare.com) account with a domain
 - A [GitHub](https://github.com) account, for the GitHub App that Buttler creates during the setup
