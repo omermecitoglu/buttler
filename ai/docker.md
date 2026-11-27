@@ -52,7 +52,7 @@ Docker is the single source of truth for builds, nothing about them is stored in
 ## Deletion
 
 - Only the admin can delete a service (`deleteServiceAction`), from the "Settings" tab of its page. System services can't be deleted, and neither can services that are being built or pulled, because they would be deployed again.
-- The container, its internet and link networks, the built images, the chosen volumes and the domains in the Nginx config are removed before the database row, so a deletion that fails can be tried again (`src/core/docker/removal.ts`).
+- The container, its own and link networks, the built images, the chosen volumes and the domains in the Nginx config are removed before the database row, so a deletion that fails can be tried again (`src/core/docker/removal.ts`).
 - Containers are matched by the label or the `buttler-service-<id>` name only. `matchContainerForService` also matches by the service name, which may find an unrelated container.
 - Volumes are kept, except the ones that are chosen in the dialog. The ones that other services or containers use are always kept. Stopped services have no container, so the `volumes` table is checked too (`getSharedVolumes`).
 - Only the volumes that Buttler created can be chosen, and `removeVolumes` checks the label too.
@@ -62,10 +62,11 @@ Docker is the single source of truth for builds, nothing about them is stored in
 
 - Services are isolated: a service container is never on the default `bridge` network, and never on a network with another service.
 - Whether a service has internet access is the `internet_access` column of `services`. The create form requires a choice, existing services got internet access with the migration.
-- Every service has its own internet network (`src/core/docker/internet.ts`), a non-internal bridge network named `buttler-internet-<service id>` and labelled `buttler.network=internet`.
-- A deploy creates the container on its internet network (`NetworkMode`), because a container that is created without a network joins the default `bridge` network. A service without internet access leaves it before the container is started, and the network is removed.
+- Every service has its own network (`ensureServiceNetwork` in `src/core/docker/internet.ts`). With internet access it's a bridge network named `buttler-internet-<service id>` and labelled `buttler.network=internet`. Without it, it's an internal bridge network named `buttler-isolated-<service id>` and labelled `buttler.network=isolated`.
+- A deploy creates the container on that network (`NetworkMode`), because a container that is created without a network joins the default `bridge` network. The container stays on it: Docker can't start a container whose `NetworkMode` network is gone, also not after a stop or a restart of Docker (#223).
 - `NetworkMode: "none"` is not used, a container with it can never join a network later (links).
-- A change of internet access is only applied when the container is created again. The settings form offers to recreate it right away (`updateInternetAccessAction`), otherwise it's applied by the next restart, start or deploy.
+- A change of internet access is only applied when the container is created again. The settings form offers to recreate it right away (`updateInternetAccessAction`), otherwise it's applied by the next restart, start or deploy. The network of the other kind is removed after the old container (`removeServiceNetworks`).
+- Older versions took a container without internet access off its internet network and removed it. Docker can't start these containers again, so they stay stopped after a restart of Docker until they are started or deployed in Buttler, which creates a new container.
 - Containers that were created before keep the default `bridge` network until they are recreated.
 - Host ports that a service publishes are not affected.
 
