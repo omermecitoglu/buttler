@@ -1,4 +1,7 @@
 import z from "zod";
+import { variableNamePattern } from "~/models/shared-variable";
+import { isVolumeName } from "./docker/removal";
+import { isHostname } from "./domains";
 import { environmentVariableScopes } from "./environment-variables";
 
 /** Changes when the format of the file changes, so older files can still be read or rejected */
@@ -19,22 +22,23 @@ const ServiceRecipeServiceSchema = z.object({
     internal: z.int().min(1).max(65535),
   })),
   volumes: z.array(z.object({
-    name: z.string().min(1),
-    containerPath: z.string().min(1),
+    // Docker doesn't accept other names, paths are on the host
+    name: z.string().refine(name => isVolumeName(name) || name.startsWith("/")),
+    containerPath: z.string().startsWith("/"),
   })),
   environmentVariables: z.array(z.object({
-    key: z.string().min(1),
+    key: z.string().regex(variableNamePattern),
     /** Secret values are never exported */
     value: z.string().nullable(),
     scope: z.enum(environmentVariableScopes),
     isSecret: z.boolean(),
   })),
   domains: z.array(z.object({
-    hostname: z.string().min(1),
+    hostname: z.string().refine(isHostname),
     port: z.int().min(1).max(65535),
   })),
   sharedVariables: z.array(z.object({
-    key: z.string().min(1),
+    key: z.string().regex(variableNamePattern),
     template: z.string(),
   })),
 });
@@ -48,16 +52,58 @@ const ServiceRecipeLinkSchema = z.object({
   names: z.array(z.object({
     /** The service that shares the variable */
     service: z.string().min(1),
-    key: z.string().min(1),
-    name: z.string().min(1),
+    key: z.string().regex(variableNamePattern),
+    name: z.string().regex(variableNamePattern),
   })),
 });
+
+function hasDuplicates(values: string[]) {
+  return new Set(values).size !== values.length;
+}
+
+/** A file that is edited by hand can refer to things that aren't in it */
+function checkReferences(recipe: { services: ServiceRecipeService[], links: ServiceRecipeLink[] }, ctx: z.RefinementCtx) {
+  const services = new Map(recipe.services.map(service => [service.id, service]));
+  if (services.size !== recipe.services.length) {
+    ctx.addIssue({ code: "custom", message: "duplicate_service_ids", path: ["services"] });
+  }
+  if (hasDuplicates(recipe.services.flatMap(service => service.domains.map(({ hostname }) => hostname)))) {
+    ctx.addIssue({ code: "custom", message: "duplicate_domains", path: ["services"] });
+  }
+  for (const [index, service] of recipe.services.entries()) {
+    if (hasDuplicates(service.environmentVariables.map(({ key }) => key))) {
+      ctx.addIssue({ code: "custom", message: "duplicate_environment_variables", path: ["services", index] });
+    }
+    if (hasDuplicates(service.sharedVariables.map(({ key }) => key))) {
+      ctx.addIssue({ code: "custom", message: "duplicate_shared_variables", path: ["services", index] });
+    }
+    if (hasDuplicates(service.ports.map(({ external }) => String(external)))) {
+      ctx.addIssue({ code: "custom", message: "duplicate_ports", path: ["services", index] });
+    }
+  }
+  if (hasDuplicates(recipe.links.map(link => [...link.services].sort().join(" ")))) {
+    ctx.addIssue({ code: "custom", message: "duplicate_links", path: ["links"] });
+  }
+  for (const [index, link] of recipe.links.entries()) {
+    const [first, second] = link.services;
+    if (first === second || !services.has(first) || !services.has(second)) {
+      ctx.addIssue({ code: "custom", message: "unknown_link_service", path: ["links", index] });
+      continue;
+    }
+    const namesAreValid = link.names.every(({ service, key }) => {
+      return link.services.includes(service) && services.get(service)?.sharedVariables.some(variable => variable.key === key);
+    });
+    if (!namesAreValid || hasDuplicates(link.names.map(({ service, key }) => `${service} ${key}`))) {
+      ctx.addIssue({ code: "custom", message: "unknown_shared_variable", path: ["links", index] });
+    }
+  }
+}
 
 export const ServiceRecipeSchema = z.object({
   version: z.literal(SERVICE_RECIPE_VERSION),
   services: z.array(ServiceRecipeServiceSchema),
   links: z.array(ServiceRecipeLinkSchema),
-});
+}).superRefine(checkReferences);
 
 export type ServiceRecipe = z.infer<typeof ServiceRecipeSchema>;
 export type ServiceRecipeService = z.infer<typeof ServiceRecipeServiceSchema>;
