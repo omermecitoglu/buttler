@@ -4,11 +4,16 @@ import { faArrowsRotate } from "@fortawesome/free-solid-svg-icons/faArrowsRotate
 import { faPlus } from "@fortawesome/free-solid-svg-icons/faPlus";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useTranslations } from "next-intl";
-import { useTransition } from "react";
+import { type ReactNode, useTransition } from "react";
 import Button from "~/components/ui/button";
 import { Link, useRouter } from "~/i18n/navigation";
 
-const ServicesHeader = () => {
+export type ServicesHeaderProps = {
+  /** Rendered on the server, it needs the services */
+  exportButton?: ReactNode,
+};
+
+const ServicesHeader = ({ exportButton }: ServicesHeaderProps) => {
   const t = useTranslations("DashboardPage");
   const router = useRouter();
   const [isRefreshing, startTransition] = useTransition();
@@ -39,6 +44,7 @@ const ServicesHeader = () => {
           />
           <span>{isRefreshing ? t("refreshing") : t("refresh")}</span>
         </Button>
+        {exportButton}
         <Link href="/services/new">
           <Button variant="primary" size="sm" className="gap-2">
             <FontAwesomeIcon icon={faPlus} className="size-3" />
