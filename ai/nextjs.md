@@ -41,3 +41,9 @@ The proxy only redirects to the login page for convenience. Every entry point ch
 - The installation starts with `await requireSetup()`, see `ai/setup.md`.
 
 `src/core/auth-coverage.test.ts` finds the entry points by their location, and fails if one of them is left open. Exceptions are listed there.
+
+## GitHub Login
+
+- The login button is a plain link to `/auth/github/login`, which puts a random `state` in the session and redirects to GitHub. A route handler needs a full page load, so it's not a `<Link>`.
+- `/auth/github` only exchanges the code if the `state` matches the one of the session. The state can be used once, for 10 minutes, so a login can't be started by another site.
+- Every failure (an invalid or expired code, an error of GitHub, an unreachable GitHub) ends on the login page with an error, the reason is in the server log. Nothing is written to the session before the code is exchanged.
