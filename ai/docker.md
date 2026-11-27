@@ -37,6 +37,7 @@ Docker is the single source of truth for builds, nothing about them is stored in
 - The container, its internet and link networks, the built images, the chosen volumes and the domains in the Nginx config are removed before the database row, so a deletion that fails can be tried again (`src/core/docker/removal.ts`).
 - Containers are matched by the label or the `buttler-service-<id>` name only. `matchContainerForService` also matches by the service name, which may find an unrelated container.
 - Volumes are kept, except the ones that are chosen in the dialog. The ones that other services or containers use are always kept. Stopped services have no container, so the `volumes` table is checked too (`getSharedVolumes`).
+- Only the volumes that Buttler created can be chosen, and `removeVolumes` checks the label too.
 - Docker Hub images are never removed, other containers may use them.
 
 ## Service Networks
@@ -94,6 +95,14 @@ Docker is the single source of truth for builds, nothing about them is stored in
 - The port of Buttler stays open on the host, for the installation and for the instances without a domain.
 - GitHub only knows the address that was used for the installation. The settings page shows the URLs that have to be changed in the GitHub App.
 - HTTPS ends at Cloudflare, so `X-Forwarded-Proto` is always `https`.
+
+## Volumes
+
+- Buttler labels the volumes it creates with `buttler.volume`, when a deploy creates them. Creating a volume that already exists doesn't change it, so volumes from outside never get the label.
+- Volumes that Buttler created before the label look like they are from outside: they keep working and can still be attached by typing their name, but they are not listed and are never deleted with their service.
+- A storage mount either types the name of a new volume, or picks one of the labelled volumes (`getVolumeOptions` in `src/data/services.ts`, read live from Docker).
+- Volume names are passed to Docker as they are, so two services with the same name share one volume. The form warns with the names of the other services that mount it (`getVolumeUsers`), sharing is still allowed. Stopped services have no container, so this comes from the `volumes` table.
+- Volumes that nothing uses are not listed or removed anywhere else.
 
 ## Container Logs
 
