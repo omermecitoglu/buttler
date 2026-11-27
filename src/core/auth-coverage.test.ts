@@ -30,6 +30,7 @@ const publicActions = ["session.ts: logout", "install.ts: installApp"];
 const routesWithoutSession = [
   "auth/cloudflare/route.ts",
   "auth/github-install/route.ts",
+  "auth/github/login/route.ts",
   "auth/github/route.ts",
   "auth/instance/route.ts",
   "auth/setup/route.ts",

@@ -4,6 +4,7 @@ import { getIronSession } from "iron-session";
 import { cookies } from "next/headers";
 import { getPublicOrigin, isLoopbackOrigin } from "./headers";
 import { getSetting, setSetting } from "./settings";
+import type { PendingGitHubLogin } from "./github/login";
 
 export type SessionUser = {
   login: string,
@@ -25,6 +26,7 @@ type SessionData = {
   user?: SessionUser,
   githubToken?: string,
   cloudflare?: PendingCloudflareAuthorization,
+  githubLogin?: PendingGitHubLogin,
   /** The code of the setup link that was opened in this browser */
   setupCode?: string,
 };

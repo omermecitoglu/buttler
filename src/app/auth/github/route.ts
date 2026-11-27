@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getAccess } from "~/core/access";
-import { getUser } from "~/core/github/users";
+import { isSameSecret } from "~/core/compare";
+import { type GitHubLogin, exchangeLoginCode } from "~/core/github/login";
 import { getPublicOrigin } from "~/core/headers";
 import { getHomePath } from "~/core/home";
 import { getSession } from "~/core/session";
@@ -21,72 +22,69 @@ async function completeSetup(account: NewUserDTO) {
   return true;
 }
 
-export async function GET(request: Request) {
-  const { searchParams, pathname } = new URL(request.url);
-  const code = searchParams.get("code");
-
-  if (!code) {
-    return Response.json({ error: "Missing code" }, { status: 400 });
-  }
-
+/** An expired or invalid code, or an unreachable GitHub, is only written to the server log */
+async function exchangeCode(code: string, redirectUri: string): Promise<GitHubLogin | null> {
   const [
     clientId,
     clientSecret,
-    session,
-    publicOrigin,
   ] = await Promise.all([
     getSetting("github_client_id"),
     getSetting("github_client_secret"),
+  ]);
+  try {
+    if (!clientId || !clientSecret) throw new Error("The GitHub App is not set up");
+    return await exchangeLoginCode(clientId, clientSecret, code, redirectUri);
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error("Failed to log in with GitHub:", error);
+    return null;
+  }
+}
+
+export async function GET(request: Request) {
+  const { searchParams, pathname } = new URL(request.url);
+  const [
+    session,
+    publicOrigin,
+  ] = await Promise.all([
     getSession(),
     getPublicOrigin(request.headers),
   ]);
 
-  if (!clientId) {
-    throw new Error("Client ID of the GitHub App is missing in the configurations!");
-  }
-  if (!clientSecret) {
-    throw new Error("Client secret of the GitHub App is missing in the configurations!");
-  }
+  const state = searchParams.get("state");
+  const pending = session.githubLogin;
+  // A login that another site started has no state in this browser
+  if (!state || !pending || !isSameSecret(state, pending.state)) return redirect("/login?error=invalid_state");
 
-  const originURL = new URL(pathname, publicOrigin).toString();
+  // It can only be used once
+  delete session.githubLogin;
+  await session.save();
 
-  try {
-    const tokenRes = await fetch("https://github.com/login/oauth/access_token", {
-      method: "POST",
-      headers: {
-        "Accept": "application/json",
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        client_id: clientId,
-        client_secret: clientSecret,
-        code,
-        redirect_uri: originURL,
-      }),
-    });
+  if (pending.expiresAt < Date.now()) return redirect("/login?error=invalid_state");
+  const error = searchParams.get("error");
+  if (error !== null) return redirect(`/login?error=${error === "access_denied" ? "access_denied" : "github"}`);
+  const code = searchParams.get("code");
+  if (!code) return redirect("/login?error=missing_code");
 
-    const data = await tokenRes.json();
-    const user = await getUser(data.access_token);
-    const account = { id: user.id, login: user.login, avatar: user.avatar };
-    if (await completeSetup(account)) delete session.setupCode;
-    if (!await getAccess(user.id)) {
-      session.destroy();
-      return redirect(await hasAdmin(db) ? "/login?error=not_allowed" : "/login?error=setup_link");
-    }
-    await updateUser(db, account);
-    session.userId = user.id;
-    session.user = {
-      login: user.login,
-      name: user.name,
-      avatar: user.avatar,
-    };
-    session.githubToken = data.access_token;
-    await session.save();
-    return redirect(getHomePath(publicOrigin));
-  } catch (error) {
-    if (typeof error === "object" && error && "message" in error && error.message === "NEXT_REDIRECT") {
-      throw error;
-    }
-    return redirect("/login?error=github");
+  // Nothing is written to the session before the code is exchanged
+  const login = await exchangeCode(code, new URL(pathname, publicOrigin).toString());
+  if (!login) return redirect("/login?error=github");
+  const { token, user } = login;
+
+  const account = { id: user.id, login: user.login, avatar: user.avatar };
+  if (await completeSetup(account)) delete session.setupCode;
+  if (!await getAccess(user.id)) {
+    session.destroy();
+    return redirect(await hasAdmin(db) ? "/login?error=not_allowed" : "/login?error=setup_link");
   }
+  await updateUser(db, account);
+  session.userId = user.id;
+  session.user = {
+    login: user.login,
+    name: user.name,
+    avatar: user.avatar,
+  };
+  session.githubToken = token;
+  await session.save();
+  return redirect(getHomePath(publicOrigin));
 }

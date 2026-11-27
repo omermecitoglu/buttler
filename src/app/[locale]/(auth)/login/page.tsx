@@ -1,8 +1,6 @@
 import { faGithub } from "@fortawesome/free-brands-svg-icons/faGithub";
 import { faCircleExclamation } from "@fortawesome/free-solid-svg-icons/faCircleExclamation";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { getPublicOrigin } from "@omer-x/next-utils";
-import ExternalLink from "next/link";
 import { connection } from "next/server";
 import { getTranslations } from "next-intl/server";
 import { Suspense } from "react";
@@ -11,11 +9,11 @@ import Card from "~/components/ui/card";
 import { getSetting } from "~/core/settings";
 import { Link } from "~/i18n/navigation";
 
-type KnownError = "github" | "access_denied" | "not_allowed" | "missing_code" | "setup_link";
+type KnownError = "github" | "access_denied" | "not_allowed" | "missing_code" | "setup_link" | "invalid_state";
 
 const isKnownError = (val: unknown): val is KnownError => (
   val === "github" || val === "access_denied" || val === "not_allowed" || val === "missing_code" ||
-  val === "setup_link"
+  val === "setup_link" || val === "invalid_state"
 );
 
 type LoginErrorMessageProps = {
@@ -37,25 +35,15 @@ async function LoginErrorMessage({ searchParams }: LoginErrorMessageProps) {
   );
 }
 
-async function GitHubLoginButton({
-  clientId,
-  label,
-}: {
-  clientId: string,
-  label: string,
-}) {
-  const publicOrigin = await getPublicOrigin();
-  const redirectURI = new URL("/auth/github", publicOrigin).toString();
-  const authUrl = new URL("https://github.com/login/oauth/authorize");
-  authUrl.searchParams.set("client_id", clientId);
-  authUrl.searchParams.set("redirect_uri", redirectURI);
-  authUrl.searchParams.set("scope", "read:user");
-
+/** A plain link, the route sets the state of the login and redirects to GitHub */
+function GitHubLoginButton({ label }: { label: string }) {
   return (
     <Button
       size="lg"
       className="w-full justify-center gap-2.5"
-      render={<ExternalLink href={authUrl.toString()} />}
+      // The content comes from the button, and a route handler needs a full page load, not the router
+      // eslint-disable-next-line jsx-a11y/anchor-has-content, @next/next/no-html-link-for-pages
+      render={<a href="/auth/github/login" />}
       nativeButton={false}
     >
       <FontAwesomeIcon icon={faGithub} className="size-5" />
@@ -108,9 +96,7 @@ async function LoginCard({ searchParams }: LoginErrorMessageProps) {
       <Suspense fallback={null}>
         <LoginErrorMessage searchParams={searchParams} />
       </Suspense>
-      <Suspense fallback={<div className="h-12 w-full animate-pulse rounded-lg bg-slate-800" />}>
-        <GitHubLoginButton clientId={clientId} label={t("continueWithGitHub")} />
-      </Suspense>
+      <GitHubLoginButton label={t("continueWithGitHub")} />
     </Card>
   );
 }
