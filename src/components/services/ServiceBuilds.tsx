@@ -1,6 +1,7 @@
 import { cn } from "@omer-x/tailwind-ui-kit/utils";
 import { connection } from "next/server";
 import { getFormatter, getTranslations } from "next-intl/server";
+import BuildCommits from "~/components/services/BuildCommits";
 import Card from "~/components/ui/card";
 import type { ServiceBuild } from "~/core/docker/builds";
 import { getBuildsOfService, getServiceWithLiveStatus } from "~/data/services";
@@ -40,10 +41,15 @@ const ServiceBuilds = async ({ params }: ServiceBuildsProps) => {
     );
   }
 
+  /** The commits of the builds are compared with the commit of the previous ready build */
+  const previousCommits = builds.map((_, index) => (
+    builds.slice(index + 1).find(build => build.status === "ready" && build.commit)?.commit ?? null
+  ));
+
   return (
     <Card className="p-0">
       <ul className="divide-y divide-slate-800/80">
-        {builds.map(build => (
+        {builds.map((build, index) => (
           <li key={build.id} className="flex flex-col gap-2 px-6 py-4">
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
               <span className={cn("rounded-full border px-2.5 py-0.5 text-xs font-medium", statusClasses[build.status])}>
@@ -69,6 +75,9 @@ const ServiceBuilds = async ({ params }: ServiceBuildsProps) => {
                 )}
               </span>
             </div>
+            {build.commit && (
+              <BuildCommits serviceId={id} commit={build.commit} previousCommit={previousCommits[index]} />
+            )}
             {build.status === "ready" && build.tags.length > 0 && (
               <p className="font-mono text-xs break-all text-slate-500">{build.tags.join(", ")}</p>
             )}
