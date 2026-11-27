@@ -1,13 +1,12 @@
 import os from "node:os";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { ensureInternetNetwork, removeInternetNetwork } from "./internet";
+import { ensureServiceNetwork, removeServiceNetworks } from "./internet";
 
 type FakeNetwork = { Id: string, Name: string, Internal?: boolean, Labels?: Record<string, string> };
 
 const mocks = vi.hoisted(() => ({
   listNetworks: vi.fn(),
   createNetwork: vi.fn(),
-  disconnect: vi.fn(),
   remove: vi.fn(),
 }));
 
@@ -16,7 +15,6 @@ vi.mock("~/core/docker", () => ({
     listNetworks: mocks.listNetworks,
     createNetwork: mocks.createNetwork,
     getNetwork: (id: string) => ({
-      disconnect: (options: unknown) => mocks.disconnect(id, options) as unknown,
       remove: () => mocks.remove(id) as unknown,
     }),
   },
@@ -43,46 +41,65 @@ beforeEach(() => {
   });
 });
 
-describe("ensureInternetNetwork", () => {
-  it("creates a network that reaches the outside for the service", async () => {
-    await expect(ensureInternetNetwork("a")).resolves.toBe("buttler-internet-a");
+describe("ensureServiceNetwork", () => {
+  it("creates a network that reaches the outside for a service with internet access", async () => {
+    await expect(ensureServiceNetwork("a", true)).resolves.toBe("buttler-internet-a");
     expect(mocks.createNetwork).toHaveBeenCalledWith(expect.objectContaining({
       Name: "buttler-internet-a",
       Driver: "bridge",
+      Internal: false,
       Labels: expect.objectContaining({ "buttler.network": "internet", "buttler.service-id": "a" }),
     }));
-    expect(networks[0].Internal).toBeUndefined();
+  });
+
+  it("creates an internal network for a service without internet access", async () => {
+    await expect(ensureServiceNetwork("a", false)).resolves.toBe("buttler-isolated-a");
+    expect(mocks.createNetwork).toHaveBeenCalledWith(expect.objectContaining({
+      Name: "buttler-isolated-a",
+      Driver: "bridge",
+      Internal: true,
+      Labels: expect.objectContaining({ "buttler.network": "isolated", "buttler.service-id": "a" }),
+    }));
   });
 
   it("reuses the network of the service", async () => {
-    await Promise.all([ensureInternetNetwork("a"), ensureInternetNetwork("a")]);
+    await Promise.all([ensureServiceNetwork("a", false), ensureServiceNetwork("a", false)]);
     expect(mocks.createNetwork).toHaveBeenCalledTimes(1);
   });
 
   it("never uses a network that isn't labelled by Buttler", async () => {
     networks.push({ Id: "foreign", Name: "buttler-internet-a" });
-    await ensureInternetNetwork("a");
+    await ensureServiceNetwork("a", true);
     expect(mocks.createNetwork).toHaveBeenCalledTimes(1);
   });
 });
 
-describe("removeInternetNetwork", () => {
-  it("disconnects the container and removes the network", async () => {
-    await ensureInternetNetwork("a");
-    await removeInternetNetwork("a", "container");
-    expect(mocks.disconnect).toHaveBeenCalledWith("id-buttler-internet-a", { Container: "container", Force: true });
-    expect(mocks.remove).toHaveBeenCalledWith("id-buttler-internet-a");
+describe("removeServiceNetworks", () => {
+  it("removes both networks of the service", async () => {
+    await ensureServiceNetwork("a", true);
+    await ensureServiceNetwork("a", false);
+    await removeServiceNetworks("a");
+    expect(mocks.remove.mock.calls).toEqual([["id-buttler-internet-a"], ["id-buttler-isolated-a"]]);
+  });
+
+  it.each([
+    [true, "id-buttler-isolated-a"],
+    [false, "id-buttler-internet-a"],
+  ])("keeps the network that matches the internet access (%s)", async (internetAccess, removed) => {
+    await ensureServiceNetwork("a", true);
+    await ensureServiceNetwork("a", false);
+    await removeServiceNetworks("a", internetAccess);
+    expect(mocks.remove.mock.calls).toEqual([[removed]]);
   });
 
   it("keeps a network that is still in use", async () => {
-    await ensureInternetNetwork("a");
+    await ensureServiceNetwork("a", true);
     mocks.remove.mockRejectedValue(dockerError(403));
-    await expect(removeInternetNetwork("a")).resolves.toBeUndefined();
-    expect(mocks.disconnect).not.toHaveBeenCalled();
+    await expect(removeServiceNetworks("a")).resolves.toBeUndefined();
   });
 
   it("does nothing without a network", async () => {
-    await removeInternetNetwork("a", "container");
+    await removeServiceNetworks("a");
     expect(mocks.remove).not.toHaveBeenCalled();
   });
 });

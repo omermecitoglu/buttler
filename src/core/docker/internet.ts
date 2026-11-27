@@ -5,38 +5,46 @@ import { BUTTLER_NETWORK_LABEL, BUTTLER_SERVICE_LABEL } from "./labels";
 import { createButtlerNetwork } from "./networks";
 
 const INTERNET_NETWORK = "internet";
+const ISOLATED_NETWORK = "isolated";
+
+type ServiceNetworkKind = typeof INTERNET_NETWORK | typeof ISOLATED_NETWORK;
 
 /** Two deploys of the same service must not create two networks */
 const enqueue = createQueue("internet-queue");
 
-function getInternetNetworkName(serviceId: string) {
-  return `buttler-internet-${serviceId}`;
+function getServiceNetworkKind(internetAccess: boolean): ServiceNetworkKind {
+  return internetAccess ? INTERNET_NETWORK : ISOLATED_NETWORK;
 }
 
 /** Only returns the networks that are created by Buttler */
-function listInternetNetworks(serviceId: string) {
+function listServiceNetworks(serviceId: string, kind: ServiceNetworkKind) {
   return docker.listNetworks({
     filters: {
       label: [
-        `${BUTTLER_NETWORK_LABEL}=${INTERNET_NETWORK}`,
+        `${BUTTLER_NETWORK_LABEL}=${kind}`,
         `${BUTTLER_SERVICE_LABEL}=${serviceId}`,
       ],
     },
   });
 }
 
-/** Returns the network that only the service is on and that reaches the outside, it's created if it's missing */
-export function ensureInternetNetwork(serviceId: string): Promise<string> {
+/**
+ * Returns the network that only the service is on, it's created if it's missing.
+ * It reaches the outside only if the service has internet access.
+ */
+export function ensureServiceNetwork(serviceId: string, internetAccess: boolean): Promise<string> {
   return enqueue(async () => {
-    const network = (await listInternetNetworks(serviceId)).at(0);
+    const kind = getServiceNetworkKind(internetAccess);
+    const network = (await listServiceNetworks(serviceId, kind)).at(0);
     if (network) return network.Name;
-    const name = getInternetNetworkName(serviceId);
+    const name = `buttler-${kind}-${serviceId}`;
     await createButtlerNetwork({
       Name: name,
       Driver: "bridge",
+      Internal: !internetAccess,
       Labels: {
         "com.docker.compose.project": "buttler",
-        [BUTTLER_NETWORK_LABEL]: INTERNET_NETWORK,
+        [BUTTLER_NETWORK_LABEL]: kind,
         [BUTTLER_SERVICE_LABEL]: serviceId,
       },
     });
@@ -44,16 +52,16 @@ export function ensureInternetNetwork(serviceId: string): Promise<string> {
   });
 }
 
-/** Disconnects the given container from the internet network of the service, and removes the network */
-export function removeInternetNetwork(serviceId: string, containerId?: string): Promise<void> {
+/** Removes the networks of the service, except the one that matches the given internet access */
+export function removeServiceNetworks(serviceId: string, keptInternetAccess?: boolean): Promise<void> {
   return enqueue(async () => {
-    for (const networkInfo of await listInternetNetworks(serviceId)) {
-      const network = docker.getNetwork(networkInfo.Id);
-      if (containerId) {
-        await ignoreStatus(network.disconnect({ Container: containerId, Force: true }), NOT_FOUND);
+    const kinds = [INTERNET_NETWORK, ISOLATED_NETWORK] as const;
+    const keptKind = keptInternetAccess === undefined ? null : getServiceNetworkKind(keptInternetAccess);
+    for (const kind of kinds.filter(k => k !== keptKind)) {
+      for (const networkInfo of await listServiceNetworks(serviceId, kind)) {
+        // Networks that are still used by a container are kept
+        await ignoreStatus(docker.getNetwork(networkInfo.Id).remove(), NOT_FOUND, FORBIDDEN);
       }
-      // Networks that are still used by a container are kept
-      await ignoreStatus(network.remove(), NOT_FOUND, FORBIDDEN);
     }
   });
 }

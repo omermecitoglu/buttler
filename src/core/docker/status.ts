@@ -14,7 +14,7 @@ import {
   isOwnContainer,
 } from "./containers";
 import { NOT_FOUND, NOT_MODIFIED, ignoreStatus } from "./errors";
-import { ensureInternetNetwork, removeInternetNetwork } from "./internet";
+import { ensureServiceNetwork, removeServiceNetworks } from "./internet";
 import { BUTTLER_SERVICE_LABEL, BUTTLER_VOLUME_LABEL } from "./labels";
 import { connectLinkNetworks } from "./links";
 import type { PullProgress } from "./pull-progress";
@@ -393,8 +393,10 @@ export async function deployServiceContainer(service: ServiceRef, image: string)
 async function replaceServiceContainer(service: ServiceRef, image: string) {
   // If the networks can't be created, the old container keeps running
   await connectLinkNetworks(service.id);
-  // A network given at creation replaces the default bridge network, where every container could reach the others
-  const internetNetwork = await ensureInternetNetwork(service.id);
+  const hasInternet = await hasInternetAccess(db, service.id);
+  // A network given at creation replaces the default bridge network, where every container could reach the others.
+  // It must exist as long as the container does, Docker can't start a container whose NetworkMode is gone.
+  const serviceNetwork = await ensureServiceNetwork(service.id, hasInternet);
 
   const ownContainers = (await docker.listContainers({ all: true })).filter(c => isOwnContainer(c, service.id));
   const oldInfo = matchContainerForService(service, ownContainers);
@@ -447,16 +449,15 @@ async function replaceServiceContainer(service: ServiceRef, image: string) {
       RestartPolicy: {
         Name: "unless-stopped",
       },
-      NetworkMode: internetNetwork,
+      NetworkMode: serviceNetwork,
     },
     NetworkingConfig: {
-      EndpointsConfig: { [internetNetwork]: {} },
+      EndpointsConfig: { [serviceNetwork]: {} },
     },
     ExposedPorts: exposedPorts,
     Tty: false,
   });
 
-  const hasInternet = await hasInternetAccess(db, service.id);
   const oldContainer = oldInfo ? docker.getContainer(oldInfo.Id) : null;
   // Two containers can't publish the same host port and shouldn't write to the same volume
   const needsDowntime = !!oldInfo && (Object.keys(portBindings).length > 0 || binds.length > 0);
@@ -464,10 +465,6 @@ async function replaceServiceContainer(service: ServiceRef, image: string) {
   try {
     // The links reach the new container by an alias, the old one keeps the name until it's removed
     await connectLinkNetworks(service.id);
-    // With NetworkMode "none" it could never join a network later, so it leaves the internet network before it starts
-    if (!hasInternet) {
-      await removeInternetNetwork(service.id, container.id);
-    }
     if (needsDowntime) {
       await ignoreStatus(oldContainer!.stop({ t: 10 }), NOT_MODIFIED, NOT_FOUND);
     }
@@ -504,14 +501,12 @@ async function replaceServiceContainer(service: ServiceRef, image: string) {
       console.error(`Failed to rename the new container of service ${service.id}:`, error);
     }
   }
-  // The old container may have kept the internet network of a service that has no internet access anymore
-  if (!hasInternet) {
-    try {
-      await removeInternetNetwork(service.id);
-    } catch (error) {
-      // eslint-disable-next-line no-console
-      console.error(`Failed to remove the internet network of service ${service.id}:`, error);
-    }
+  // The old container may have been on the other network, if the internet access of the service has changed
+  try {
+    await removeServiceNetworks(service.id, hasInternet);
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error(`Failed to remove the unused network of service ${service.id}:`, error);
   }
 }
 
