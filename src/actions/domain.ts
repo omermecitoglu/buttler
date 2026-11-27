@@ -3,7 +3,7 @@ import { defineFormAction, displayMessage } from "@omer-x/next-form-actions";
 import { refresh, updateTag } from "next/cache";
 import z from "zod";
 import { findDomainZone, syncDomains } from "~/core/cloudflare/domains";
-import { syncIngressNetwork } from "~/core/docker/ingress";
+import { syncReverseProxyLinks } from "~/core/docker/links";
 import { isHostname, isPort, joinHostname, normalizeHostname } from "~/core/domains";
 import { syncReverseProxyConfig } from "~/core/nginx";
 import db from "~/database";
@@ -18,7 +18,7 @@ import { setupMiddleware } from "./middlewares/setup";
 /** Another change may have used a domain before it was reverted, so everything is synced again */
 async function syncRevertedDomain(serviceId: ServiceDTO["id"]) {
   try {
-    await syncIngressNetwork(serviceId);
+    await syncReverseProxyLinks(serviceId);
     await syncReverseProxyConfig();
   } catch (error) {
     // eslint-disable-next-line no-console
@@ -43,7 +43,7 @@ export const addDomainAction = defineFormAction({
     if (!isHostname(hostname)) return displayMessage("error", "invalid_hostname");
     if (!createDomain(db, { hostname, serviceId, port })) return displayMessage("error", "hostname_taken");
     try {
-      await syncIngressNetwork(serviceId);
+      await syncReverseProxyLinks(serviceId);
     } catch (error) {
       // eslint-disable-next-line no-console
       console.error(`Failed to connect service ${serviceId} to the reverse proxy:`, error);
@@ -63,7 +63,8 @@ export const addDomainAction = defineFormAction({
     // It's only public after it can be served
     await syncDomains();
     updateTag(`getSingleService(${serviceId})`);
-    // nginx is connected to the services with a domain
+    // nginx is linked to the services with a domain
+    updateTag("getLinksOfService(...)");
     updateTag("getServiceGraph()");
     return {};
   },
@@ -91,14 +92,15 @@ export const removeDomainAction = defineFormAction({
       return displayMessage("error", "reload_failed");
     }
     try {
-      await syncIngressNetwork(serviceId);
+      await syncReverseProxyLinks(serviceId);
     } catch (error) {
-      // The domain is already gone, a leftover network is removed with the next sync
+      // The domain is already gone, a leftover link is removed with the next sync
       // eslint-disable-next-line no-console
       console.error(`Failed to disconnect service ${serviceId} from the reverse proxy:`, error);
     }
     updateTag(`getSingleService(${serviceId})`);
-    // nginx is connected to the services with a domain
+    // nginx is linked to the services with a domain
+    updateTag("getLinksOfService(...)");
     updateTag("getServiceGraph()");
     return {};
   },

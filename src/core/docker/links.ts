@@ -3,6 +3,7 @@ import { createQueue } from "~/core/queue";
 import db from "~/database";
 import type { ServiceLinkDTO } from "~/models/service-link";
 import getServiceLinks from "~/operations/getServiceLinks";
+import updateReverseProxyLinks from "~/operations/syncReverseProxyLinks";
 import { isOwnContainer } from "./containers";
 import { FORBIDDEN, NOT_FOUND, ignoreStatus } from "./errors";
 import { BUTTLER_LINK_LABEL, BUTTLER_NETWORK_LABEL, BUTTLER_SERVICE_LABEL } from "./labels";
@@ -110,6 +111,33 @@ export function syncLinkNetwork(linkId: string): Promise<void> {
       listContainers(),
     ]);
     await sync(linkId, links, containers);
+  });
+}
+
+/**
+ * Links nginx to a service while it has a domain, and syncs the network of that link.
+ * Without a service, it does the same for all of them, and a link that fails doesn't affect the others.
+ */
+export function syncReverseProxyLinks(serviceId?: string): Promise<void> {
+  return enqueue(async () => {
+    // The domains may have changed while waiting for other changes
+    const linkIds = updateReverseProxyLinks(db, serviceId);
+    const [
+      links,
+      containers,
+    ] = await Promise.all([
+      getServiceLinks(db),
+      listContainers(),
+    ]);
+    for (const linkId of linkIds) {
+      try {
+        await sync(linkId, links, containers);
+      } catch (error) {
+        if (serviceId) throw error;
+        // eslint-disable-next-line no-console
+        console.error(`Failed to sync the network of link ${linkId}:`, error);
+      }
+    }
   });
 }
 

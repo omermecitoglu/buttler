@@ -5,10 +5,12 @@ import getDashboardDomain from "~/operations/getDashboardDomain";
 import getDomains from "~/operations/getDomains";
 import { docker, executeCommandInContainer, pullImage } from "./docker";
 import { REVERSE_PROXY_CONTAINER_NAME } from "./docker/containers";
-import { getIngressAlias, syncIngressNetworks } from "./docker/ingress";
+import { removeIngressNetworks } from "./docker/ingress";
+import { syncReverseProxyLinks } from "./docker/links";
 import { connectProxyToTunnel } from "./docker/tunnel";
 import { HOST_GATEWAY, generateProxyConfig } from "./nginx-conf";
 import { createQueue } from "./queue";
+import { getServiceHost } from "./shared-variables";
 import { getFilePath, readFileContent, removeFile, saveFile } from "./storage";
 import type { ContainerInspectInfo } from "dockerode";
 
@@ -77,7 +79,8 @@ async function applyConfig(domains: Domain[], dashboardHostname: string | null) 
   await saveFile(CONF_DIR, CONF_FILE, generateProxyConfig(
     domains.map(({ hostname, serviceId, port }) => ({
       hostname,
-      host: getIngressAlias(serviceId),
+      // nginx reaches the services over their links, by the name of the container
+      host: getServiceHost(serviceId),
       port,
     })),
     dashboardHostname === null ? null : { hostname: dashboardHostname, port: getDashboardPort() },
@@ -153,12 +156,22 @@ function isOutdated({ Config: config, HostConfig: hostConfig }: ContainerInspect
 
 /** Nginx also has to run while the tunnel can't reach it */
 async function syncNetworks() {
-  await syncIngressNetworks();
+  await syncReverseProxyLinks();
   try {
     await connectProxyToTunnel();
   } catch (error) {
     // eslint-disable-next-line no-console
     console.error("Failed to connect the reverse proxy to the tunnel:", error);
+  }
+}
+
+/** Removed after the config uses the links, so the domains are served meanwhile */
+async function removeLegacyNetworks() {
+  try {
+    await removeIngressNetworks();
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error("Failed to remove the ingress networks:", error);
   }
 }
 
@@ -180,6 +193,7 @@ export async function provisionReverseProxy(options?: { db?: typeof db }) {
     if (!isOutdated(info)) {
       await syncNetworks();
       await syncReverseProxyConfig(databaseInstance);
+      await removeLegacyNetworks();
       if (!info.State.Running) {
         await container.start();
       }
@@ -221,6 +235,7 @@ export async function provisionReverseProxy(options?: { db?: typeof db }) {
 
   await syncNetworks();
   await created.start();
+  await removeLegacyNetworks();
   return created;
 }
 

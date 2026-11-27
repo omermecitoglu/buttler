@@ -26,7 +26,8 @@ const mockDocker = {
 };
 
 const mockPullImage = vi.fn();
-const mockSyncIngressNetworks = vi.fn();
+const mockSyncReverseProxyLinks = vi.fn();
+const mockRemoveIngressNetworks = vi.fn();
 const mockConnectProxyToTunnel = vi.fn<() => Promise<void>>();
 const mockExecuteCommand = vi.fn();
 const mockEnsureReverseProxyService = vi.fn();
@@ -49,8 +50,11 @@ vi.mock("./docker", () => ({
 vi.mock("~/database", () => ({ default: {} }));
 
 vi.mock("./docker/ingress", () => ({
-  getIngressAlias: (serviceId: string) => `service-${serviceId}`,
-  syncIngressNetworks: (...args: unknown[]) => mockSyncIngressNetworks(...args),
+  removeIngressNetworks: () => mockRemoveIngressNetworks(),
+}));
+
+vi.mock("./docker/links", () => ({
+  syncReverseProxyLinks: (...args: unknown[]) => mockSyncReverseProxyLinks(...args),
 }));
 
 vi.mock("./docker/tunnel", () => ({
@@ -114,7 +118,7 @@ describe("Reverse proxy system service management", () => {
       const result = await provisionReverseProxy();
       expect(mockEnsureReverseProxyService).toHaveBeenCalledTimes(1);
       expect(mockContainer.start).toHaveBeenCalledTimes(1);
-      expect(mockSyncIngressNetworks).toHaveBeenCalledBefore(mockContainer.start);
+      expect(mockSyncReverseProxyLinks).toHaveBeenCalledBefore(mockContainer.start);
       expect(result).toBe(mockContainer);
     });
 
@@ -123,7 +127,7 @@ describe("Reverse proxy system service management", () => {
 
       const result = await provisionReverseProxy();
       expect(mockContainer.start).not.toHaveBeenCalled();
-      expect(mockSyncIngressNetworks).toHaveBeenCalledTimes(1);
+      expect(mockSyncReverseProxyLinks).toHaveBeenCalledTimes(1);
       expect(result).toBe(mockContainer);
     });
 
@@ -156,8 +160,8 @@ describe("Reverse proxy system service management", () => {
       const [[{ HostConfig: hostConfig }]] = mockDocker.createContainer.mock.calls as [[{ HostConfig: object }]];
       expect(hostConfig).not.toHaveProperty("PortBindings");
       expect(newContainer.start).toHaveBeenCalledTimes(1);
-      expect(mockSyncIngressNetworks).toHaveBeenCalledAfter(mockDocker.createContainer);
-      expect(mockSyncIngressNetworks).toHaveBeenCalledBefore(newContainer.start);
+      expect(mockSyncReverseProxyLinks).toHaveBeenCalledAfter(mockDocker.createContainer);
+      expect(mockSyncReverseProxyLinks).toHaveBeenCalledBefore(newContainer.start);
       expect(result).toBe(newContainer);
     });
 
@@ -189,11 +193,34 @@ describe("Reverse proxy system service management", () => {
       expect(mockDocker.createContainer).toHaveBeenCalledTimes(1);
     });
 
+    it("removes the ingress networks after the config uses the links", async () => {
+      mockContainer.inspect.mockResolvedValue({ ...currentContainer, State: { Running: true } });
+      await provisionReverseProxy();
+      expect(mockSyncReverseProxyLinks).toHaveBeenCalledWith();
+      expect(mockRemoveIngressNetworks).toHaveBeenCalledAfter(mockExecuteCommand);
+    });
+
+    it("removes the ingress networks after a new container is started", async () => {
+      const newContainer = { start: vi.fn() };
+      mockContainer.inspect.mockRejectedValue(notFoundError);
+      mockDocker.createContainer.mockResolvedValue(newContainer);
+      await provisionReverseProxy();
+      expect(mockRemoveIngressNetworks).toHaveBeenCalledAfter(newContainer.start);
+    });
+
+    it("goes on if the ingress networks can't be removed", async () => {
+      mockContainer.inspect.mockResolvedValue({ ...currentContainer, State: { Running: false } });
+      mockRemoveIngressNetworks.mockRejectedValue(new Error("no docker"));
+      vi.spyOn(console, "error").mockImplementation(() => undefined);
+      await expect(provisionReverseProxy()).resolves.toBe(mockContainer);
+      expect(mockContainer.start).toHaveBeenCalledTimes(1);
+    });
+
     it("connects the networks even if the config doesn't work", async () => {
       mockContainer.inspect.mockResolvedValue({ ...currentContainer, State: { Running: true } });
       mockExecuteCommand.mockResolvedValue({ exitCode: 1, output: "broken" });
       await expect(provisionReverseProxy()).rejects.toThrow("broken");
-      expect(mockSyncIngressNetworks).toHaveBeenCalledTimes(1);
+      expect(mockSyncReverseProxyLinks).toHaveBeenCalledTimes(1);
     });
 
     describe("with a container that can't reach the host", () => {
@@ -212,7 +239,7 @@ describe("Reverse proxy system service management", () => {
         expect(await provisionReverseProxy()).toBe(newContainer);
         expect(mockContainer.remove).toHaveBeenCalledWith({ force: true });
         expect(mockContainer.remove).toHaveBeenCalledBefore(mockDocker.createContainer);
-        expect(mockSyncIngressNetworks).toHaveBeenCalledBefore(newContainer.start);
+        expect(mockSyncReverseProxyLinks).toHaveBeenCalledBefore(newContainer.start);
       });
 
       it("keeps the container if the image can't be pulled", async () => {
@@ -292,7 +319,7 @@ describe("Reverse proxy system service management", () => {
 
     it("tests the new config before Nginx is reloaded", async () => {
       await syncReverseProxyConfig();
-      expect(savedConfig).toMatch(/server_name app\.example\.com;[^}]*"service-a:3000";/);
+      expect(savedConfig).toMatch(/server_name app\.example\.com;[^}]*"buttler-service-a:3000";/);
       expect(mockExecuteCommand.mock.calls).toEqual([testCommand, reloadCommand]);
     });
 
