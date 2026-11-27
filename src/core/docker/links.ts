@@ -4,7 +4,7 @@ import db from "~/database";
 import type { ServiceLinkDTO } from "~/models/service-link";
 import getServiceLinks from "~/operations/getServiceLinks";
 import updateReverseProxyLinks from "~/operations/syncReverseProxyLinks";
-import { isOwnContainer } from "./containers";
+import { getServiceContainerName, isOwnContainer } from "./containers";
 import { FORBIDDEN, NOT_FOUND, ignoreStatus } from "./errors";
 import { BUTTLER_LINK_LABEL, BUTTLER_NETWORK_LABEL, BUTTLER_SERVICE_LABEL } from "./labels";
 import { createButtlerNetwork } from "./networks";
@@ -61,20 +61,22 @@ function listContainers() {
   });
 }
 
-/** Services reach each other by the name of the container, so they need no alias */
-async function connectContainer(network: LinkNetwork, container: Docker.ContainerInfo) {
+/** A replacement has a temporary name until the old container is removed, so services reach each other by an alias */
+async function connectContainer(network: LinkNetwork, container: Docker.ContainerInfo, serviceId: string) {
   if (getEndpoint(container, network)?.NetworkID === network.Id) return;
   // The container may be replaced in the meantime, the new one is connected by its own deployment
-  await ignoreStatus(docker.getNetwork(network.Id).connect({ Container: container.Id }), NOT_FOUND);
+  await ignoreStatus(docker.getNetwork(network.Id).connect({
+    Container: container.Id,
+    EndpointConfig: { Aliases: [getServiceContainerName(serviceId)] },
+  }), NOT_FOUND);
 }
 
 async function connect(link: Link, containers: Docker.ContainerInfo[]) {
   const network = (await listLinkNetworks(link.id)).at(0) ?? await createLinkNetwork(link.id);
-  const members = containers.filter(container => {
-    return isOwnContainer(container, link.serviceAId) || isOwnContainer(container, link.serviceBId);
-  });
-  for (const container of members) {
-    await connectContainer(network, container);
+  for (const serviceId of [link.serviceAId, link.serviceBId]) {
+    for (const container of containers.filter(info => isOwnContainer(info, serviceId))) {
+      await connectContainer(network, container, serviceId);
+    }
   }
 }
 

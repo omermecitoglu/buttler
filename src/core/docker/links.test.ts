@@ -87,8 +87,8 @@ describe("syncLinkNetwork", () => {
       Labels: expect.objectContaining({ "buttler.network": "link", "buttler.link-id": "l1" }),
     }));
     expect(mocks.connect.mock.calls).toEqual([
-      ["id-buttler-link-l1", { Container: "ca" }],
-      ["id-buttler-link-l1", { Container: "cb" }],
+      ["id-buttler-link-l1", { Container: "ca", EndpointConfig: { Aliases: ["buttler-service-a"] } }],
+      ["id-buttler-link-l1", { Container: "cb", EndpointConfig: { Aliases: ["buttler-service-b"] } }],
     ]);
   });
 
@@ -133,8 +133,8 @@ describe("syncReverseProxyLinks", () => {
     await syncReverseProxyLinks("a");
     expect(mocks.updateReverseProxyLinks).toHaveBeenCalledWith({}, "a");
     expect(mocks.connect.mock.calls).toEqual([
-      ["id-buttler-link-l1", { Container: "ca" }],
-      ["id-buttler-link-l1", { Container: "nginx" }],
+      ["id-buttler-link-l1", { Container: "ca", EndpointConfig: { Aliases: ["buttler-service-a"] } }],
+      ["id-buttler-link-l1", { Container: "nginx", EndpointConfig: { Aliases: ["buttler-service-proxy"] } }],
     ]);
     expect(mocks.disconnect.mock.calls).toEqual([["id-buttler-link-l2", { Container: "nginx", Force: true }]]);
     expect(networks.map(network => network.Name)).toEqual(["buttler-link-l2", "buttler-link-l1"]);
@@ -170,8 +170,8 @@ describe("connectLinkNetworks", () => {
     await connectLinkNetworks("a");
     expect(networks.map(network => network.Name)).toEqual(["buttler-link-l1", "buttler-link-l2"]);
     expect(mocks.connect.mock.calls).toEqual([
-      ["id-buttler-link-l1", { Container: "ca" }],
-      ["id-buttler-link-l2", { Container: "ca" }],
+      ["id-buttler-link-l1", { Container: "ca", EndpointConfig: { Aliases: ["buttler-service-a"] } }],
+      ["id-buttler-link-l2", { Container: "ca", EndpointConfig: { Aliases: ["buttler-service-a"] } }],
     ]);
   });
 });
@@ -196,8 +196,8 @@ describe("syncLinkNetworks", () => {
     vi.spyOn(console, "error").mockImplementation(() => undefined);
     await syncLinkNetworks();
     expect(mocks.connect.mock.calls).toEqual([
-      ["id-buttler-link-l1", { Container: "ca" }],
-      ["id-buttler-link-l2", { Container: "cc" }],
+      ["id-buttler-link-l1", { Container: "ca", EndpointConfig: { Aliases: ["buttler-service-a"] } }],
+      ["id-buttler-link-l2", { Container: "cc", EndpointConfig: { Aliases: ["buttler-service-c"] } }],
     ]);
     expect(mocks.remove).toHaveBeenCalledWith("id-buttler-link-gone");
   });
