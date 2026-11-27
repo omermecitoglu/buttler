@@ -4,6 +4,7 @@ import Authorized from "~/components/auth/Authorized";
 import ServicePanelSkeleton from "~/components/services/ServicePanelSkeleton";
 import CloudflareSettings from "~/components/settings/CloudflareSettings";
 import DashboardDomain from "~/components/settings/DashboardDomain";
+import SystemServices from "~/components/settings/SystemServices";
 import UserWhitelist from "~/components/settings/UserWhitelist";
 
 export default async function({ searchParams }: PageProps<"/[locale]/settings">) {
@@ -23,6 +24,9 @@ export default async function({ searchParams }: PageProps<"/[locale]/settings">)
             </Suspense>
             <Suspense fallback={<ServicePanelSkeleton />}>
               <DashboardDomain />
+            </Suspense>
+            <Suspense fallback={<ServicePanelSkeleton />}>
+              <SystemServices />
             </Suspense>
             <UserWhitelist />
           </div>
