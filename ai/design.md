@@ -143,7 +143,7 @@ const btnClass = cn([
 | `action` | `(state, formData) => Promise<Record<string, string>>` | Server action; return field-keyed error messages |
 | `defaultValues` | `Record<string, unknown>` | Used when `onlyDirty` is enabled |
 | `onlyDirty` | `boolean` | Only submits fields that changed from `defaultValues` |
-| `messages` | `Record<string, string>` | Translation map for server error codes → human messages |
+| `messages` | `Record<string, string>` | Translation map for server error codes → human messages (see `ai/forms.md` for the codes) |
 | `onStateChange` | `(state) => void` | Callback fired whenever action state changes |
 
 **`BaseFormField` props:**
