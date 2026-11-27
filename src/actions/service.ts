@@ -6,6 +6,7 @@ import z from "zod";
 import { requireAdmin, requireUser } from "~/core/auth";
 import { deleteBuildLog, deployBuild, findLatestImage, startBuilding } from "~/core/build";
 import { syncDomains } from "~/core/cloudflare/domains";
+import { DEVICE_KINDS } from "~/core/devices";
 import { removeServiceNetworks } from "~/core/docker/internet";
 import { removeLinkNetworks, syncReverseProxyLinks } from "~/core/docker/links";
 import { isVolumeName, removeServiceContainers, removeServiceImages, removeVolumes } from "~/core/docker/removal";
@@ -197,6 +198,31 @@ export const updateInternetAccessAction = defineFormAction({
     if (input.recreate && !await canRecreateContainer(service)) return displayMessage("error", "service_busy");
     try {
       updateService(db, serviceId, { internetAccess: input.internetAccess });
+    } catch {
+      return displayMessage("error", "update_failed");
+    }
+    updateTag("getAllServices()");
+    updateTag(`getSingleService(${serviceId})`);
+    if (!input.recreate) return displayMessage("success", "saved");
+    if (!await recreateContainer(serviceId)) return displayMessage("error", "recreate_failed");
+    return displayMessage("success", "recreated");
+  },
+});
+
+/** Every user can change it, like the internet access */
+export const updateDevicesAction = defineFormAction({
+  middlewares: [userMiddleware],
+  schema: z.object({
+    devices: jsonField("invalid_devices", z.array(z.enum(DEVICE_KINDS))),
+    // Otherwise the change applies the next time the container is created
+    recreate: recreateField,
+  }),
+  action: input => async (serviceId: string): Promise<Record<string, string>> => {
+    const service = await getService(db, serviceId);
+    if (!service || service.type === "system") return displayMessage("error", "update_failed");
+    if (input.recreate && !await canRecreateContainer(service)) return displayMessage("error", "service_busy");
+    try {
+      updateService(db, serviceId, { devices: input.devices });
     } catch {
       return displayMessage("error", "update_failed");
     }

@@ -9,6 +9,7 @@ import {
   startService,
   stopService,
   triggerBuild,
+  updateDevicesAction,
   updateInternetAccessAction,
   updateServiceAction,
 } from "./service";
@@ -847,6 +848,60 @@ describe("updateInternetAccessAction", () => {
   it("refuses system services", async () => {
     mockGetService.mockResolvedValue({ id: "srv", type: "system" });
     expect(await updateInternetAccessAction("srv", {}, createFormData("no"))).toEqual({ "[error]": "update_failed" });
+    expect(mockUpdateService).not.toHaveBeenCalled();
+  });
+});
+
+describe("updateDevicesAction", () => {
+  const service = { id: "srv", type: "dockerhub" };
+
+  beforeEach(() => {
+    vi.resetAllMocks();
+    mockGetService.mockResolvedValue(service);
+    mockGetDeployableService.mockResolvedValue(service);
+    mockGetServiceRuntimeState.mockResolvedValue({ status: "running" });
+  });
+
+  function createFormData(devices: string, recreate = false) {
+    const formData = new FormData();
+    formData.set("devices", devices);
+    if (recreate) formData.set("recreate", "on");
+    return formData;
+  }
+
+  it("saves the device kinds without touching the container", async () => {
+    expect(await updateDevicesAction("srv", {}, createFormData('["usb-printer"]'))).toEqual({ "[success]": "saved" });
+    expect(mockUpdateService).toHaveBeenCalledWith({}, "srv", { devices: ["usb-printer"] });
+    expect(mockUpdateTag).toHaveBeenCalledWith("getSingleService(srv)");
+    expect(mockRestartServiceContainer).not.toHaveBeenCalled();
+  });
+
+  it("removes every device when none is chosen", async () => {
+    expect(await updateDevicesAction("srv", {}, createFormData("[]"))).toEqual({ "[success]": "saved" });
+    expect(mockUpdateService).toHaveBeenCalledWith({}, "srv", { devices: [] });
+  });
+
+  it("recreates the container after the devices are saved", async () => {
+    expect(await updateDevicesAction("srv", {}, createFormData('["usb-printer"]', true))).toEqual({ "[success]": "recreated" });
+    expect(mockRestartServiceContainer).toHaveBeenCalledWith(service);
+    expect(mockRestartServiceContainer).toHaveBeenCalledAfter(mockUpdateService);
+  });
+
+  it("changes nothing while the service is being built", async () => {
+    mockGetServiceRuntimeState.mockResolvedValue({ status: "building" });
+    expect(await updateDevicesAction("srv", {}, createFormData("[]", true))).toEqual({ "[error]": "service_busy" });
+    expect(mockUpdateService).not.toHaveBeenCalled();
+  });
+
+  it("refuses unknown device kinds", async () => {
+    const errors = await updateDevicesAction("srv", {}, createFormData('["camera"]'));
+    expect(errors).toHaveProperty("devices");
+    expect(mockUpdateService).not.toHaveBeenCalled();
+  });
+
+  it("refuses system services", async () => {
+    mockGetService.mockResolvedValue({ id: "srv", type: "system" });
+    expect(await updateDevicesAction("srv", {}, createFormData("[]"))).toEqual({ "[error]": "update_failed" });
     expect(mockUpdateService).not.toHaveBeenCalled();
   });
 });

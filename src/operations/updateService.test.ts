@@ -56,6 +56,13 @@ describe("updateService", () => {
     });
   });
 
+  it("should replace the devices of the service", async () => {
+    updateService(db, serviceId, { devices: ["usb-printer", "usb-printer"] });
+    expect(await getDeployableService(db, serviceId)).toMatchObject({ devices: [{ kind: "usb-printer" }] });
+    updateService(db, serviceId, { devices: [] });
+    expect(await getDeployableService(db, serviceId)).toMatchObject({ devices: [] });
+  });
+
   it("should only change the given parts", async () => {
     updateService(db, serviceId, { ports: [{ external: 9090, internal: 80 }] });
     updateService(db, serviceId, { name: "renamed" });

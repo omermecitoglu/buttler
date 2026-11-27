@@ -1,7 +1,9 @@
 import { eq, sql } from "drizzle-orm";
+import type { DeviceKind } from "~/core/devices";
 import type { EnvironmentVariableScope } from "~/core/environment-variables";
 import { encryptSecret } from "~/core/secrets";
 import type database from "~/database";
+import { devices as devicesTable } from "~/database/schema/devices";
 import { environmentVariables as environmentVariablesTable } from "~/database/schema/environment-variables";
 import { ports as portsTable } from "~/database/schema/ports";
 import { services } from "~/database/schema/services";
@@ -21,6 +23,7 @@ export type UpdateServiceOptions = Omit<ServicePatchDTO, "type"> & {
   ports?: { external: number, internal: number }[],
   environmentVariables?: UpdatedEnvironmentVariable[],
   volumes?: { name: string, containerPath: string }[],
+  devices?: DeviceKind[],
 };
 
 /** Thrown when a secret is renamed or turned into a plain variable without entering its value again */
@@ -32,7 +35,7 @@ export class MissingSecretValueError extends Error {
 
 /** Replaces the given parts of a service, except the secrets that are left untouched */
 export default function updateService(db: typeof database, serviceId: string, options: UpdateServiceOptions) {
-  const { ports, environmentVariables, volumes, ...serviceData } = options;
+  const { ports, environmentVariables, volumes, devices, ...serviceData } = options;
 
   return db.transaction(tx => {
     const service = tx.update(services)
@@ -81,6 +84,13 @@ export default function updateService(db: typeof database, serviceId: string, op
       tx.delete(volumesTable).where(eq(volumesTable.serviceId, serviceId)).run();
       if (volumes.length > 0) {
         tx.insert(volumesTable).values(volumes.map(({ name, containerPath }) => ({ serviceId, name, containerPath }))).run();
+      }
+    }
+
+    if (devices) {
+      tx.delete(devicesTable).where(eq(devicesTable.serviceId, serviceId)).run();
+      if (devices.length > 0) {
+        tx.insert(devicesTable).values([...new Set(devices)].map(kind => ({ serviceId, kind }))).run();
       }
     }
 
