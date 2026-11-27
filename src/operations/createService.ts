@@ -4,6 +4,7 @@ import type database from "~/database";
 import { environmentVariables as environmentVariablesTable } from "~/database/schema/environment-variables";
 import { ports as portsTable } from "~/database/schema/ports";
 import { services } from "~/database/schema/services";
+import { sharedVariables as sharedVariablesTable } from "~/database/schema/shared-variables";
 import { volumes as volumesTable } from "~/database/schema/volumes";
 import type { NewServiceDTO } from "~/models/service";
 import { getSecretContext } from "./getSecretContext";
@@ -12,10 +13,11 @@ export type CreateServiceOptions = NewServiceDTO & {
   ports?: { external: number, internal: number }[],
   environmentVariables?: ServiceEnvironmentVariable[],
   volumes?: { name: string, containerPath: string }[],
+  sharedVariables?: { key: string, template: string }[],
 };
 
 export default function createService(db: typeof database, options: CreateServiceOptions) {
-  const { ports, environmentVariables, volumes, ...serviceData } = options;
+  const { ports, environmentVariables, volumes, sharedVariables, ...serviceData } = options;
   const serviceId = crypto.randomUUID();
 
   return db.transaction(tx => {
@@ -48,6 +50,14 @@ export default function createService(db: typeof database, options: CreateServic
         serviceId: service.id,
         name: vol.name,
         containerPath: vol.containerPath,
+      }))).run();
+    }
+
+    if (sharedVariables && sharedVariables.length > 0) {
+      tx.insert(sharedVariablesTable).values(sharedVariables.map(variable => ({
+        serviceId: service.id,
+        key: variable.key,
+        template: variable.template,
       }))).run();
     }
 

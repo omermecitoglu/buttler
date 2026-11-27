@@ -32,6 +32,7 @@ import { isServiceBusy } from "~/core/recreate";
 import db from "~/database";
 import { redirect } from "~/i18n/navigation";
 import type { AppLocale } from "~/i18n/routing";
+import { variableNamePattern } from "~/models/shared-variable";
 import createService from "~/operations/createService";
 import deleteService from "~/operations/deleteService";
 import getDeployableService from "~/operations/getDeployableService";
@@ -89,6 +90,13 @@ export const createServiceAction = defineFormAction({
     ports: portsField.optional().default([]),
     environmentVariables: jsonField("invalid_environment_variables", z.array(environmentVariable)).optional().default([]),
     volumes: volumesField.optional().default([]),
+    sharedVariables: jsonField("invalid_shared_variables", z.array(z.object({
+      key: z.string().trim().regex(variableNamePattern),
+      template: z.string(),
+    })))
+      .refine(variables => new Set(variables.map(({ key }) => key)).size === variables.length, "duplicate_shared_variables")
+      .optional()
+      .default([]),
     internetAccess: internetAccessField,
   }),
   action: input => async (locale: AppLocale) => {
@@ -106,6 +114,7 @@ export const createServiceAction = defineFormAction({
         ports: input.ports,
         environmentVariables,
         volumes: input.volumes,
+        sharedVariables: input.sharedVariables,
       }));
       const deployable = {
         ...service,
