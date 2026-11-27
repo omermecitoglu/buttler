@@ -44,6 +44,7 @@
 - The `domains` table holds the desired public hostnames. The hostname is the primary key, so it can only belong to one service.
 - Only exact hostnames are stored, in lowercase (`src/core/domains.ts`). The port is the one inside the container, it doesn't need to be published.
 - System services can't have domains.
+- The services list hides the system services unless the `show_system_services` setting is `"true"` (off by default, changed on the Settings page by the admin). Only the list is filtered, their pages and links keep working.
 - The domain of the dashboard is the `dashboard_domain` setting. `createDomain` and `setDashboardDomain` check both places in a transaction, so a service and the dashboard can't have the same hostname.
 - The `dns_records` table is what is known about the hostnames in Cloudflare: the record that Buttler has created, and why a hostname isn't in sync. It has no relation to the domains, because a record outlives its domain until it's deleted in Cloudflare.
 
