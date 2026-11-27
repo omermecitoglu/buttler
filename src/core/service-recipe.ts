@@ -1,5 +1,6 @@
 import z from "zod";
 import { variableNamePattern } from "~/models/shared-variable";
+import { DEVICE_KINDS } from "./devices";
 import { isVolumeName } from "./docker/removal";
 import { isHostname } from "./domains";
 import { environmentVariableScopes } from "./environment-variables";
@@ -17,6 +18,8 @@ const ServiceRecipeServiceSchema = z.object({
   repository: z.string().nullable(),
   branch: z.string().nullable(),
   internetAccess: z.boolean(),
+  /** Files of older versions have no devices */
+  devices: z.array(z.enum(DEVICE_KINDS)).default([]),
   ports: z.array(z.object({
     external: z.int().min(1).max(65535),
     internal: z.int().min(1).max(65535),

@@ -18,6 +18,7 @@ export default async function getServiceRecipe(db: typeof database, serviceIds: 
       ports: true,
       volumes: true,
       environmentVariables: true,
+      devices: true,
       domains: true,
       sharedVariables: true,
     },
@@ -42,6 +43,7 @@ export default async function getServiceRecipe(db: typeof database, serviceIds: 
       repository: service.repository,
       branch: service.branch,
       internetAccess: service.internetAccess,
+      devices: service.devices.map(({ kind }) => kind),
       ports: service.ports.map(({ external, internal }) => ({ external, internal })),
       volumes: service.volumes.map(({ name, containerPath }) => ({ name, containerPath })),
       environmentVariables: service.environmentVariables.map(({ key, value, scope, isSecret }) => ({
