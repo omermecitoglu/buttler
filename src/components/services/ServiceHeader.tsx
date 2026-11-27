@@ -6,6 +6,7 @@ import ServiceTypeBadge from "~/components/ServiceTypeBadge";
 import ServicesPoller from "~/components/ServicesPoller";
 import StatusBadge from "~/components/StatusBadge";
 import EditServiceModal from "~/components/services/EditServiceModal";
+import PullProgressBars from "~/components/services/PullProgressBars";
 import { getServiceWithLiveStatus } from "~/data/services";
 import { notFound } from "~/i18n/navigation";
 
@@ -46,6 +47,13 @@ const ServiceHeader = async ({ params }: ServiceHeaderProps) => {
           <ServiceTypeBadge type={service.type} label={t(`types.${service.type}`)} />
           <StatusBadge status={status} label={t(`status.${status}`)} />
         </div>
+        {status === "pulling" && (
+          <PullProgressBars
+            serviceId={service.id}
+            labels={{ download: t("pullProgress.download"), extract: t("pullProgress.extract") }}
+            className="w-full max-w-sm"
+          />
+        )}
       </div>
       <ServiceActions serviceId={service.id} type={service.type} status={status} />
     </div>

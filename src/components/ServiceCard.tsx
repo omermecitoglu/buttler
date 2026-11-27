@@ -4,6 +4,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useFormatter } from "next-intl";
 import ServiceTypeBadge from "~/components/ServiceTypeBadge";
 import StatusBadge from "~/components/StatusBadge";
+import PullProgressBars, { type PullProgressBarsProps } from "~/components/services/PullProgressBars";
 import Card from "~/components/ui/card";
 import type { ContainerRuntimeStatus } from "~/core/docker/status";
 import type { ServiceWithRuntime } from "~/data/services";
@@ -23,6 +24,7 @@ export type ServiceCardProps = {
     details: string,
     status: Record<ContainerRuntimeStatus, string>,
     types: Record<"github" | "dockerhub" | "system", string>,
+    pullProgress: PullProgressBarsProps["labels"],
   },
 };
 
@@ -77,6 +79,9 @@ const ServiceCard = ({
             label={labels.status[service.runtime.status]}
           />
         </div>
+        {service.runtime.status === "pulling" && (
+          <PullProgressBars serviceId={service.id} labels={labels.pullProgress} />
+        )}
         {/* Details Grid */}
         <div className="grid grid-cols-2 gap-3 rounded-xl border border-slate-800/80 bg-slate-950/40 p-3.5 text-xs">
           <div>
