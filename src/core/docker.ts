@@ -5,6 +5,7 @@ import Docker from "dockerode";
 import tar from "tar-fs";
 import { openBuildSession } from "./docker/build-session";
 import { type BuildProgressEvent, formatBuildProgress } from "./docker/buildkit";
+import { type PullProgress, type PullProgressEvent, createPullProgressTracker } from "./docker/pull-progress";
 
 export const docker = new Docker();
 
@@ -106,14 +107,19 @@ export async function buildImage(options: BuildImageOptions): Promise<string> {
   return imageId;
 }
 
-export function pullImage(imageName: string) {
+export function pullImage(imageName: string, onProgress?: (progress: PullProgress) => void) {
   const fullImage = imageName.includes(":") ? imageName : `${imageName}:latest`;
+  const tracker = createPullProgressTracker();
   return new Promise<unknown>((resolve, reject) => {
     docker.pull(fullImage, (pullError: Error | null, stream: NodeJS.ReadableStream) => {
       if (pullError) return reject(pullError);
       docker.modem.followProgress(stream, (modemError, res) => {
         if (modemError) return reject(modemError);
         resolve(res);
+      }, (event: PullProgressEvent) => {
+        if (!onProgress) return;
+        tracker.update(event);
+        onProgress(tracker.summary());
       });
     });
   });
