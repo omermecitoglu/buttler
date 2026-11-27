@@ -325,6 +325,7 @@ describe("service lifecycle server actions", () => {
         { key: "NPM_TOKEN", value: "t", scope: "build", isSecret: true },
       ]));
       formData.set("volumes", JSON.stringify([{ name: "app-data", containerPath: "/data" }]));
+      formData.set("sharedVariables", JSON.stringify([{ key: "API_URL", template: "http://{host}:3000" }]));
       formData.set("internetAccess", "yes");
 
       await createServiceAction("en", {}, formData);
@@ -342,6 +343,7 @@ describe("service lifecycle server actions", () => {
         ports: [{ external: 3000, internal: 3000 }],
         environmentVariables,
         volumes: [{ name: "app-data", containerPath: "/data" }],
+        sharedVariables: [{ key: "API_URL", template: "http://{host}:3000" }],
       });
       expect(mockStartBuilding).toHaveBeenCalledWith({
         id: "srv-new",
@@ -371,6 +373,24 @@ describe("service lifecycle server actions", () => {
       expect(mockCreateService).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({
         environmentVariables: [{ key: "PASSWORD", value: "p", scope: "runtime", isSecret: true }],
       }));
+    });
+
+    it("rejects shared variables with the same key", async () => {
+      const formData = new FormData();
+      formData.set("name", "Database");
+      formData.set("type", "dockerhub");
+      formData.set("repository", "postgres");
+      formData.set("branch", "16");
+      formData.set("internetAccess", "no");
+      formData.set("sharedVariables", JSON.stringify([
+        { key: "DATABASE_URL", template: "a" },
+        { key: "DATABASE_URL", template: "b" },
+      ]));
+
+      const errors = await createServiceAction("en", {}, formData);
+
+      expect(errors).toMatchObject({ sharedVariables: "DUPLICATE_SHARED_VARIABLES" });
+      expect(mockCreateService).not.toHaveBeenCalled();
     });
 
     it("returns validation errors if required fields are missing", async () => {

@@ -50,6 +50,19 @@ afterEach(() => {
 });
 
 describe("shared variables", () => {
+  it("should be created with the service", async () => {
+    const serviceId = createService(db, {
+      name: "db",
+      type: "dockerhub",
+      repository: "redis",
+      branch: "latest",
+      internetAccess: true,
+      sharedVariables: [{ key: "REDIS_URL", template: "redis://{host}:6379" }],
+    }).id;
+    const saved = await getSharedVariables(db, serviceId);
+    expect(saved.map(({ key, template }) => [key, template])).toEqual([["REDIS_URL", "redis://{host}:6379"]]);
+  });
+
   it("should keep the IDs of updated variables, even when keys are swapped", async () => {
     const db1 = create("db");
     const [a, b] = saveSharedVariables(db, db1, [
