@@ -579,7 +579,8 @@
       "volumesHelp": "The data of a deleted volume can't be recovered. The others are kept, and so are the ones that other containers use.",
       "keptAs": {
         "shared": "Used by other services, always kept",
-        "hostPath": "Not a Docker volume, always kept"
+        "hostPath": "Not a Docker volume, always kept",
+        "outside": "Not created by Buttler, always kept"
       },
       "close": "Close",
       "cancel": "Cancel",

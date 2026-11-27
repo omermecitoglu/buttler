@@ -6,6 +6,7 @@ import { getExposedPorts } from "~/core/docker";
 import { type ServiceImage, getServiceBuilds, listServiceImages } from "~/core/docker/builds";
 import { isVolumeName } from "~/core/docker/removal";
 import { type ServiceRuntimeState, getServiceRuntimeState, getServicesRuntimeStates } from "~/core/docker/status";
+import { listButtlerVolumes } from "~/core/docker/volumes";
 import { getServiceImageTag } from "~/core/dockerhub";
 import { buildServiceGraph } from "~/core/service-graph";
 import db from "~/database";
@@ -87,17 +88,31 @@ export type ServiceDetails = NonNullable<Awaited<ReturnType<typeof getServiceWit
 export type ServiceVolume = {
   name: string,
   /** Why the volume can't be deleted with the service */
-  keptAs: "shared" | "hostPath" | null,
+  keptAs: "shared" | "hostPath" | "outside" | null,
 };
 
 /** Returns the volumes of a service with whether they can be deleted */
 export async function getVolumesOfService(service: Pick<ServiceDetails, "id" | "volumes">): Promise<ServiceVolume[]> {
-  const sharedNames = await getSharedVolumes(db, service.id);
+  const [
+    sharedNames,
+    ownNames,
+  ] = await Promise.all([
+    getSharedVolumes(db, service.id),
+    listButtlerVolumes(),
+  ]);
   const names = [...new Set(service.volumes.map(volume => volume.name))];
   return names.map(name => ({
     name,
-    keptAs: !isVolumeName(name) ? "hostPath" : sharedNames.includes(name) ? "shared" : null,
+    keptAs: getKeptReason(name, sharedNames, ownNames),
   }));
+}
+
+function getKeptReason(name: string, sharedNames: string[], ownNames: string[]): ServiceVolume["keptAs"] {
+  if (!isVolumeName(name)) return "hostPath";
+  // Including the volumes that Buttler created before they were labelled
+  if (!ownNames.includes(name)) return "outside";
+  if (sharedNames.includes(name)) return "shared";
+  return null;
 }
 
 /**
