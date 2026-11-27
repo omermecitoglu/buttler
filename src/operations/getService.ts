@@ -8,6 +8,7 @@ export default async function getService(db: typeof database, serviceId: string)
       ports: true,
       environmentVariables: true,
       volumes: true,
+      devices: true,
       domains: {
         orderBy: { hostname: "asc" },
       },
