@@ -1,6 +1,8 @@
+import { parseSearchParams } from "@omer-x/next-utils/search-params";
 import { connection } from "next/server";
 import { getTranslations } from "next-intl/server";
 import { Suspense } from "react";
+import z from "zod";
 import ChangeDomainLink from "~/components/setup/ChangeDomainLink";
 import CloudflareStep from "~/components/setup/CloudflareStep";
 import DomainStep from "~/components/setup/DomainStep";
@@ -14,6 +16,13 @@ import { getSetupLink } from "~/core/setup-code";
 import { getSetupProgress } from "~/core/setup-progress";
 
 type InstallCardProps = Pick<PageProps<"/[locale]/install">, "searchParams">;
+
+const InstallSearchParams = z.object({
+  /** Opens the domain step again, which is only possible at localhost */
+  step: z.literal("domain").optional().catch(undefined),
+  /** Parsed by CloudflareError, the settings show it too */
+  cloudflare: z.unknown().optional(),
+});
 
 async function LinkRequired() {
   const t = await getTranslations("InstallPage.linkRequired");
@@ -37,7 +46,7 @@ async function CurrentStep({ searchParams }: InstallCardProps) {
   ] = await Promise.all([
     getSetupProgress(),
     getPublicOrigin(),
-    searchParams,
+    parseSearchParams(searchParams, InstallSearchParams),
   ]);
 
   if (progress.step === "cloudflare") {

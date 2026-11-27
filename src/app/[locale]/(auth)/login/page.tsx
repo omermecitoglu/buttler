@@ -1,31 +1,38 @@
 import { faGithub } from "@fortawesome/free-brands-svg-icons/faGithub";
 import { faCircleExclamation } from "@fortawesome/free-solid-svg-icons/faCircleExclamation";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { parseSearchParams } from "@omer-x/next-utils/search-params";
 import { connection } from "next/server";
 import { getTranslations } from "next-intl/server";
 import { Suspense } from "react";
+import z from "zod";
 import Button from "~/components/ui/button";
 import Card from "~/components/ui/card";
 import { getSetting } from "~/core/settings";
 import { Link } from "~/i18n/navigation";
 
-type KnownError = "github" | "access_denied" | "not_allowed" | "missing_code" | "setup_link" | "invalid_state";
-
-const isKnownError = (val: unknown): val is KnownError => (
-  val === "github" || val === "access_denied" || val === "not_allowed" || val === "missing_code" ||
-  val === "setup_link" || val === "invalid_state"
-);
+const LoginSearchParams = z.object({
+  // An unknown error shows the default message
+  error: z.enum(["github", "access_denied", "not_allowed", "missing_code", "setup_link", "invalid_state"])
+    .or(z.unknown().transform(() => "default" as const))
+    .optional(),
+});
 
 type LoginErrorMessageProps = {
   searchParams: Promise<{ error?: string }>,
 };
 
 async function LoginErrorMessage({ searchParams }: LoginErrorMessageProps) {
-  const { error } = await searchParams;
-  const t = await getTranslations("LoginPage");
+  const [
+    { error },
+    t,
+  ] = await Promise.all([
+    parseSearchParams(searchParams, LoginSearchParams),
+    getTranslations("LoginPage"),
+  ]);
   if (!error) return null;
 
-  const errorMessage = isKnownError(error) ? t(`errors.${error}`) : t("errors.default");
+  const errorMessage = t(`errors.${error}`);
 
   return (
     <div className="mb-6 flex items-start gap-3 rounded-lg border border-rose-500/20 bg-rose-500/10 p-3.5 text-sm text-rose-300">
