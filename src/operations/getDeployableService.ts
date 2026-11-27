@@ -11,6 +11,7 @@ export default async function getDeployableService(db: typeof database, serviceI
       ports: true,
       environmentVariables: true,
       volumes: true,
+      devices: true,
     },
   });
   if (!service) return null;

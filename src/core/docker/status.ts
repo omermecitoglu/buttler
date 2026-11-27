@@ -1,3 +1,4 @@
+import { type DeviceKind, getDeviceHostConfig } from "~/core/devices";
 import { docker } from "~/core/docker";
 import { getServiceImageTag } from "~/core/dockerhub";
 import { type ServiceEnvironmentVariable, getRuntimeVariables } from "~/core/environment-variables";
@@ -244,6 +245,8 @@ export type ServiceRef = ServiceIdentity & {
   /** Variables from the links of the service, resolved when it's loaded */
   inheritedVariables?: Record<string, string>,
   volumes?: { name: string, containerPath: string }[],
+  /** Kinds of host devices the container can open */
+  devices?: { kind: DeviceKind }[],
 };
 
 export async function getServicesRuntimeStates(services: ServiceIdentity[]): Promise<Record<string, ServiceRuntimeState>> {
@@ -433,6 +436,7 @@ async function replaceServiceContainer(service: ServiceRef, image: string) {
     ...getRuntimeVariables(service.environmentVariables),
   }).map(([key, value]) => `${key}=${value}`);
   const binds = (service.volumes ?? []).map(v => `${v.name}:${v.containerPath}`);
+  const deviceConfig = getDeviceHostConfig((service.devices ?? []).map(d => d.kind));
 
   const container = await docker.createContainer({
     name: containerName,
@@ -443,7 +447,8 @@ async function replaceServiceContainer(service: ServiceRef, image: string) {
     },
     Env: env,
     HostConfig: {
-      Binds: binds,
+      Binds: [...binds, ...deviceConfig.binds],
+      DeviceCgroupRules: deviceConfig.cgroupRules,
       PortBindings: portBindings,
       // A container that the user stopped stays stopped when Docker restarts
       RestartPolicy: {
