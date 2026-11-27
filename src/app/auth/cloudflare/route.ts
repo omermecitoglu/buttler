@@ -1,10 +1,10 @@
-import crypto from "node:crypto";
 import { revalidateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireSetupOrAdmin } from "~/core/auth";
 import { connectCloudflare } from "~/core/cloudflare/connection";
 import { syncDomains } from "~/core/cloudflare/domains";
 import { setUpTunnelAfterConnecting } from "~/core/cloudflare/tunnel";
+import { isSameSecret } from "~/core/compare";
 import { getPublicOrigin, isLoopbackOrigin } from "~/core/headers";
 import { getSession } from "~/core/session";
 import { isInstalled } from "~/core/settings";
@@ -12,14 +12,6 @@ import db from "~/database";
 import getDashboardDomain from "~/operations/getDashboardDomain";
 
 const CALLBACK_PARAMS = ["code", "state", "error"];
-
-function isEqual(a: string, b: string) {
-  const [
-    first,
-    second,
-  ] = [Buffer.from(a), Buffer.from(b)];
-  return first.length === second.length && crypto.timingSafeEqual(first, second);
-}
 
 /**
  * Cloudflare always returns to localhost, which doesn't have the session of the dashboard domain.
@@ -67,7 +59,7 @@ export async function GET(request: Request) {
   const pending = session.cloudflare;
   const returnPath = await isInstalled() ? "/settings" : "/install";
 
-  if (!state || !pending || !isEqual(state, pending.state)) {
+  if (!state || !pending || !isSameSecret(state, pending.state)) {
     const relayUrl = state ? await getRelayUrl(request, searchParams) : null;
     return redirect(relayUrl ?? `${returnPath}?cloudflare=invalid_state`);
   }
