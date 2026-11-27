@@ -4,6 +4,10 @@ export async function register() {
     const { default: migrate } = await import("./database/migrate");
     migrate();
 
+    // Before the setup, which goes back to the GitHub App if its credentials can't be decrypted
+    const { secureStoredSettings } = await import("./core/settings");
+    await secureStoredSettings();
+
     const { prepareSetup } = await import("./core/setup");
     // The CLI prints the link in production
     if (await prepareSetup() && process.env.NODE_ENV === "development") {

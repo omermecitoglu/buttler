@@ -57,6 +57,10 @@ function getOrCreateKey() {
   return created;
 }
 
+export function isEncryptedSecret(value: string) {
+  return value.startsWith(PREFIX);
+}
+
 /** Encrypts a value. The context must be the same while decrypting, so a value cannot be moved elsewhere. */
 export function encryptSecret(value: string, context: string): string {
   const iv = crypto.randomBytes(IV_LENGTH);
@@ -67,7 +71,7 @@ export function encryptSecret(value: string, context: string): string {
 }
 
 export function decryptSecret(encrypted: string, context: string): string {
-  if (!encrypted.startsWith(PREFIX)) throw new Error("Unknown secret format");
+  if (!isEncryptedSecret(encrypted)) throw new Error("Unknown secret format");
   // A missing key must not be replaced, the values could never be decrypted again
   const key = readKey();
   if (!key) throw new Error(`The secret key is missing: ${getSecretKeyPath()}`);
