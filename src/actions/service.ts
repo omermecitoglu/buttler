@@ -6,7 +6,7 @@ import z from "zod";
 import { requireAdmin, requireUser } from "~/core/auth";
 import { deleteBuildLog, deployBuild, findLatestImage, startBuilding } from "~/core/build";
 import { syncDomains } from "~/core/cloudflare/domains";
-import { removeInternetNetwork } from "~/core/docker/internet";
+import { removeServiceNetworks } from "~/core/docker/internet";
 import { removeLinkNetworks, syncReverseProxyLinks } from "~/core/docker/links";
 import { isVolumeName, removeServiceContainers, removeServiceImages, removeVolumes } from "~/core/docker/removal";
 import {
@@ -252,7 +252,7 @@ async function recreateContainer(serviceId: string) {
 /** The service itself is deleted last, so a deletion that fails can be tried again */
 async function removeService({ id, volumes }: { id: string, volumes: { name: string }[] }, chosenVolumes: string[]) {
   await removeServiceContainers(id);
-  await removeInternetNetwork(id);
+  await removeServiceNetworks(id);
   await removeLinkNetworks(id);
   await removeServiceImages(id);
   if (chosenVolumes.length > 0) {

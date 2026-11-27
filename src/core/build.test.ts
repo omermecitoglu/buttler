@@ -41,8 +41,8 @@ vi.mock("~/core/docker", () => ({
 }));
 vi.mock("~/core/docker/links", () => ({ connectLinkNetworks: vi.fn() }));
 vi.mock("~/core/docker/internet", () => ({
-  ensureInternetNetwork: vi.fn((id: string) => Promise.resolve(`buttler-internet-${id}`)),
-  removeInternetNetwork: vi.fn(),
+  ensureServiceNetwork: vi.fn((id: string) => Promise.resolve(`buttler-internet-${id}`)),
+  removeServiceNetworks: vi.fn(),
 }));
 vi.mock("~/operations/hasInternetAccess", () => ({ default: vi.fn().mockResolvedValue(true) }));
 vi.mock("~/core/git", () => ({

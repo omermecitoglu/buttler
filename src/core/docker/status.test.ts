@@ -53,8 +53,8 @@ const mockProvisionTunnel = vi.fn<() => Promise<boolean>>();
 const mockProvisionReverseProxy = vi.fn();
 const mockStartGitHubService = vi.fn();
 const mockGetBuildingServiceIds = vi.fn();
-const mockEnsureInternetNetwork = vi.fn();
-const mockRemoveInternetNetwork = vi.fn();
+const mockEnsureServiceNetwork = vi.fn();
+const mockRemoveServiceNetworks = vi.fn();
 const mockConnectLinkNetworks = vi.fn();
 const mockHasInternetAccess = vi.fn();
 
@@ -74,8 +74,8 @@ vi.mock("./links", () => ({
 }));
 
 vi.mock("./internet", () => ({
-  ensureInternetNetwork: (...args: unknown[]) => mockEnsureInternetNetwork(...args),
-  removeInternetNetwork: (...args: unknown[]) => mockRemoveInternetNetwork(...args),
+  ensureServiceNetwork: (...args: unknown[]) => mockEnsureServiceNetwork(...args),
+  removeServiceNetworks: (...args: unknown[]) => mockRemoveServiceNetworks(...args),
 }));
 
 vi.mock("~/database", () => ({ default: {} }));
@@ -102,7 +102,9 @@ vi.mock("~/core/nginx", () => ({
 describe("Docker status aggregator", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockEnsureInternetNetwork.mockImplementation((id: string) => Promise.resolve(`buttler-internet-${id}`));
+    mockEnsureServiceNetwork.mockImplementation((id: string, internetAccess: boolean) => {
+      return Promise.resolve(`buttler-${internetAccess ? "internet" : "isolated"}-${id}`);
+    });
     mockHasInternetAccess.mockResolvedValue(true);
     markServiceBuilding("srv-building", false);
     markServiceBuilding("srv-b", false);
@@ -502,18 +504,20 @@ describe("Docker status aggregator", () => {
         HostConfig: expect.objectContaining({ NetworkMode: "buttler-internet-srv-dh" }),
         NetworkingConfig: { EndpointsConfig: { "buttler-internet-srv-dh": {} } },
       }));
-      expect(mockRemoveInternetNetwork).not.toHaveBeenCalled();
+      expect(mockEnsureServiceNetwork).toHaveBeenCalledWith("srv-dh", true);
     });
 
-    it("startServiceContainer takes a container without internet access off its network before it's started", async () => {
+    it("startServiceContainer keeps a container without internet access on its isolated network", async () => {
       mockDocker.listContainers.mockResolvedValue([]);
       mockImage.inspect.mockResolvedValue({});
       mockHasInternetAccess.mockResolvedValue(false);
       await startServiceContainer({ id: "srv-dh", type: "dockerhub", repository: "redis", branch: "alpine" });
-      expect(mockRemoveInternetNetwork).toHaveBeenCalledWith("srv-dh", "new-container");
-      const [removal] = mockRemoveInternetNetwork.mock.invocationCallOrder;
-      const [start] = mockContainer.start.mock.invocationCallOrder;
-      expect(removal).toBeLessThan(start);
+      expect(mockEnsureServiceNetwork).toHaveBeenCalledWith("srv-dh", false);
+      expect(mockDocker.createContainer).toHaveBeenCalledWith(expect.objectContaining({
+        HostConfig: expect.objectContaining({ NetworkMode: "buttler-isolated-srv-dh" }),
+        NetworkingConfig: { EndpointsConfig: { "buttler-isolated-srv-dh": {} } },
+      }));
+      expect(mockContainer.start).toHaveBeenCalled();
     });
 
     it("startServiceContainer connects the new container to its links before it's started", async () => {
@@ -537,10 +541,10 @@ describe("Docker status aggregator", () => {
       expect(mockDocker.createContainer).not.toHaveBeenCalled();
     });
 
-    it("startServiceContainer keeps the old container if the internet network can't be created", async () => {
+    it("startServiceContainer keeps the old container if the service network can't be created", async () => {
       mockDocker.listContainers.mockResolvedValue([]);
       mockImage.inspect.mockResolvedValue({});
-      mockEnsureInternetNetwork.mockRejectedValueOnce(new Error("no subnet"));
+      mockEnsureServiceNetwork.mockRejectedValueOnce(new Error("no subnet"));
       await expect(startServiceContainer({ id: "srv-dh", type: "dockerhub", repository: "redis", branch: "alpine" }))
         .rejects.toThrow("no subnet");
       expect(mockContainer.remove).not.toHaveBeenCalled();
@@ -771,11 +775,11 @@ describe("Docker status aggregator", () => {
       expect(mockContainer.rename).not.toHaveBeenCalled();
     });
 
-    it("removes the internet network after the old container, if the service has no internet access", async () => {
-      mockHasInternetAccess.mockResolvedValue(false);
+    it.each([true, false])("removes the other network after the old container (internet access: %s)", async internetAccess => {
+      mockHasInternetAccess.mockResolvedValue(internetAccess);
       await deployServiceContainer(service, "redis:latest");
-      expect(mockRemoveInternetNetwork.mock.calls).toEqual([["srv-x", "new-container"], ["srv-x"]]);
-      expect(order(oldContainer.remove)).toBeLessThan(mockRemoveInternetNetwork.mock.invocationCallOrder[1]);
+      expect(mockRemoveServiceNetworks.mock.calls).toEqual([["srv-x", internetAccess]]);
+      expect(order(oldContainer.remove)).toBeLessThan(order(mockRemoveServiceNetworks));
     });
   });
 });

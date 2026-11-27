@@ -37,7 +37,7 @@ const mockGetSharedVolumes = vi.fn();
 const mockGetServiceRuntimeState = vi.fn();
 const mockRemoveServiceContainers = vi.fn();
 const mockRemoveServiceImages = vi.fn();
-const mockRemoveInternetNetwork = vi.fn();
+const mockRemoveServiceNetworks = vi.fn();
 const mockRemoveLinkNetworks = vi.fn();
 const mockDeleteFromReverseProxy = vi.fn();
 const mockRemoveVolumes = vi.fn();
@@ -101,7 +101,7 @@ vi.mock("~/core/cloudflare/domains", () => ({
 }));
 
 vi.mock("~/core/docker/internet", () => ({
-  removeInternetNetwork: (...args: unknown[]) => mockRemoveInternetNetwork(...args),
+  removeServiceNetworks: (...args: unknown[]) => mockRemoveServiceNetworks(...args),
 }));
 
 vi.mock("~/core/docker/links", () => ({
@@ -660,9 +660,9 @@ describe("deleteServiceAction", () => {
 
   it("removes the internet and link networks after the container", async () => {
     await submit();
-    expect(mockRemoveInternetNetwork).toHaveBeenCalledWith("srv");
-    expect(mockRemoveInternetNetwork).toHaveBeenCalledAfter(mockRemoveServiceContainers);
-    expect(mockRemoveInternetNetwork).toHaveBeenCalledBefore(mockDeleteService);
+    expect(mockRemoveServiceNetworks).toHaveBeenCalledWith("srv");
+    expect(mockRemoveServiceNetworks).toHaveBeenCalledAfter(mockRemoveServiceContainers);
+    expect(mockRemoveServiceNetworks).toHaveBeenCalledBefore(mockDeleteService);
     expect(mockRemoveLinkNetworks).toHaveBeenCalledWith("srv");
     expect(mockRemoveLinkNetworks).toHaveBeenCalledAfter(mockRemoveServiceContainers);
     expect(mockRemoveLinkNetworks).toHaveBeenCalledBefore(mockDeleteService);
