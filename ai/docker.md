@@ -70,6 +70,16 @@ Docker is the single source of truth for builds, nothing about them is stored in
 - Containers that were created before keep the default `bridge` network until they are recreated.
 - Host ports that a service publishes are not affected.
 
+## Host Devices
+
+- A service can open the devices of the host of the kinds in its `devices` rows (`src/core/devices.ts`), only USB printers (`usb-printer`) so far. It's off by default, and every user can change it on the "Settings" tab of a service (`updateDevicesAction`).
+- Docker's `Devices` (compose `devices:`) is not used: it copies the device when the container starts, so the container can't start while the device is unplugged, and doesn't see a device that is plugged in later.
+- Instead, the `/dev` of the host is bind-mounted at `/host/dev` (`HOST_DEV_PATH`) with `rslave` propagation, so it doesn't replace the container's own `/dev` and the nodes of devices that are plugged in later show up in it. It always exists, so the start never fails.
+- Device cgroup rules (`DeviceCgroupRules`) only allow the major number of each kind (`c 180:* rwm` for `usblp`), the container can't open any other device of the host. Only using a device fails while it's unplugged.
+- Symlinks that udev rules create on the host (`/dev/thermal-printer -> usb/lp0`) are relative, so they work under `/host/dev` too. The app is configured with the path under `/host/dev`.
+- The `/dev` bind doesn't count as a volume for a deploy, a service with devices and nothing else still switches without downtime.
+- A change of the devices is only applied when the container is created again. The settings form offers to recreate it right away, otherwise it's applied by the next restart, start or deploy.
+
 ## Service Links
 
 - A link is the only way two services can reach each other. It's two-sided, Docker can't enforce a direction, and there is at most one link per pair (`service_links`, see `ai/database.md`).

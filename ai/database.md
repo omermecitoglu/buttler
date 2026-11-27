@@ -75,11 +75,15 @@
 - The other users are `member`s, whitelisted by the admin. Handles and avatars are only for display, they are updated on login (`updateUser`).
 - `getAccess` (`src/core/access.ts`) is the only function that decides whether a user has access. A session is never enough on its own.
 
+## Host Devices
+
+- The `devices` table holds the kinds of host devices a service can open, one row per kind (`service_id`, `kind`), so a new kind needs no migration of its own. The foreign key cascades. How they reach the container is in `ai/docker.md`.
+
 ## Service Recipes
 
-- A recipe is a JSON file that describes services, so the same services can be created on another Buttler. Its format is `ServiceRecipeSchema` in `src/core/service-recipe.ts`, and it starts with `"version": 1` (`SERVICE_RECIPE_VERSION`). Change the version when the format changes.
+- A recipe is a JSON file that describes services, so the same services can be created on another Buttler. Its format is `ServiceRecipeSchema` in `src/core/service-recipe.ts`, and it starts with `"version": 1` (`SERVICE_RECIPE_VERSION`). Change the version when the format changes. A new field that older files can do without gets a default instead, like `devices`.
 - `getServiceRecipe` builds it from the chosen services, and `GET /api/services/export?id=…` downloads it. The Export button of the services list chooses the services, all of them by default.
-- It holds the settings that the database keeps: source, internet access, ports, volumes (only the name and the path, never the data), environment variables, domains, shared variables, and the links with their inherit checkboxes and renamed variables.
+- It holds the settings that the database keeps: source, internet access, host devices, ports, volumes (only the name and the path, never the data), environment variables, domains, shared variables, and the links with their inherit checkboxes and renamed variables.
 - System services are left out, Buttler creates them itself. The values of secrets are always `null`. A link is only kept when both of its services are chosen.
 - Service names aren't unique, so the links refer to the services by their ID in the file. Those IDs are only references, they aren't kept by an import.
 - `importServices` (`src/actions/service.ts`) imports a recipe, only the admin can do it because it adds domains. `ServiceRecipeSchema` also checks what a file refers to, since it can be edited by hand.
