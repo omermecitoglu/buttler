@@ -9,11 +9,13 @@ import Button from "~/components/ui/button";
 import { Link, useRouter } from "~/i18n/navigation";
 
 export type ServicesHeaderProps = {
+  /** Rendered on the server, it needs the user */
+  importButton?: ReactNode,
   /** Rendered on the server, it needs the services */
   exportButton?: ReactNode,
 };
 
-const ServicesHeader = ({ exportButton }: ServicesHeaderProps) => {
+const ServicesHeader = ({ importButton, exportButton }: ServicesHeaderProps) => {
   const t = useTranslations("DashboardPage");
   const router = useRouter();
   const [isRefreshing, startTransition] = useTransition();
@@ -44,6 +46,7 @@ const ServicesHeader = ({ exportButton }: ServicesHeaderProps) => {
           />
           <span>{isRefreshing ? t("refreshing") : t("refresh")}</span>
         </Button>
+        {importButton}
         {exportButton}
         <Link href="/services/new">
           <Button variant="primary" size="sm" className="gap-2">
