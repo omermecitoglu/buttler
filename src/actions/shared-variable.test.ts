@@ -124,4 +124,12 @@ describe("shared variable actions", () => {
     expect(await inherit("other", { inherits: true })).toEqual({ "[error]": "update_failed" });
     expect(mocks.updateLinkInheritance).not.toHaveBeenCalled();
   });
+
+  it("should not change the links of system services", async () => {
+    mocks.getService.mockImplementation((_db: unknown, id: string) => {
+      return Promise.resolve({ id, type: id === "app" ? "dockerhub" : "system" });
+    });
+    expect(await inherit("app", { inherits: true })).toEqual({ "[error]": "update_failed" });
+    expect(mocks.updateLinkInheritance).not.toHaveBeenCalled();
+  });
 });
