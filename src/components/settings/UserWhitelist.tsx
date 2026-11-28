@@ -3,7 +3,7 @@ import { connection } from "next/server";
 import { getTranslations } from "next-intl/server";
 import { addUserAction, removeUserAction } from "~/actions/user";
 import AddUserForm from "~/components/settings/AddUserForm";
-import RemoveUserForm from "~/components/settings/RemoveUserForm";
+import RemoveUserModal from "~/components/settings/RemoveUserModal";
 import Card from "~/components/ui/card";
 import db from "~/database";
 import getUsers from "~/operations/getUsers";
@@ -42,7 +42,7 @@ const UserWhitelist = async () => {
                   {t("admin")}
                 </span>
               ) : (
-                <RemoveUserForm action={removeUserAction.bind(null, user.id)} login={user.login} />
+                <RemoveUserModal action={removeUserAction.bind(null, user.id)} login={user.login} />
               )}
             </div>
           </li>
