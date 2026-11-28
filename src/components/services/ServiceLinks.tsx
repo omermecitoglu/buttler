@@ -4,7 +4,7 @@ import { addLinkAction, removeLinkAction } from "~/actions/link";
 import { saveSharedVariablesAction, updateLinksInheritanceAction } from "~/actions/shared-variable";
 import AddLinkForm from "~/components/services/AddLinkForm";
 import LinksInheritanceForm from "~/components/services/LinksInheritanceForm";
-import RemoveLinkForm from "~/components/services/RemoveLinkForm";
+import RemoveLinkModal from "~/components/services/RemoveLinkModal";
 import SharedVariablesForm from "~/components/services/SharedVariablesForm";
 import Card from "~/components/ui/card";
 import { getServiceHost } from "~/core/shared-variables";
@@ -121,7 +121,7 @@ const ServiceLinks = async ({ params }: ServiceLinksProps) => {
                   </div>
                   {linkedService.type !== "system" && (
                     <div className="ml-auto shrink-0">
-                      <RemoveLinkForm
+                      <RemoveLinkModal
                         action={removeLinkAction.bind(null, id, linkId)}
                         name={linkedService.name}
                         inheritors={[

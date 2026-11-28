@@ -38,6 +38,7 @@ export default async function({ children }: LayoutProps<"/[locale]">) {
           messages={pick(
             messages,
             "BaseLayout",
+            "Confirm",
             "DashboardPage",
             "Domains",
             "InstallPage",

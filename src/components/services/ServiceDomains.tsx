@@ -4,7 +4,7 @@ import DomainProblem from "~/components/domains/DomainProblem";
 import DomainStatusBadge from "~/components/domains/DomainStatusBadge";
 import ZonesNotice from "~/components/domains/ZonesNotice";
 import AddDomainForm from "~/components/services/AddDomainForm";
-import RemoveDomainForm from "~/components/services/RemoveDomainForm";
+import RemoveDomainModal from "~/components/services/RemoveDomainModal";
 import Card from "~/components/ui/card";
 import { getDomainStatuses } from "~/core/cloudflare/domains";
 import { loadDomainZones } from "~/data/cloudflare";
@@ -62,7 +62,7 @@ const ServiceDomains = async ({ service }: ServiceDomainsProps) => {
                 </span>
                 <DomainStatusBadge state={statuses[index].state} />
                 <div className="ml-auto shrink-0">
-                  <RemoveDomainForm action={removeDomainAction.bind(null, service.id, hostname)} hostname={hostname} />
+                  <RemoveDomainModal action={removeDomainAction.bind(null, service.id, hostname)} hostname={hostname} />
                 </div>
               </div>
               <DomainProblem hostname={hostname} status={statuses[index]} />

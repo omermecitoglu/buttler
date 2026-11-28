@@ -131,6 +131,11 @@
       "remove": "Remove",
       "removing": "Removing...",
       "removeUser": "Remove {login}",
+      "removal": {
+        "title": "Remove {login}",
+        "description": "{login} loses access to this instance of Buttler.",
+        "submit": "Remove user"
+      },
       "messages": {
         "unknown_user": "There is no GitHub user with this handle.",
         "already_added": "This user already has access.",
@@ -194,6 +199,11 @@
       "zonesFailed": "Could not load the domains from Cloudflare. Please try again.",
       "disconnect": "Disconnect",
       "disconnecting": "Disconnecting...",
+      "disconnection": {
+        "title": "Disconnect Cloudflare",
+        "description": "The Cloudflare tunnel is deleted, so the domains of the services and of the dashboard stop working until Cloudflare is connected again.",
+        "submit": "Disconnect"
+      },
       "messages": {
         "disconnect_failed": "Cloudflare could not be disconnected. Please try again.",
         "setup_failed": "The tunnel could not be set up. The reason is in the server log."
@@ -218,6 +228,10 @@
         "description": "These domains were removed from Buttler, but their DNS records are still in Cloudflare."
       }
     }
+  },
+  "Confirm": {
+    "close": "Close",
+    "cancel": "Cancel"
   },
   "DashboardPage": {
     "title": "Services",
@@ -570,6 +584,11 @@
         "remove": "Remove",
         "removing": "Removing...",
         "removeDomain": "Remove {hostname}",
+        "removal": {
+          "title": "Remove {hostname}",
+          "description": "{hostname} no longer leads to this service, and its DNS record is removed from Cloudflare.",
+          "submit": "Remove domain"
+        },
         "messages": {
           "add_failed": "The domain could not be added.",
           "connect_failed": "The domain was not added, because the service could not be connected to Nginx. The reason is in the server log.",
@@ -684,6 +703,11 @@
       "removing": "Removing...",
       "removeLink": "Remove the link to {name}",
       "recreateInheritors": "Recreate {names} now",
+      "removal": {
+        "title": "Remove the link to {name}",
+        "description": "This service and {name} can no longer reach each other, and neither of them inherits the shared variables of the other anymore.",
+        "submit": "Remove link"
+      },
       "messages": {
         "add_failed": "The link could not be added.",
         "already_linked": "These services are already linked.",

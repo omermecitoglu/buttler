@@ -5,7 +5,7 @@ import CloudflareError from "~/components/settings/CloudflareError";
 import CloudflareTunnel from "~/components/settings/CloudflareTunnel";
 import CloudflareZones from "~/components/settings/CloudflareZones";
 import ConnectCloudflareForm from "~/components/settings/ConnectCloudflareForm";
-import DisconnectCloudflareForm from "~/components/settings/DisconnectCloudflareForm";
+import DisconnectCloudflareModal from "~/components/settings/DisconnectCloudflareModal";
 import LeftoverDomains from "~/components/settings/LeftoverDomains";
 import Card from "~/components/ui/card";
 import { getConnectionState } from "~/core/cloudflare/connection";
@@ -62,7 +62,7 @@ const CloudflareSettings = async ({ searchParams }: CloudflareSettingsProps) => 
       <LeftoverDomains />
       {state !== "disconnected" && (
         <div className="space-y-1">
-          <DisconnectCloudflareForm action={disconnectCloudflareAction} />
+          <DisconnectCloudflareModal action={disconnectCloudflareAction} />
           <p className="text-xs text-slate-500">{t("disconnectHelp")}</p>
         </div>
       )}
