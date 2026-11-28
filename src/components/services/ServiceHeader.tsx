@@ -1,3 +1,4 @@
+import { headers } from "next/headers";
 import { connection } from "next/server";
 import { getTranslations } from "next-intl/server";
 import { updateServiceAction } from "~/actions/service";
@@ -9,6 +10,7 @@ import EditServiceModal from "~/components/services/EditServiceModal";
 import PullProgressBars from "~/components/services/PullProgressBars";
 import { getServiceWithLiveStatus } from "~/data/services";
 import { notFound } from "~/i18n/navigation";
+import { TUNNEL_SERVICE_NAME } from "~/operations/getTunnelService";
 
 export type ServiceHeaderProps = {
   params: Promise<{ id: string }>,
@@ -27,6 +29,9 @@ const ServiceHeader = async ({ params }: ServiceHeaderProps) => {
   if (!service) notFound();
 
   const { status } = service.runtime;
+  // Only Cloudflare adds this header, and Nginx passes it on
+  const isThroughTunnel = (await headers()).has("cf-connecting-ip");
+  const carriesThisPage = isThroughTunnel && service.type === "system" && service.name === TUNNEL_SERVICE_NAME;
   const isBusy = status === "pulling" || status === "building" || status === "restarting";
 
   return (
@@ -55,7 +60,12 @@ const ServiceHeader = async ({ params }: ServiceHeaderProps) => {
           />
         )}
       </div>
-      <ServiceActions serviceId={service.id} type={service.type} status={status} />
+      <ServiceActions
+        serviceId={service.id}
+        type={service.type}
+        status={status}
+        carriesThisPage={carriesThisPage}
+      />
     </div>
   );
 };

@@ -305,6 +305,7 @@
         "building": "Building...",
         "stopping": "Stopping...",
         "restarting": "Restarting...",
+        "carriedByTunnel": "The tunnel carries this page. Open Buttler at localhost, or at the IP and port of the host, to do this.",
         "toasts": {
           "pending": {
             "start": "Starting the service...",
