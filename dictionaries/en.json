@@ -592,6 +592,7 @@
       "description": "The service is deleted permanently, with its container and the images that Buttler built for it.",
       "volumes": "Choose the volumes to delete",
       "volumesHelp": "The data of a deleted volume can't be recovered. The others are kept, and so are the ones that other containers use.",
+      "recreateInheritors": "Recreate {names}, which inherit its variables",
       "keptAs": {
         "shared": "Used by other services, always kept",
         "hostPath": "Not a Docker volume, always kept",

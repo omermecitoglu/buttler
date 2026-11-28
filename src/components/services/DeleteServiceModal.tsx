@@ -10,12 +10,12 @@ import { useState } from "react";
 import DeleteServiceForm, { type DeleteServiceFormProps } from "~/components/services/DeleteServiceForm";
 import Button from "~/components/ui/button";
 
-export type DeleteServiceModalProps = Pick<DeleteServiceFormProps, "action" | "volumes"> & {
+export type DeleteServiceModalProps = Pick<DeleteServiceFormProps, "action" | "volumes" | "inheritors"> & {
   name: string,
   disabled: boolean,
 };
 
-const DeleteServiceModal = ({ action, volumes, name, disabled }: DeleteServiceModalProps) => {
+const DeleteServiceModal = ({ action, volumes, inheritors, name, disabled }: DeleteServiceModalProps) => {
   const t = useTranslations("ServicePage.delete");
   const [open, setOpen] = useState(false);
   const close = () => setOpen(false);
@@ -51,7 +51,7 @@ const DeleteServiceModal = ({ action, volumes, name, disabled }: DeleteServiceMo
               </Button>
             </div>
             <div className="overflow-y-auto p-6">
-              <DeleteServiceForm action={action} volumes={volumes} onClose={close} />
+              <DeleteServiceForm action={action} volumes={volumes} inheritors={inheritors} onClose={close} />
             </div>
           </Dialog.Popup>
         </Dialog.Portal>
