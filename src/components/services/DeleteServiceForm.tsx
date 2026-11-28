@@ -2,6 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { useId, useState } from "react";
+import RecreateSubmit from "~/components/services/RecreateSubmit";
 import Button from "~/components/ui/button";
 import Form from "~/components/ui/form";
 import Label from "~/components/ui/label";
@@ -10,13 +11,16 @@ import type { ServiceVolume } from "~/data/services";
 export type DeleteServiceFormProps = {
   action: (initialState: unknown, formData: FormData) => Promise<Record<string, string>>,
   volumes: ServiceVolume[],
+  /** The running services that inherit its variables, which keep them until they are recreated */
+  inheritors: string[],
   onClose: () => void,
 };
 
-const DeleteServiceForm = ({ action, volumes, onClose }: DeleteServiceFormProps) => {
+const DeleteServiceForm = ({ action, volumes, inheritors, onClose }: DeleteServiceFormProps) => {
   const t = useTranslations("ServicePage.delete");
   const idPrefix = useId();
   const [isDeleting, setIsDeleting] = useState(false);
+  const [recreate, setRecreate] = useState(false);
 
   const handleAction = async (state: unknown, formData: FormData) => {
     // Read from the form, because it's reset after a failure. What is submitted must be what is seen.
@@ -65,12 +69,19 @@ const DeleteServiceForm = ({ action, volumes, onClose }: DeleteServiceFormProps)
           </ul>
         </fieldset>
       )}
-      <div className="flex justify-end gap-2">
+      <RecreateSubmit
+        options={inheritors.length > 0 ? [{
+          name: "recreate",
+          label: t("recreateInheritors", { names: inheritors.join(", ") }),
+          checked: recreate,
+          onChange: setRecreate,
+        }] : []}
+        submitLabel={isDeleting ? t("submitting") : t("submit")}
+        submitProps={{ variant: "danger" }}
+        isSaving={isDeleting}
+      >
         <Button type="button" variant="ghost" size="sm" onClick={onClose}>{t("cancel")}</Button>
-        <Button type="submit" variant="danger" size="sm" pending={isDeleting}>
-          {isDeleting ? t("submitting") : t("submit")}
-        </Button>
-      </div>
+      </RecreateSubmit>
     </Form>
   );
 };

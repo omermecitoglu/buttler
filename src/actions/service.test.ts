@@ -680,6 +680,23 @@ describe("deleteServiceAction", () => {
     expect(mockRedirect).toHaveBeenCalledWith({ locale: "en", href: "/services" });
   });
 
+  it("recreates the running services that inherited its variables after it's deleted", async () => {
+    mockGetInheritingServiceIds.mockResolvedValue(["app"]);
+    mockGetDeployableService.mockResolvedValue({ id: "app" });
+    mockGetServiceRuntimeState.mockResolvedValue({ status: "running" });
+    const formData = new FormData();
+    formData.append("recreate", "on");
+    await deleteServiceAction("srv", "en", {}, formData);
+    expect(mockGetInheritingServiceIds).toHaveBeenCalledBefore(mockDeleteService);
+    expect(mockRestartServiceContainer).toHaveBeenCalledWith({ id: "app" });
+    expect(mockRestartServiceContainer).toHaveBeenCalledAfter(mockDeleteService);
+    expect(mockRedirect).toHaveBeenCalledWith({ locale: "en", href: "/services" });
+
+    mockRestartServiceContainer.mockClear();
+    await submit();
+    expect(mockRestartServiceContainer).not.toHaveBeenCalled();
+  });
+
   it("removes the internet and link networks after the container", async () => {
     await submit();
     expect(mockRemoveServiceNetworks).toHaveBeenCalledWith("srv");

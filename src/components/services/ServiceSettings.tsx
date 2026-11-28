@@ -9,8 +9,14 @@ import ServiceDomains from "~/components/services/ServiceDomains";
 import ServicePanelSkeleton from "~/components/services/ServicePanelSkeleton";
 import Card from "~/components/ui/card";
 import { HOST_DEV_PATH } from "~/core/devices";
-import { getServiceWithLiveStatus, getVolumesOfService } from "~/data/services";
+import {
+  getLinksOfService,
+  getServiceWithLiveStatus,
+  getServicesWithLiveStatus,
+  getVolumesOfService,
+} from "~/data/services";
 import { notFound } from "~/i18n/navigation";
+import { getLinkedServiceId } from "~/operations/getServiceLinks";
 import { getContainerState } from "~/utils/containerState";
 
 export type ServiceSettingsProps = {
@@ -22,10 +28,14 @@ const ServiceSettings = async ({ params }: ServiceSettingsProps) => {
   const { id } = await params;
   const [
     service,
+    services,
+    links,
     locale,
     t,
   ] = await Promise.all([
     getServiceWithLiveStatus(id),
+    getServicesWithLiveStatus(),
+    getLinksOfService(id),
     getLocale(),
     getTranslations("ServicePage.settings"),
   ]);
@@ -37,6 +47,12 @@ const ServiceSettings = async ({ params }: ServiceSettingsProps) => {
 
   const { status } = service.runtime;
   const containerState = getContainerState(status);
+  // They keep its shared variables until their containers are created again
+  const inheritors = links.flatMap(link => {
+    if (!(link.serviceAId === id ? link.serviceBInherits : link.serviceAInherits)) return [];
+    const linked = services.find(({ id: serviceId }) => serviceId === getLinkedServiceId(link, id));
+    return linked && getContainerState(linked.runtime.status) === "running" ? [linked.name] : [];
+  });
 
   return (
     <div className="flex flex-col gap-4">
@@ -75,6 +91,7 @@ const ServiceSettings = async ({ params }: ServiceSettingsProps) => {
             action={deleteServiceAction.bind(null, service.id, locale)}
             name={service.name}
             volumes={await getVolumesOfService(service)}
+            inheritors={inheritors}
             disabled={status === "pulling" || status === "building"}
           />
         </div>

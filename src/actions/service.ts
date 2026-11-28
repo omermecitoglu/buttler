@@ -313,6 +313,8 @@ export const deleteServiceAction = defineFormAction({
   schema: z.object({
     // Names of the volumes to be deleted, the others are kept
     volumes: jsonField("invalid_volumes", z.array(z.string())).optional().default([]),
+    // The running services that inherit its variables keep them until they are recreated
+    recreate: recreateField,
   }),
   action: input => async (serviceId: string, locale: AppLocale): Promise<Record<string, string>> => {
     const service = await getService(db, serviceId);
@@ -321,6 +323,8 @@ export const deleteServiceAction = defineFormAction({
     if (status === "building" || status === "pulling") return displayMessage("error", "service_busy");
     // Nothing is awaited between the check and the mark, so no build, pull or deploy can start in between
     if (isServiceBusy(serviceId)) return displayMessage("error", "service_busy");
+    // The links are deleted with the service
+    const inheritors = input.recreate ? await getInheritingServiceIds(db, serviceId) : [];
     markServiceDeleting(serviceId, true);
     let isRemoved: boolean;
     try {
@@ -350,6 +354,9 @@ export const deleteServiceAction = defineFormAction({
     updateTag(`getSingleService(${serviceId})`);
     // The links are deleted with the service
     updateTag("getLinksOfService(...)");
+    updateTag("getInheritedVariablesOfService(...)");
+    // The service is gone either way, a failure is in the server log
+    await recreateRunningServices(inheritors);
     return redirect({ locale, href: "/services" });
   },
 });
