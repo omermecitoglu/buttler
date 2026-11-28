@@ -44,6 +44,13 @@ type ServiceSourceType = "github" | "dockerhub";
 /** The image of the preset that added an item, which removes it when another image is chosen */
 type PresetItem<T> = T & { preset?: string };
 
+/** A new volume gets a number when its name is taken, so it doesn't use the data of another service */
+function getFreeName(name: string, taken: string[]) {
+  let candidate = name;
+  for (let number = 2; taken.includes(candidate); number++) candidate = `${name}-${number}`;
+  return candidate;
+}
+
 /** The container name has the ID of the service, which isn't known yet */
 const previewHost = "buttler-service-…";
 
@@ -57,7 +64,7 @@ const NewServiceForm = ({ action, volumeOptions }: NewServiceFormProps) => {
   const [ports, setPorts] = useState<PortMappingItem[]>([]);
   const [envVars, setEnvVars] = useState<PresetItem<EnvironmentVariableItem>[]>([]);
   const [sharedVars, setSharedVars] = useState<PresetItem<SharedVariableItem>[]>([]);
-  const [volumes, setVolumes] = useState<VolumeMountItem[]>([]);
+  const [volumes, setVolumes] = useState<PresetItem<VolumeMountItem>[]>([]);
   // There is no default, the user must choose
   const [internetAccess, setInternetAccess] = useState<boolean | null>(null);
 
@@ -93,6 +100,21 @@ const NewServiceForm = ({ action, volumeOptions }: NewServiceFormProps) => {
       ...(preset?.sharedVariables ?? [])
         .filter(({ key }) => !sharedKeys.includes(key))
         .map(({ key, template }) => ({ uid: crypto.randomUUID(), key, template, note, preset: preset?.image })),
+    ]);
+    const keptVolumes = volumes.filter(({ preset: added }) => !added);
+    const containerPaths = keptVolumes.map(({ containerPath }) => containerPath.trim());
+    const takenNames = [...volumeOptions.existing, ...keptVolumes.map(({ name }) => (name ?? "").trim())];
+    setVolumes([
+      ...keptVolumes,
+      ...(preset?.volumes ?? [])
+        .filter(({ containerPath }) => !containerPaths.includes(containerPath))
+        .map(({ name, containerPath }) => ({
+          id: crypto.randomUUID(),
+          containerPath,
+          name: getFreeName(name, takenNames),
+          source: "new" as const,
+          preset: preset?.image,
+        })),
     ]);
   };
 

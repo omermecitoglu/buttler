@@ -1,5 +1,5 @@
 /** The images that Buttler knows the variables of */
-export const presetImages = ["postgres", "mysql", "mariadb", "redis", "mongo"] as const;
+export const presetImages = ["postgres", "mysql", "mariadb", "redis", "mongo", "devlikeapro/waha"] as const;
 
 export type PresetImage = typeof presetImages[number];
 
@@ -14,10 +14,12 @@ export type ImagePreset = {
   /** The variables the image reads, which the shared variables refer to */
   variables: PresetVariable[],
   sharedVariables: { key: string, template: string }[],
+  /** The volumes the image keeps its data in */
+  volumes?: { name: string, containerPath: string }[],
 };
 
 const presets: Record<PresetImage, Omit<ImagePreset, "image">> = {
-  postgres: {
+  "postgres": {
     variables: [
       { key: "POSTGRES_USER", value: "postgres" },
       { key: "POSTGRES_PASSWORD", value: null },
@@ -35,7 +37,7 @@ const presets: Record<PresetImage, Omit<ImagePreset, "image">> = {
       { key: "POSTGRES_DB", template: "{env.POSTGRES_DB}" },
     ],
   },
-  mysql: {
+  "mysql": {
     variables: [
       { key: "MYSQL_ROOT_PASSWORD", value: null },
       { key: "MYSQL_USER", value: "app" },
@@ -54,7 +56,7 @@ const presets: Record<PresetImage, Omit<ImagePreset, "image">> = {
       { key: "MYSQL_DATABASE", template: "{env.MYSQL_DATABASE}" },
     ],
   },
-  mariadb: {
+  "mariadb": {
     variables: [
       { key: "MARIADB_ROOT_PASSWORD", value: null },
       { key: "MARIADB_USER", value: "app" },
@@ -74,7 +76,7 @@ const presets: Record<PresetImage, Omit<ImagePreset, "image">> = {
     ],
   },
   // The image has no variable for a password, it needs a command
-  redis: {
+  "redis": {
     variables: [],
     sharedVariables: [
       { key: "REDIS_URL", template: "redis://{host}:6379" },
@@ -82,7 +84,7 @@ const presets: Record<PresetImage, Omit<ImagePreset, "image">> = {
       { key: "REDIS_PORT", template: "6379" },
     ],
   },
-  mongo: {
+  "mongo": {
     variables: [
       { key: "MONGO_INITDB_ROOT_USERNAME", value: "root" },
       { key: "MONGO_INITDB_ROOT_PASSWORD", value: null },
@@ -98,19 +100,39 @@ const presets: Record<PresetImage, Omit<ImagePreset, "image">> = {
       { key: "MONGO_PASSWORD", template: "{env.MONGO_INITDB_ROOT_PASSWORD}" },
     ],
   },
+  // WhatsApp HTTP API
+  "devlikeapro/waha": {
+    variables: [
+      { key: "WHATSAPP_API_PORT", value: "3000" },
+      { key: "WAHA_API_KEY", value: null },
+      // Needs no browser, unlike WEBJS
+      { key: "WHATSAPP_DEFAULT_ENGINE", value: "GOWS" },
+      { key: "WAHA_DASHBOARD_ENABLED", value: "false" },
+      { key: "WAHA_DASHBOARD_USERNAME", value: "admin" },
+      { key: "WAHA_DASHBOARD_PASSWORD", value: null },
+    ],
+    sharedVariables: [
+      { key: "WAHA_BASE_URL", template: "http://{host}:{env.WHATSAPP_API_PORT}" },
+      { key: "WAHA_API_KEY", template: "{env.WAHA_API_KEY}" },
+    ],
+    // The WhatsApp logins, without it the QR code is scanned again after every recreation
+    volumes: [
+      { name: "waha-sessions", containerPath: "/app/.sessions" },
+    ],
+  },
 };
 
-/** Official images are in the `library` namespace of Docker Hub, which can be left out */
-const officialImagePattern = new RegExp([
+/** Images on Docker Hub, the official ones are in the `library` namespace, which can be left out */
+const dockerHubImagePattern = new RegExp([
   (/^(?:(?:docker\.io|index\.docker\.io|registry-1\.docker\.io)\/)?/).source,
-  (/(?:library\/)?([^/:@]+)/).source,
+  (/(?:library\/)?([^:@]+)/).source,
   // The tag and the digest
   (/(?::[^/@]*)?(?:@.*)?$/).source,
 ].join(""));
 
 /** The preset of an image, the tag is ignored */
 export function getImagePreset(image: string): ImagePreset | null {
-  const match = officialImagePattern.exec(image.trim().toLowerCase());
+  const match = dockerHubImagePattern.exec(image.trim().toLowerCase());
   const name = match?.[1];
   if (!name || !(presetImages as readonly string[]).includes(name)) return null;
   const preset = presets[name as PresetImage];
