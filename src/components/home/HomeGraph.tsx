@@ -24,7 +24,12 @@ const HomeGraph = async () => {
     );
   }
 
-  return <ServiceGraph graph={graph} label={t("graph")} />;
+  const nodeNames = {
+    internet: t("nodes.internet"),
+    devices: { "usb-printer": t("nodes.devices.usb-printer") },
+  };
+
+  return <ServiceGraph graph={graph} label={t("graph")} nodeNames={nodeNames} />;
 };
 
 export default HomeGraph;

@@ -1,11 +1,16 @@
 "use client";
+import { faGlobe } from "@fortawesome/free-solid-svg-icons/faGlobe";
+import { faPrint } from "@fortawesome/free-solid-svg-icons/faPrint";
 import { cn } from "@omer-x/tailwind-ui-kit/utils";
 import { type PointerEvent, useMemo, useRef, useState } from "react";
-import type { ServiceGraph as ServiceGraphData } from "~/core/service-graph";
+import type { DeviceKind } from "~/core/devices";
+import type { GraphNode, ServiceGraph as ServiceGraphData } from "~/core/service-graph";
 import useLocalStorage from "~/hooks/useLocalStorage";
 import { Link } from "~/i18n/navigation";
+import type { IconDefinition } from "@fortawesome/fontawesome-svg-core";
 
 const NODE_RADIUS = 28;
+const ICON_SIZE = 24;
 const LABEL_GAP = 20;
 const MAX_LABEL_LENGTH = 24;
 const PADDING = 96;
@@ -28,13 +33,43 @@ type Positions = Record<string, Point>;
 
 const NO_POSITIONS: Positions = {};
 
+const DEVICE_ICONS: Record<DeviceKind, IconDefinition> = {
+  "usb-printer": faPrint,
+};
+
 export type ServiceGraphProps = {
   graph: ServiceGraphData,
   label: string,
+  /** The names of the nodes that aren't services */
+  nodeNames: {
+    internet: string,
+    devices: Record<DeviceKind, string>,
+  },
 };
 
 function truncate(name: string) {
   return name.length > MAX_LABEL_LENGTH ? `${name.slice(0, MAX_LABEL_LENGTH - 1)}…` : name;
+}
+
+/** The path of a Font Awesome icon, centered on a point */
+const NodeIcon = ({ icon, x, y }: { icon: IconDefinition, x: number, y: number }) => {
+  const [width, height, , , pathData] = icon.icon;
+  const scale = ICON_SIZE / Math.max(width, height);
+  return (
+    <path
+      d={Array.isArray(pathData) ? pathData.join(" ") : pathData}
+      transform={`translate(${x - (width * scale / 2)} ${y - (height * scale / 2)}) scale(${scale})`}
+      className="pointer-events-none fill-slate-400"
+    />
+  );
+};
+
+function getNodeIcon(node: GraphNode) {
+  switch (node.kind) {
+    case "internet": return faGlobe;
+    case "device": return DEVICE_ICONS[node.deviceKind];
+    default: return null;
+  }
 }
 
 /** A small graph isn't zoomed in, it stays in the middle */
@@ -67,11 +102,12 @@ function clampToView({ x, y }: Point, { minX, minY, width, height }: ViewBox): P
 }
 
 /**
- * A node is dragged by its circle and its name opens its service, the lines aren't interactive.
+ * A node is dragged by its circle and the name of a service opens it, the lines aren't interactive.
+ * The internet and the host devices have an icon and a dashed outline, their names don't open anything.
  * The moved positions are saved in the local storage when a drag ends, the other nodes keep the layout of the server.
  * The view can change with the data, so a saved position is kept in it when it's shown.
  */
-const ServiceGraph = ({ graph, label }: ServiceGraphProps) => {
+const ServiceGraph = ({ graph, label, nodeNames }: ServiceGraphProps) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const dragRef = useRef<Drag | null>(null);
   const [saved, setSaved] = useLocalStorage<Positions>(STORAGE_KEY, NO_POSITIONS);
@@ -82,6 +118,14 @@ const ServiceGraph = ({ graph, label }: ServiceGraphProps) => {
     const position = dragged?.nodeId === node.id ? dragged.position : saved[node.id];
     return [node.id, { ...node, ...(isPoint(position) ? clampToView(position, viewBox) : null) }];
   }));
+
+  const getNodeName = (node: GraphNode) => {
+    switch (node.kind) {
+      case "internet": return nodeNames.internet;
+      case "device": return nodeNames.devices[node.deviceKind];
+      default: return node.name;
+    }
+  };
 
   const toGraphPoint = (event: PointerEvent): Point => {
     const matrix = svgRef.current?.getScreenCTM()?.inverse();
@@ -134,44 +178,70 @@ const ServiceGraph = ({ graph, label }: ServiceGraphProps) => {
         {graph.edges.map(edge => {
           const source = nodes.get(edge.sourceId)!;
           const target = nodes.get(edge.targetId)!;
-          return <line key={edge.id} x1={source.x} y1={source.y} x2={target.x} y2={target.y} />;
+          return (
+            <line
+              key={edge.id}
+              x1={source.x}
+              y1={source.y}
+              x2={target.x}
+              y2={target.y}
+              strokeDasharray={edge.kind === "access" ? "6 6" : undefined}
+            />
+          );
         })}
       </g>
-      {[...nodes.values()].map(node => (
-        <g key={node.id}>
-          <circle
-            cx={node.x}
-            cy={node.y}
-            r={NODE_RADIUS}
-            strokeWidth={2}
-            onPointerDown={event => startDrag(event, node.id)}
-            onPointerMove={moveDrag}
-            onPointerUp={endDrag}
-            onPointerCancel={endDrag}
-            className={cn(
-              "cursor-grab touch-none transition-colors active:cursor-grabbing",
-              node.isReverseProxy
-                ? "fill-sky-950 stroke-sky-500 hover:fill-sky-900"
-                : "fill-slate-900 stroke-slate-500 hover:fill-slate-800",
-            )}
-          />
-          <Link href={{ pathname: "/services/[id]", params: { id: node.id } }} className="group outline-none">
-            <title>{node.name}</title>
-            <text
-              x={node.x}
-              y={node.y + NODE_RADIUS + LABEL_GAP}
-              textAnchor="middle"
+      {[...nodes.values()].map(node => {
+        const name = getNodeName(node);
+        const icon = getNodeIcon(node);
+        return (
+          <g key={node.id}>
+            <circle
+              cx={node.x}
+              cy={node.y}
+              r={NODE_RADIUS}
+              strokeWidth={2}
+              strokeDasharray={icon ? "4 4" : undefined}
+              onPointerDown={event => startDrag(event, node.id)}
+              onPointerMove={moveDrag}
+              onPointerUp={endDrag}
+              onPointerCancel={endDrag}
               className={cn(
-                "fill-slate-300 text-sm",
-                "group-hover:fill-slate-100 group-hover:underline",
-                "group-focus-visible:fill-slate-100 group-focus-visible:underline",
+                "cursor-grab touch-none transition-colors active:cursor-grabbing",
+                node.kind === "reverse-proxy" && "fill-sky-950 stroke-sky-500 hover:fill-sky-900",
+                node.kind === "service" && "fill-slate-900 stroke-slate-500 hover:fill-slate-800",
+                icon && "fill-slate-950 stroke-slate-600 hover:fill-slate-900",
               )}
-            >
-              {truncate(node.name)}
-            </text>
-          </Link>
-        </g>
-      ))}
+            />
+            {icon && <NodeIcon icon={icon} x={node.x} y={node.y} />}
+            {node.kind === "service" || node.kind === "reverse-proxy" ? (
+              <Link href={{ pathname: "/services/[id]", params: { id: node.id } }} className="group outline-none">
+                <title>{name}</title>
+                <text
+                  x={node.x}
+                  y={node.y + NODE_RADIUS + LABEL_GAP}
+                  textAnchor="middle"
+                  className={cn(
+                    "fill-slate-300 text-sm",
+                    "group-hover:fill-slate-100 group-hover:underline",
+                    "group-focus-visible:fill-slate-100 group-focus-visible:underline",
+                  )}
+                >
+                  {truncate(name)}
+                </text>
+              </Link>
+            ) : (
+              <text
+                x={node.x}
+                y={node.y + NODE_RADIUS + LABEL_GAP}
+                textAnchor="middle"
+                className="pointer-events-none fill-slate-400 text-sm"
+              >
+                {name}
+              </text>
+            )}
+          </g>
+        );
+      })}
     </svg>
   );
 };

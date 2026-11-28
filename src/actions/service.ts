@@ -208,6 +208,7 @@ export const updateInternetAccessAction = defineFormAction({
       return displayMessage("error", "update_failed");
     }
     updateTag("getAllServices()");
+    updateTag("getServiceGraph()");
     updateTag(`getSingleService(${serviceId})`);
     if (!input.recreate) return displayMessage("success", "saved");
     if (!await recreateContainer(serviceId)) return displayMessage("error", "recreate_failed");
@@ -233,6 +234,7 @@ export const updateDevicesAction = defineFormAction({
       return displayMessage("error", "update_failed");
     }
     updateTag("getAllServices()");
+    updateTag("getServiceGraph()");
     updateTag(`getSingleService(${serviceId})`);
     if (!input.recreate) return displayMessage("success", "saved");
     if (!await recreateContainer(serviceId)) return displayMessage("error", "recreate_failed");
