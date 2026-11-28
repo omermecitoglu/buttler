@@ -1,22 +1,22 @@
-/** The official database images that Buttler knows the variables of */
-export const databasePresetImages = ["postgres", "mysql", "mariadb", "redis", "mongo"] as const;
+/** The images that Buttler knows the variables of */
+export const presetImages = ["postgres", "mysql", "mariadb", "redis", "mongo"] as const;
 
-export type DatabasePresetImage = typeof databasePresetImages[number];
+export type PresetImage = typeof presetImages[number];
 
-export type DatabasePresetVariable = {
+export type PresetVariable = {
   key: string,
   /** `null` is a generated password */
   value: string | null,
 };
 
-export type DatabasePreset = {
-  image: DatabasePresetImage,
+export type ImagePreset = {
+  image: PresetImage,
   /** The variables the image reads, which the shared variables refer to */
-  variables: DatabasePresetVariable[],
+  variables: PresetVariable[],
   sharedVariables: { key: string, template: string }[],
 };
 
-const presets: Record<DatabasePresetImage, Omit<DatabasePreset, "image">> = {
+const presets: Record<PresetImage, Omit<ImagePreset, "image">> = {
   postgres: {
     variables: [
       { key: "POSTGRES_USER", value: "postgres" },
@@ -108,13 +108,13 @@ const officialImagePattern = new RegExp([
   (/(?::[^/@]*)?(?:@.*)?$/).source,
 ].join(""));
 
-/** The preset of an official database image, the tag is ignored */
-export function getDatabasePreset(image: string): DatabasePreset | null {
+/** The preset of an image, the tag is ignored */
+export function getImagePreset(image: string): ImagePreset | null {
   const match = officialImagePattern.exec(image.trim().toLowerCase());
   const name = match?.[1];
-  if (!name || !(databasePresetImages as readonly string[]).includes(name)) return null;
-  const preset = presets[name as DatabasePresetImage];
-  return { image: name as DatabasePresetImage, ...preset };
+  if (!name || !(presetImages as readonly string[]).includes(name)) return null;
+  const preset = presets[name as PresetImage];
+  return { image: name as PresetImage, ...preset };
 }
 
 const passwordAlphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
