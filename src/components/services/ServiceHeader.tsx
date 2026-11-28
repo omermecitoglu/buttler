@@ -10,6 +10,7 @@ import EditServiceModal from "~/components/services/EditServiceModal";
 import PullProgressBars from "~/components/services/PullProgressBars";
 import { getServiceWithLiveStatus } from "~/data/services";
 import { notFound } from "~/i18n/navigation";
+import { REVERSE_PROXY_SERVICE_NAME } from "~/operations/ensureReverseProxyService";
 import { TUNNEL_SERVICE_NAME } from "~/operations/getTunnelService";
 
 export type ServiceHeaderProps = {
@@ -31,7 +32,9 @@ const ServiceHeader = async ({ params }: ServiceHeaderProps) => {
   const { status } = service.runtime;
   // Only Cloudflare adds this header, and Nginx passes it on
   const isThroughTunnel = (await headers()).has("cf-connecting-ip");
-  const carriesThisPage = isThroughTunnel && service.type === "system" && service.name === TUNNEL_SERVICE_NAME;
+  // Cloudflared and Nginx are the way of the page, through the tunnel
+  const carriesThisPage = isThroughTunnel && service.type === "system" &&
+    (service.name === TUNNEL_SERVICE_NAME || service.name === REVERSE_PROXY_SERVICE_NAME);
   const isBusy = status === "pulling" || status === "building" || status === "restarting";
 
   return (
