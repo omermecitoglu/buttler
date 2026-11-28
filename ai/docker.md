@@ -49,6 +49,12 @@ Docker is the single source of truth for builds, nothing about them is stored in
 - The first exposed port is the default container port of a new domain, before the first port mapping. The port mappings editor offers the exposed ports that are not mapped yet.
 - Port mappings are only applied when the container is created again. The port mappings editor offers to recreate it right away (`updateServiceAction` with `recreate`), otherwise they are applied by the next restart, start or deploy.
 
+## Recreating Containers
+
+- Docker can't change the ports, mounts, environment, networks or devices of an existing container, so a change of them only applies when it's created again. Every form with such a change offers to recreate the container right away: ports, storage mounts, environment variables, internet access, host devices, shared variables, link inheritance, removing a link and deleting a service.
+- The checkbox is only offered while the container is running and not built or pulled (`getContainerState` in `src/utils/containerState.ts`). A stopped service gets the changes when it's started, and a build or a pull replaces the container anyway.
+- All of them use `RecreateSubmit` (`src/components/services/RecreateSubmit.tsx`): the checkboxes are right before the submit button, with the help text that tells when the changes apply (`Recreate` in the dictionary). A new form with such a change must use it too.
+
 ## Deletion
 
 - Only the admin can delete a service (`deleteServiceAction`), from the "Settings" tab of its page. System services can't be deleted, and neither can services that are being built or pulled, because they would be deployed again.
@@ -92,6 +98,8 @@ Docker is the single source of truth for builds, nothing about them is stored in
 - Every user can add and remove links, on the "Links" tab of a service. System services can't be linked there, Nginx is linked by Buttler.
 - Inherited variables (`ai/database.md`) are runtime-only. They are resolved when the service is loaded for a deploy (`getDeployableService`), and the container gets them before its own variables, which win.
 - A change of shared variables, of inheritance or of a rename is only applied when the container is created again. The forms offer to recreate the affected running containers (`recreateRunningServices`), stopped services get it when they are started.
+- Shared variables can be built from the variables of their service (`{env.NAME}`), so a change of those variables, a removed link and a deleted service also change what other services inherit. Their forms offer to recreate the running services that inherit (`getInheritingServiceIds`).
+- The inheritance of all links of a service is saved together (`updateLinksInheritanceAction`), so its container is recreated at most once.
 
 ## Nginx Links
 
