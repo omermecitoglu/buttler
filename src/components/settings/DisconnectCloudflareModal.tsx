@@ -5,10 +5,13 @@ import ConfirmActionModal from "~/components/ConfirmActionModal";
 
 export type DisconnectCloudflareModalProps = {
   action: (initialState: unknown, formData: FormData) => Promise<Record<string, string>>,
+  /** Disconnecting deletes the tunnel that carries this page */
+  isThroughTunnel: boolean,
 };
 
-const DisconnectCloudflareModal = ({ action }: DisconnectCloudflareModalProps) => {
+const DisconnectCloudflareModal = ({ action, isThroughTunnel }: DisconnectCloudflareModalProps) => {
   const t = useTranslations("SettingsPage.cloudflare");
+  const tSettings = useTranslations("SettingsPage");
 
   return (
     <ConfirmActionModal
@@ -19,6 +22,7 @@ const DisconnectCloudflareModal = ({ action }: DisconnectCloudflareModalProps) =
       description={t("disconnection.description")}
       submitLabel={t("disconnection.submit")}
       submittingLabel={t("disconnecting")}
+      disabledReason={isThroughTunnel ? tSettings("throughTunnel") : null}
     />
   );
 };

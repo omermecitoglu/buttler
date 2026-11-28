@@ -9,7 +9,7 @@ import DisconnectCloudflareModal from "~/components/settings/DisconnectCloudflar
 import LeftoverDomains from "~/components/settings/LeftoverDomains";
 import Card from "~/components/ui/card";
 import { getConnectionState } from "~/core/cloudflare/connection";
-import { loadZones } from "~/data/cloudflare";
+import { isThroughTunnel, loadZones } from "~/data/cloudflare";
 
 export type CloudflareSettingsProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>,
@@ -19,9 +19,11 @@ const CloudflareSettings = async ({ searchParams }: CloudflareSettingsProps) => 
   await connection();
   const [
     { cloudflare: error },
+    throughTunnel,
     t,
   ] = await Promise.all([
     searchParams,
+    isThroughTunnel(),
     getTranslations("SettingsPage.cloudflare"),
   ]);
   const zones = await getConnectionState() === "connected" ? await loadZones() : null;
@@ -62,7 +64,7 @@ const CloudflareSettings = async ({ searchParams }: CloudflareSettingsProps) => 
       <LeftoverDomains />
       {state !== "disconnected" && (
         <div className="space-y-1">
-          <DisconnectCloudflareModal action={disconnectCloudflareAction} />
+          <DisconnectCloudflareModal action={disconnectCloudflareAction} isThroughTunnel={throughTunnel} />
           <p className="text-xs text-slate-500">{t("disconnectHelp")}</p>
         </div>
       )}

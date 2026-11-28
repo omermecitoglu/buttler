@@ -9,25 +9,33 @@ import { useTranslations } from "next-intl";
 import { useState } from "react";
 import RemoveDashboardDomainForm, { type RemoveDashboardDomainFormProps } from "~/components/settings/RemoveDashboardDomainForm";
 import Button from "~/components/ui/button";
+import DisabledReason from "~/components/ui/disabled-reason";
 
-export type RemoveDashboardDomainModalProps = Pick<RemoveDashboardDomainFormProps, "action" | "hostname">;
+export type RemoveDashboardDomainModalProps = Pick<RemoveDashboardDomainFormProps, "action" | "hostname"> & {
+  /** This page is opened at the domain, so removing it cuts the connection */
+  isThroughTunnel: boolean,
+};
 
-const RemoveDashboardDomainModal = ({ action, hostname }: RemoveDashboardDomainModalProps) => {
+const RemoveDashboardDomainModal = ({ action, hostname, isThroughTunnel }: RemoveDashboardDomainModalProps) => {
   const t = useTranslations("SettingsPage.domain.removal");
+  const tSettings = useTranslations("SettingsPage");
   const [open, setOpen] = useState(false);
   const close = () => setOpen(false);
 
   return (
     <>
-      <Button
-        size="xs"
-        variant="outline"
-        onClick={() => setOpen(true)}
-        className="gap-1.5 text-slate-300 hover:border-rose-500/40 hover:text-rose-400"
-      >
-        <FontAwesomeIcon icon={faTrash} className="size-3 text-rose-400" />
-        <span>{t("button")}</span>
-      </Button>
+      <DisabledReason reason={isThroughTunnel ? tSettings("throughTunnel") : null}>
+        <Button
+          size="xs"
+          variant="outline"
+          disabled={isThroughTunnel}
+          onClick={() => setOpen(true)}
+          className="gap-1.5 text-slate-300 hover:border-rose-500/40 hover:text-rose-400"
+        >
+          <FontAwesomeIcon icon={faTrash} className="size-3 text-rose-400" />
+          <span>{t("button")}</span>
+        </Button>
+      </DisabledReason>
       <Dialog.Root open={open} onOpenChange={setOpen}>
         <Dialog.Portal>
           <Dialog.Backdrop render={<DialogBackdrop className="fixed inset-0 z-40 bg-black/60 backdrop-blur-xs" />} />
