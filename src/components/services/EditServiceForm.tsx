@@ -26,14 +26,19 @@ const EditServiceForm = ({ action, edit, onClose }: EditServiceFormProps) => {
   const [isSaving, setIsSaving] = useState(false);
   // Controlled, so it isn't reset when the action fails
   const [recreate, setRecreate] = useState(false);
+  const [recreateLinked, setRecreateLinked] = useState(false);
+  const canRecreateLinked = edit.section === "variables" && edit.canRecreateLinked;
 
   /** Tells what needs to be done to apply the changes */
   const getHelp = () => {
     if (edit.section === "name") return null;
     if ("containerState" in edit) {
-      const help = tRecreate(`help.${getRecreateHelpKey(edit.containerState, recreate)}`);
-      // Recreating the container doesn't build the image again
-      return edit.section === "variables" && edit.isGitHub ? `${help} ${t("help.buildVariables")}` : help;
+      return [
+        tRecreate(`help.${getRecreateHelpKey(edit.containerState, recreate)}`),
+        canRecreateLinked && tRecreate(recreateLinked ? "linkedHelp.now" : "linkedHelp.later"),
+        // Recreating the container doesn't build the image again
+        edit.section === "variables" && edit.isGitHub && t("help.buildVariables"),
+      ].filter(Boolean).join(" ");
     }
     if (edit.isGitHub) return t("help.build");
     return t("help.restart");
@@ -54,6 +59,7 @@ const EditServiceForm = ({ action, edit, onClose }: EditServiceFormProps) => {
   const messages = {
     update_failed: t("messages.update_failed"),
     recreate_failed: t("messages.recreate_failed"),
+    linked_recreate_failed: t("messages.linked_recreate_failed"),
     service_busy: t("messages.service_busy"),
     secret_value_required: t("messages.secret_value_required"),
     inherited_variable_name: t("messages.inherited_variable_name"),
@@ -69,12 +75,20 @@ const EditServiceForm = ({ action, edit, onClose }: EditServiceFormProps) => {
     <Form action={handleAction} messages={messages} className="flex w-full flex-col items-stretch gap-6">
       <EditServiceFields edit={edit} />
       <RecreateSubmit
-        options={canRecreate(edit) ? [{
-          name: "recreate",
-          label: tRecreate("container"),
-          checked: recreate,
-          onChange: setRecreate,
-        }] : []}
+        options={[
+          ...canRecreate(edit) ? [{
+            name: "recreate",
+            label: tRecreate("container"),
+            checked: recreate,
+            onChange: setRecreate,
+          }] : [],
+          ...canRecreateLinked ? [{
+            name: "recreateLinked",
+            label: tRecreate("linkedServices"),
+            checked: recreateLinked,
+            onChange: setRecreateLinked,
+          }] : [],
+        ]}
         help={getHelp()}
         submitLabel={isSaving ? t("saving") : t("save")}
         isSaving={isSaving}

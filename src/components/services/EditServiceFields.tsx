@@ -21,7 +21,13 @@ export type ServiceEdit =
     ports: { external: number, internal: number }[],
     exposedPorts: number[],
   } & Recreatable) |
-  ({ section: "variables", isGitHub: boolean, variables: SavedVariable[] } & Recreatable) |
+  ({
+    section: "variables",
+    isGitHub: boolean,
+    variables: SavedVariable[],
+    /** Running linked services inherit shared variables, which may be built from these variables */
+    canRecreateLinked: boolean,
+  } & Recreatable) |
   ({
     section: "volumes",
     volumes: { id: string, name: string, containerPath: string }[],

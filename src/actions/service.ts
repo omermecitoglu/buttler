@@ -28,7 +28,7 @@ import {
 import { getServiceImageTag } from "~/core/dockerhub";
 import { environmentVariableScopes } from "~/core/environment-variables";
 import { deleteFromReverseProxy, syncReverseProxyConfig } from "~/core/nginx";
-import { isServiceBusy } from "~/core/recreate";
+import { isServiceBusy, recreateRunningServices } from "~/core/recreate";
 import { SERVICE_RECIPE_VERSION, ServiceRecipeSchema } from "~/core/service-recipe";
 import db from "~/database";
 import { redirect } from "~/i18n/navigation";
@@ -39,6 +39,7 @@ import deleteService from "~/operations/deleteService";
 import getDeployableService from "~/operations/getDeployableService";
 import getInheritedVariables from "~/operations/getInheritedVariables";
 import getService from "~/operations/getService";
+import { getInheritingServiceIds } from "~/operations/getServiceLinks";
 import getSharedVolumes from "~/operations/getSharedVolumes";
 import importServiceRecipe, { type ServiceRecipeConflict } from "~/operations/importServiceRecipe";
 import updateService, { MissingSecretValueError } from "~/operations/updateService";
@@ -153,8 +154,10 @@ export const updateServiceAction = defineFormAction({
     volumes: volumesField.optional(),
     // Otherwise the changes apply the next time the container is created
     recreate: recreateField,
+    // The shared variables of the service may be built from its variables
+    recreateLinked: recreateField,
   }),
-  action: ({ recreate, ...input }) => async (serviceId: string): Promise<Record<string, string>> => {
+  action: ({ recreate, recreateLinked, ...input }) => async (serviceId: string): Promise<Record<string, string>> => {
     const service = await getService(db, serviceId);
     if (!service || service.type === "system") return displayMessage("error", "update_failed");
     if (recreate && !await canRecreateContainer(service)) return displayMessage("error", "service_busy");
@@ -181,6 +184,9 @@ export const updateServiceAction = defineFormAction({
     // Linked services may inherit variables that are built from them
     updateTag("getInheritedVariablesOfService(...)");
     if (recreate && !await recreateContainer(serviceId)) return displayMessage("error", "recreate_failed");
+    if (recreateLinked && environmentVariables && !await recreateLinkedServices(serviceId)) {
+      return displayMessage("error", "linked_recreate_failed");
+    }
     return {};
   },
 });
@@ -259,6 +265,15 @@ export const deployBuildAction = defineFormAction({
 async function canRecreateContainer(service: ServiceIdentity) {
   const { status } = await getServiceRuntimeState(service);
   return status !== "building" && status !== "pulling" && !isServiceBusy(service.id);
+}
+
+/** Creates the containers of the running services that inherit the shared variables of a service again */
+async function recreateLinkedServices(serviceId: string) {
+  try {
+    return (await recreateRunningServices(await getInheritingServiceIds(db, serviceId))).length === 0;
+  } finally {
+    refresh();
+  }
 }
 
 /** Creates the container again, so it gets the saved changes */
