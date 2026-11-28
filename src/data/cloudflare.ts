@@ -1,4 +1,5 @@
 import "server-only";
+import { headers } from "next/headers";
 import { cache } from "react";
 import { getDomainZones } from "~/core/cloudflare/domains";
 import { type CloudflareZone, getZones } from "~/core/cloudflare/zones";
@@ -33,3 +34,8 @@ export const loadDomainZones = cache(async (): Promise<DomainZones> => {
     return { state: "unavailable" };
   }
 });
+
+/** Only Cloudflare adds this header, and Nginx passes it on */
+export async function isThroughTunnel() {
+  return (await headers()).has("cf-connecting-ip");
+}

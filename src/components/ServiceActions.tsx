@@ -9,10 +9,10 @@ import { faSpinner } from "@fortawesome/free-solid-svg-icons/faSpinner";
 import { faStop } from "@fortawesome/free-solid-svg-icons/faStop";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useTranslations } from "next-intl";
-import { type ReactElement, useOptimistic, useTransition } from "react";
+import { useOptimistic, useTransition } from "react";
 import { redeployService, restartService, startService, stopService, triggerBuild } from "~/actions/service";
 import Button from "~/components/ui/button";
-import Tooltip from "~/components/ui/tooltip";
+import DisabledReason from "~/components/ui/disabled-reason";
 import type { ContainerRuntimeStatus } from "~/core/docker/status";
 import { useRouter } from "~/i18n/navigation";
 
@@ -32,16 +32,6 @@ export type ServiceActionsProps = {
   status: ContainerRuntimeStatus,
   /** Stopping or restarting the service would cut the connection of this page */
   carriesThisPage?: boolean,
-};
-
-/** A disabled button gets no pointer events, so the tooltip is on a wrapper that lets them through */
-const LiveActionTooltip = ({ content, children }: { content: string | null, children: ReactElement }) => {
-  if (!content) return children;
-  return (
-    <Tooltip content={content}>
-      <span className="inline-flex cursor-not-allowed *:pointer-events-none">{children}</span>
-    </Tooltip>
-  );
 };
 
 const ServiceActions = ({
@@ -98,7 +88,7 @@ const ServiceActions = ({
     <div className="flex flex-wrap items-center gap-2">
       {hasLiveContainer ? (
         <>
-          <LiveActionTooltip content={carriesThisPage ? t("carriesThisPage") : null}>
+          <DisabledReason reason={carriesThisPage ? t("carriesThisPage") : null}>
             <Button
               size="xs"
               variant="outline"
@@ -112,8 +102,8 @@ const ServiceActions = ({
               />
               <span>{pendingAction === "stop" ? t("stopping") : t("stop")}</span>
             </Button>
-          </LiveActionTooltip>
-          <LiveActionTooltip content={carriesThisPage ? t("carriesThisPage") : null}>
+          </DisabledReason>
+          <DisabledReason reason={carriesThisPage ? t("carriesThisPage") : null}>
             <Button
               size="xs"
               variant="secondary"
@@ -127,7 +117,7 @@ const ServiceActions = ({
               />
               <span>{pendingAction === "restart" ? t("restarting") : t("restart")}</span>
             </Button>
-          </LiveActionTooltip>
+          </DisabledReason>
         </>
       ) : (
         <Button

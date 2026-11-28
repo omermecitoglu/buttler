@@ -1,4 +1,3 @@
-import { headers } from "next/headers";
 import { connection } from "next/server";
 import { getTranslations } from "next-intl/server";
 import { updateServiceAction } from "~/actions/service";
@@ -8,6 +7,7 @@ import ServicesPoller from "~/components/ServicesPoller";
 import StatusBadge from "~/components/StatusBadge";
 import EditServiceModal from "~/components/services/EditServiceModal";
 import PullProgressBars from "~/components/services/PullProgressBars";
+import { isThroughTunnel } from "~/data/cloudflare";
 import { getServiceWithLiveStatus } from "~/data/services";
 import { notFound } from "~/i18n/navigation";
 import { REVERSE_PROXY_SERVICE_NAME } from "~/operations/ensureReverseProxyService";
@@ -30,10 +30,8 @@ const ServiceHeader = async ({ params }: ServiceHeaderProps) => {
   if (!service) notFound();
 
   const { status } = service.runtime;
-  // Only Cloudflare adds this header, and Nginx passes it on
-  const isThroughTunnel = (await headers()).has("cf-connecting-ip");
   // Cloudflared and Nginx are the way of the page, through the tunnel
-  const carriesThisPage = isThroughTunnel && service.type === "system" &&
+  const carriesThisPage = await isThroughTunnel() && service.type === "system" &&
     (service.name === TUNNEL_SERVICE_NAME || service.name === REVERSE_PROXY_SERVICE_NAME);
   const isBusy = status === "pulling" || status === "building" || status === "restarting";
 
