@@ -29,7 +29,7 @@ import Card from "~/components/ui/card";
 import Form from "~/components/ui/form";
 import Input from "~/components/ui/input";
 import Label from "~/components/ui/label";
-import { generatePassword, getDatabasePreset } from "~/core/database-presets";
+import { generatePassword, getImagePreset } from "~/core/image-presets";
 import type { SharedVariableSource } from "~/core/shared-variables";
 import type { VolumeOptions } from "~/data/services";
 import { Link } from "~/i18n/navigation";
@@ -63,11 +63,11 @@ const NewServiceForm = ({ action, volumeOptions }: NewServiceFormProps) => {
 
   const nameInputId = useId();
 
-  const presetImage = sourceType === "dockerhub" ? getDatabasePreset(repository)?.image : undefined;
+  const presetImage = sourceType === "dockerhub" ? getImagePreset(repository)?.image : undefined;
 
   /** Replaces the items of the previous preset, the ones that are already there are kept */
   const applyPreset = (image: string) => {
-    const preset = getDatabasePreset(image);
+    const preset = getImagePreset(image);
     if (preset?.image === presetImage) return;
     const note = preset ? t("sharedSection.presetNote", { image: preset.image }) : undefined;
     const keptEnvVars = envVars.filter(({ preset: added }) => !added);

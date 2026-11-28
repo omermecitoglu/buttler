@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { databasePresetImages, generatePassword, getDatabasePreset } from "./database-presets";
+import { generatePassword, getImagePreset, presetImages } from "./image-presets";
 import { type SharedVariableSource, getTemplateReferences, resolveTemplate } from "./shared-variables";
 
-describe("getDatabasePreset", () => {
+describe("getImagePreset", () => {
   it.each([
     ["postgres", "postgres"],
     ["postgres:16", "postgres"],
@@ -13,7 +13,7 @@ describe("getDatabasePreset", () => {
     [" Redis ", "redis"],
     ["mongo:7", "mongo"],
   ])("matches %s", (image, expected) => {
-    expect(getDatabasePreset(image)?.image).toBe(expected);
+    expect(getImagePreset(image)?.image).toBe(expected);
   });
 
   it.each([
@@ -24,11 +24,11 @@ describe("getDatabasePreset", () => {
     "ghcr.io/library/postgres",
     "nginx",
   ])("does not match %s", image => {
-    expect(getDatabasePreset(image)).toBeNull();
+    expect(getImagePreset(image)).toBeNull();
   });
 
-  it.each(databasePresetImages)("only refers to its own variables in %s", image => {
-    const preset = getDatabasePreset(image)!;
+  it.each(presetImages)("only refers to its own variables in %s", image => {
+    const preset = getImagePreset(image)!;
     const keys = preset.variables.map(({ key }) => key);
     const source: SharedVariableSource = {
       host: "db",
