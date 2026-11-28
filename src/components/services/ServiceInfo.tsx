@@ -167,7 +167,12 @@ const ServiceInfo = async ({ params }: ServiceInfoProps) => {
       </ServiceInfoSection>
       <ServiceInfoSection
         title={t("variables")}
-        action={renderEdit({ section: "variables", isGitHub, variables: service.environmentVariables })}
+        action={renderEdit({
+          section: "variables",
+          isGitHub,
+          variables: service.environmentVariables,
+          containerState,
+        })}
       >
         {service.environmentVariables.length === 0 && inheritedVariables.length === 0 ? (
           <p className="text-sm text-slate-500">{t("noVariables")}</p>

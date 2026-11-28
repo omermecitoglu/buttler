@@ -21,7 +21,7 @@ export type ServiceEdit =
     ports: { external: number, internal: number }[],
     exposedPorts: number[],
   } & Recreatable) |
-  { section: "variables", isGitHub: boolean, variables: SavedVariable[] } |
+  ({ section: "variables", isGitHub: boolean, variables: SavedVariable[] } & Recreatable) |
   ({
     section: "volumes",
     volumes: { id: string, name: string, containerPath: string }[],

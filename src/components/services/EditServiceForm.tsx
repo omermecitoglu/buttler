@@ -15,7 +15,7 @@ export type EditServiceFormProps = {
   onClose: () => void,
 };
 
-/** Ports and storage mounts can't be changed on an existing container */
+/** Ports, storage mounts and runtime variables can't be changed on an existing container */
 function canRecreate(edit: ServiceEdit) {
   return "containerState" in edit && edit.containerState === "running";
 }
@@ -30,9 +30,12 @@ const EditServiceForm = ({ action, edit, onClose }: EditServiceFormProps) => {
   /** Tells what needs to be done to apply the changes */
   const getHelp = () => {
     if (edit.section === "name") return null;
-    if ("containerState" in edit) return tRecreate(`help.${getRecreateHelpKey(edit.containerState, recreate)}`);
-    if (edit.section === "source" && edit.isGitHub) return t("help.build");
-    if (edit.section === "variables" && edit.isGitHub) return t("help.variables");
+    if ("containerState" in edit) {
+      const help = tRecreate(`help.${getRecreateHelpKey(edit.containerState, recreate)}`);
+      // Recreating the container doesn't build the image again
+      return edit.section === "variables" && edit.isGitHub ? `${help} ${t("help.buildVariables")}` : help;
+    }
+    if (edit.isGitHub) return t("help.build");
     return t("help.restart");
   };
 
