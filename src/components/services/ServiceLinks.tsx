@@ -98,7 +98,7 @@ const ServiceLinks = async ({ params }: ServiceLinksProps) => {
         ) : (
           <LinksInheritanceForm
             action={updateLinksInheritanceAction.bind(null, id)}
-            links={linkedServices.map(({ linkId, service: linkedService, inherits, offered, names }) => ({
+            links={linkedServices.map(({ linkId, service: linkedService, inherits, inheritedByOther, offered, names }) => ({
               linkId,
               header: (
                 <div className="flex min-h-8 items-center gap-3">
@@ -121,7 +121,16 @@ const ServiceLinks = async ({ params }: ServiceLinksProps) => {
                   </div>
                   {linkedService.type !== "system" && (
                     <div className="ml-auto shrink-0">
-                      <RemoveLinkForm action={removeLinkAction.bind(null, id, linkId)} name={linkedService.name} />
+                      <RemoveLinkForm
+                        action={removeLinkAction.bind(null, id, linkId)}
+                        name={linkedService.name}
+                        inheritors={[
+                          ...inherits && containerState === "running" ? [service.name] : [],
+                          ...inheritedByOther && getContainerState(linkedService.runtime.status) === "running"
+                            ? [linkedService.name]
+                            : [],
+                        ]}
+                      />
                     </div>
                   )}
                 </div>

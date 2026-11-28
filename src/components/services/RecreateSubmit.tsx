@@ -1,7 +1,7 @@
 "use client";
 
 import { type ReactNode, useId, useState } from "react";
-import Button from "~/components/ui/button";
+import Button, { type ButtonProps } from "~/components/ui/button";
 import Label from "~/components/ui/label";
 import type { ContainerState } from "~/utils/containerState";
 
@@ -19,13 +19,15 @@ export type RecreateSubmitProps = {
   /** Tells when the changes are applied */
   help?: ReactNode,
   submitLabel: string,
+  /** The look of the submit button, a primary button by default */
+  submitProps?: Pick<ButtonProps, "variant" | "size" | "className" | "aria-label">,
   isSaving: boolean,
   /** Other buttons, before the submit button */
   children?: ReactNode,
 };
 
 /** The submit button of a form with the checkboxes that decide whether it recreates containers */
-const RecreateSubmit = ({ options, help, submitLabel, isSaving, children }: RecreateSubmitProps) => {
+const RecreateSubmit = ({ options, help, submitLabel, submitProps, isSaving, children }: RecreateSubmitProps) => {
   const idPrefix = useId();
   // React resets the form after an action, which unchecks the checkboxes without updating their state
   const [resetKey, setResetKey] = useState(0);
@@ -59,7 +61,7 @@ const RecreateSubmit = ({ options, help, submitLabel, isSaving, children }: Recr
         ))}
         <div className="flex shrink-0 gap-2">
           {children}
-          <Button type="submit" variant="primary" size="sm" pending={isSaving}>{submitLabel}</Button>
+          <Button type="submit" variant="primary" size="sm" {...submitProps} pending={isSaving}>{submitLabel}</Button>
         </div>
       </div>
     </div>

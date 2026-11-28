@@ -682,12 +682,14 @@
       "remove": "Remove",
       "removing": "Removing...",
       "removeLink": "Remove the link to {name}",
+      "recreateInheritors": "Recreate {names} now",
       "messages": {
         "add_failed": "The link could not be added.",
         "already_linked": "These services are already linked.",
         "connect_failed": "The link was not added, because its network could not be set up. The reason is in the server log.",
         "disconnect_failed": "The link was kept, because its network could not be removed. The reason is in the server log.",
-        "remove_failed": "The link could not be removed."
+        "remove_failed": "The link could not be removed.",
+        "recreate_failed": "The link was removed, but some containers that inherited variables through it could not be recreated. The reason is in the server log."
       },
       "shared": {
         "title": "Shared Variables",

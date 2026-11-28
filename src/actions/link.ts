@@ -1,8 +1,9 @@
 "use server";
 import { defineFormAction, displayMessage } from "@omer-x/next-form-actions";
-import { updateTag } from "next/cache";
+import { refresh, updateTag } from "next/cache";
 import z from "zod";
 import { syncLinkNetwork } from "~/core/docker/links";
+import { recreateRunningServices } from "~/core/recreate";
 import db from "~/database";
 import type { ServiceDTO } from "~/models/service";
 import type { ServiceLinkDTO } from "~/models/service-link";
@@ -59,8 +60,11 @@ export const addLinkAction = defineFormAction({
 
 export const removeLinkAction = defineFormAction({
   middlewares: [userMiddleware],
-  schema: z.object({}),
-  action: () => async (
+  schema: z.object({
+    // The running services that inherited variables through the link keep them until they are recreated
+    recreate: z.literal("on").optional(),
+  }),
+  action: input => async (
     serviceId: ServiceDTO["id"],
     linkId: ServiceLinkDTO["id"],
   ): Promise<Record<string, string>> => {
@@ -80,6 +84,16 @@ export const removeLinkAction = defineFormAction({
       return displayMessage("error", "disconnect_failed");
     }
     updateLinkTags(link);
+    if (!input.recreate) return {};
+    const inheritors = [
+      ...existing.serviceAInherits ? [existing.serviceAId] : [],
+      ...existing.serviceBInherits ? [existing.serviceBId] : [],
+    ];
+    try {
+      if ((await recreateRunningServices(inheritors)).length > 0) return displayMessage("error", "recreate_failed");
+    } finally {
+      refresh();
+    }
     return {};
   },
 });
