@@ -1,7 +1,13 @@
 {
   "HomePage": {
     "title": "Buttler",
-    "graph": "Services and their links"
+    "graph": "Services and their links",
+    "nodes": {
+      "internet": "Internet",
+      "devices": {
+        "usb-printer": "Printer"
+      }
+    }
   },
   "LoginPage": {
     "title": "Sign in to Buttler",
