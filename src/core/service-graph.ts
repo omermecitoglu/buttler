@@ -87,9 +87,9 @@ export function buildServiceGraph(
     .filter(([a, b]) => a !== b && nodeIds.has(a) && nodeIds.has(b))
     .map(([a, b]) => ({ id: `${a}:${b}`, source: a, target: b, kind: "link" }));
 
-  // The system services can't be given the internet or devices by the user, so they aren't connected to them
-  const userServices = services.filter(service => service.type !== "system");
-  const internetUsers = userServices.filter(service => service.internetAccess);
+  // nginx can reach the internet too, the other system services aren't shown
+  const shownServices = services.filter(service => nodeIds.has(service.id));
+  const internetUsers = shownServices.filter(service => service.internetAccess);
   if (internetUsers.length > 0) {
     nodes.push(toSimulationNode({ id: INTERNET_NODE_ID, kind: "internet" }));
     for (const service of internetUsers) {
@@ -98,7 +98,7 @@ export function buildServiceGraph(
     }
   }
   const deviceUsers = Map.groupBy(
-    userServices.flatMap(service => service.devices.map(device => ({ kind: device.kind, serviceId: service.id }))),
+    shownServices.flatMap(service => service.devices.map(device => ({ kind: device.kind, serviceId: service.id }))),
     use => use.kind,
   );
   for (const [deviceKind, uses] of [...deviceUsers].toSorted(([a], [b]) => a.localeCompare(b))) {
