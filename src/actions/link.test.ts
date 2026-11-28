@@ -9,10 +9,13 @@ const mocks = vi.hoisted(() => ({
   getServiceLinks: vi.fn(),
   syncLinkNetwork: vi.fn(),
   updateTag: vi.fn(),
+  refresh: vi.fn(),
+  recreateRunningServices: vi.fn(),
 }));
 
 vi.mock("server-only", () => ({}));
-vi.mock("next/cache", () => ({ updateTag: mocks.updateTag }));
+vi.mock("next/cache", () => ({ updateTag: mocks.updateTag, refresh: mocks.refresh }));
+vi.mock("~/core/recreate", () => ({ recreateRunningServices: mocks.recreateRunningServices }));
 vi.mock("~/core/auth", () => ({ requireUser: mocks.requireUser }));
 vi.mock("~/database", () => ({ default: {} }));
 vi.mock("~/core/docker/links", () => ({ syncLinkNetwork: mocks.syncLinkNetwork }));
@@ -29,8 +32,10 @@ function add(linkedServiceId: string) {
   return addLinkAction("app", {}, formData);
 }
 
-function remove(linkId: string) {
-  return removeLinkAction("app", linkId, {}, new FormData());
+function remove(linkId: string, recreate = false) {
+  const formData = new FormData();
+  if (recreate) formData.set("recreate", "on");
+  return removeLinkAction("app", linkId, {}, formData);
 }
 
 describe("link actions", () => {
@@ -113,5 +118,17 @@ describe("link actions", () => {
     expect(await remove("l1")).toEqual({ "[error]": "disconnect_failed" });
     expect(mocks.createServiceLink).toHaveBeenCalledWith({}, "api", "app", "l1");
     expect(mocks.updateTag).not.toHaveBeenCalled();
+  });
+
+  it("should recreate the services that inherited through the removed link", async () => {
+    mocks.getServiceLinks.mockResolvedValue([{ ...link, serviceAInherits: false, serviceBInherits: true }]);
+    mocks.recreateRunningServices.mockResolvedValue([]);
+    expect(await remove("l1")).toEqual({});
+    expect(mocks.recreateRunningServices).not.toHaveBeenCalled();
+    expect(await remove("l1", true)).toEqual({});
+    expect(mocks.recreateRunningServices).toHaveBeenCalledWith(["app"]);
+    expect(mocks.recreateRunningServices).toHaveBeenCalledAfter(mocks.syncLinkNetwork);
+    mocks.recreateRunningServices.mockResolvedValue(["app"]);
+    expect(await remove("l1", true)).toEqual({ "[error]": "recreate_failed" });
   });
 });
