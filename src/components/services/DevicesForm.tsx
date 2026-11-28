@@ -2,7 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { useId, useState } from "react";
-import Button from "~/components/ui/button";
+import RecreateSubmit, { getRecreateHelpKey } from "~/components/services/RecreateSubmit";
 import Form from "~/components/ui/form";
 import Label from "~/components/ui/label";
 import { DEVICE_KINDS, type DeviceKind } from "~/core/devices";
@@ -16,15 +16,9 @@ export type DevicesFormProps = {
   isBusy: boolean,
 };
 
-/** Tells when the change is applied to the container */
-function getHelpKey(hasContainer: boolean, isBusy: boolean, recreate: boolean) {
-  if (!hasContainer) return "onStart";
-  if (isBusy) return "onDeploy";
-  return recreate ? "now" : "onRestart";
-}
-
 const DevicesForm = ({ action, devices, hasContainer, isBusy }: DevicesFormProps) => {
   const t = useTranslations("ServicePage.settings.devices");
+  const tRecreate = useTranslations("Recreate");
   const id = useId();
   // Controlled inputs, so they aren't reset when the action fails
   const [selected, setSelected] = useState<DeviceKind[]>(devices);
@@ -76,28 +70,17 @@ const DevicesForm = ({ action, devices, hasContainer, isBusy }: DevicesFormProps
           </div>
         </div>
       ))}
-      {canRecreate && (
-        <div className="flex items-start gap-2">
-          <input
-            id={`${id}-recreate`}
-            type="checkbox"
-            name="recreate"
-            checked={recreate}
-            onChange={event => setRecreate(event.target.checked)}
-            disabled={isSaving}
-            className="mt-0.5 size-4 shrink-0 rounded border-slate-700 bg-slate-900 accent-sky-500"
-          />
-          <Label htmlFor={`${id}-recreate`} className="font-normal tracking-normal normal-case">{t("recreate")}</Label>
-        </div>
-      )}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-        <p className="text-xs text-slate-500">{t(`help.${getHelpKey(hasContainer, isBusy, recreate)}`)}</p>
-        <div className="ml-auto shrink-0">
-          <Button type="submit" variant="primary" size="sm" pending={isSaving}>
-            {isSaving ? t("saving") : t("save")}
-          </Button>
-        </div>
-      </div>
+      <RecreateSubmit
+        options={canRecreate ? [{
+          name: "recreate",
+          label: tRecreate("container"),
+          checked: recreate,
+          onChange: setRecreate,
+        }] : []}
+        help={tRecreate(`help.${getRecreateHelpKey(hasContainer, isBusy, recreate)}`)}
+        submitLabel={isSaving ? t("saving") : t("save")}
+        isSaving={isSaving}
+      />
     </Form>
   );
 };

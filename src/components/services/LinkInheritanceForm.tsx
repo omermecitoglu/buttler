@@ -2,7 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { useId, useState } from "react";
-import Button from "~/components/ui/button";
+import RecreateSubmit from "~/components/services/RecreateSubmit";
 import Form from "~/components/ui/form";
 import Input from "~/components/ui/input";
 import Label from "~/components/ui/label";
@@ -27,6 +27,7 @@ const LinkInheritanceForm = ({
   takenNames,
 }: LinkInheritanceFormProps) => {
   const t = useTranslations("ServicePage.links.inheritance");
+  const tRecreate = useTranslations("Recreate");
   const idPrefix = useId();
   // Controlled inputs, so they aren't reset when the action fails
   const [inherits, setInherits] = useState(savedInherits);
@@ -76,7 +77,6 @@ const LinkInheritanceForm = ({
       />
       {/* The checkboxes may show a reset state until they are mounted again, so the values come from the state */}
       {inherits && <input type="hidden" name="inherits" value="on" />}
-      {recreate && <input type="hidden" name="recreate" value="on" />}
       <div className="flex items-start gap-2">
         <input
           key={submitCount}
@@ -123,25 +123,11 @@ const LinkInheritanceForm = ({
           })}
         </ul>
       )}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <div className="flex items-start gap-2">
-          <input
-            key={submitCount}
-            id={`${idPrefix}-recreate`}
-            type="checkbox"
-            checked={recreate}
-            onChange={event => setRecreate(event.target.checked)}
-            disabled={isSaving}
-            className="mt-0.5 size-4 shrink-0 rounded border-slate-700 bg-slate-900 accent-sky-500"
-          />
-          <Label htmlFor={`${idPrefix}-recreate`} className="font-normal tracking-normal normal-case">{t("recreate")}</Label>
-        </div>
-        <div className="ml-auto shrink-0">
-          <Button type="submit" variant="secondary" size="xs" pending={isSaving}>
-            {isSaving ? t("saving") : t("save")}
-          </Button>
-        </div>
-      </div>
+      <RecreateSubmit
+        options={[{ name: "recreate", label: tRecreate("container"), checked: recreate, onChange: setRecreate }]}
+        submitLabel={isSaving ? t("saving") : t("save")}
+        isSaving={isSaving}
+      />
     </Form>
   );
 };

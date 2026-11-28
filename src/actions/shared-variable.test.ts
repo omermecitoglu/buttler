@@ -40,10 +40,10 @@ const link = {
   createdAt: "2026-11-26 10:00:00",
 };
 
-function save(variables: unknown[], recreate: string[] = []) {
+function save(variables: unknown[], recreate = false) {
   const formData = new FormData();
   formData.set("variables", JSON.stringify(variables));
-  formData.set("recreate", JSON.stringify(recreate));
+  if (recreate) formData.set("recreate", "on");
   return saveSharedVariablesAction("db", {}, formData);
 }
 
@@ -90,11 +90,11 @@ describe("shared variable actions", () => {
   });
 
   it("should only recreate the services that inherit the variables", async () => {
-    expect(await save([], ["app", "other"])).toEqual({ "[success]": "recreated" });
+    expect(await save([], true)).toEqual({ "[success]": "recreated" });
     expect(mocks.recreateRunningServices).toHaveBeenCalledWith(["app"]);
     expect(mocks.refresh).toHaveBeenCalled();
     mocks.recreateRunningServices.mockResolvedValue(["app"]);
-    expect(await save([], ["app"])).toEqual({ "[error]": "recreate_failed" });
+    expect(await save([], true)).toEqual({ "[error]": "recreate_failed" });
   });
 
   it("should let a side of a link inherit and rename variables", async () => {
