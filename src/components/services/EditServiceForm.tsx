@@ -35,7 +35,7 @@ const EditServiceForm = ({ action, edit, onClose }: EditServiceFormProps) => {
     if ("containerState" in edit) {
       return [
         tRecreate(`help.${getRecreateHelpKey(edit.containerState, recreate)}`),
-        canRecreateLinked && tRecreate(recreateLinked ? "linkedHelp.now" : "linkedHelp.later"),
+        canRecreateLinked && tRecreate(recreateLinked ? "linkedHelp.alsoNow" : "linkedHelp.alsoLater"),
         // Recreating the container doesn't build the image again
         edit.section === "variables" && edit.isGitHub && t("help.buildVariables"),
       ].filter(Boolean).join(" ");

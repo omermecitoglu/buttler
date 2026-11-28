@@ -750,7 +750,9 @@
     },
     "linkedHelp": {
       "now": "The containers of the running linked services are recreated with the changes when you save.",
-      "later": "The changes apply the next time the containers of the linked services are created."
+      "later": "The changes apply the next time the containers of the linked services are created.",
+      "alsoNow": "The running linked services that inherit its variables are recreated too.",
+      "alsoLater": "Linked services that inherit its variables get the changes when their containers are created again."
     }
   },
   "Domains": {
