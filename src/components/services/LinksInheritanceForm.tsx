@@ -36,24 +36,28 @@ type LinkState = {
   names: Partial<Record<string, string>>,
 };
 
+function getSavedState(inheritance: NonNullable<LinkInheritanceItem["inheritance"]>): LinkState {
+  return {
+    inherits: inheritance.inherits,
+    names: Object.fromEntries(inheritance.names.map(({ sharedVariableId, name }) => [sharedVariableId, name])),
+  };
+}
+
 /** What the service inherits through each of its links, saved together so the container is recreated once */
 const LinksInheritanceForm = ({ action, links, takenNames, containerState }: LinksInheritanceFormProps) => {
   const t = useTranslations("ServicePage.links.inheritance");
   const tRecreate = useTranslations("Recreate");
   const idPrefix = useId();
-  // Controlled inputs, outside of the form, so they aren't reset when the action fails
-  const [states, setStates] = useState<Partial<Record<string, LinkState>>>(() => {
-    return Object.fromEntries(links.flatMap(({ linkId, inheritance }) => (inheritance ? [[linkId, {
-      inherits: inheritance.inherits,
-      names: Object.fromEntries(inheritance.names.map(({ sharedVariableId, name }) => [sharedVariableId, name])),
-    }]] : [])));
-  });
+  // Controlled inputs, outside of the form, so they aren't reset when the action fails.
+  // Only the links that were changed are here, a link that was added later starts with what is saved.
+  const [states, setStates] = useState<Partial<Record<string, LinkState>>>({});
   const [recreate, setRecreate] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
   const editable = links.flatMap(({ linkId, inheritance }) => {
-    const state = states[linkId];
-    return inheritance && state ? [{ linkId, inheritance, state }] : [];
+    if (!inheritance) return [];
+    const state = states[linkId] ?? getSavedState(inheritance);
+    return [{ linkId, inheritance, state }];
   });
   const getName = (state: LinkState, variable: { id: string, key: string }) => {
     return state.names[variable.id]?.trim() || variable.key;
@@ -68,9 +72,8 @@ const LinksInheritanceForm = ({ action, links, takenNames, containerState }: Lin
   const hasFields = editable.some(({ inheritance }) => inheritance.variables.length > 0 || inheritance.inherits);
   const isDuplicate = (name: string) => inheritedNames.filter(other => other === name).length > 1;
 
-  const update = (linkId: string, change: Partial<LinkState>) => {
-    const state = states[linkId];
-    if (state) setStates({ ...states, [linkId]: { ...state, ...change } });
+  const update = (linkId: string, state: LinkState, change: Partial<LinkState>) => {
+    setStates({ ...states, [linkId]: { ...state, ...change } });
   };
 
   const handleAction = async (state: unknown, formData: FormData) => {
@@ -91,9 +94,7 @@ const LinksInheritanceForm = ({ action, links, takenNames, containerState }: Lin
     INVALID_LINKS: t("messages.invalid_links"),
   };
 
-  const renderInheritance = (linkId: string, inheritance: NonNullable<LinkInheritanceItem["inheritance"]>) => {
-    const state = states[linkId];
-    if (!state) return null;
+  const renderInheritance = ({ linkId, inheritance, state }: typeof editable[number]) => {
     if (inheritance.variables.length === 0 && !inheritance.inherits) {
       return <p className="text-xs text-slate-500">{t("nothingShared", { name: inheritance.sourceName })}</p>;
     }
@@ -104,7 +105,7 @@ const LinksInheritanceForm = ({ action, links, takenNames, containerState }: Lin
             id={`${idPrefix}-${linkId}-inherits`}
             type="checkbox"
             checked={state.inherits}
-            onChange={event => update(linkId, { inherits: event.target.checked })}
+            onChange={event => update(linkId, state, { inherits: event.target.checked })}
             disabled={isSaving}
             className="mt-0.5 size-4 shrink-0 rounded border-slate-700 bg-slate-900 accent-sky-500"
           />
@@ -131,7 +132,9 @@ const LinksInheritanceForm = ({ action, links, takenNames, containerState }: Lin
                         className="font-mono text-xs"
                         placeholder={t("keepName")}
                         value={state.names[variable.id] ?? ""}
-                        onChange={event => update(linkId, { names: { ...state.names, [variable.id]: event.target.value } })}
+                        onChange={event => update(linkId, state, {
+                          names: { ...state.names, [variable.id]: event.target.value },
+                        })}
                         disabled={isSaving}
                       />
                     </div>
@@ -149,12 +152,15 @@ const LinksInheritanceForm = ({ action, links, takenNames, containerState }: Lin
   return (
     <div className="flex flex-col gap-4">
       <ul className="divide-y divide-slate-800/80">
-        {links.map(({ linkId, header, inheritance }) => (
-          <li key={linkId} className="space-y-3 py-3">
-            {header}
-            {inheritance && renderInheritance(linkId, inheritance)}
-          </li>
-        ))}
+        {links.map(({ linkId, header }) => {
+          const item = editable.find(editableLink => editableLink.linkId === linkId);
+          return (
+            <li key={linkId} className="space-y-3 py-3">
+              {header}
+              {item && renderInheritance(item)}
+            </li>
+          );
+        })}
       </ul>
       {hasFields && (
         <Form action={handleAction} messages={messages} className="flex w-full flex-col items-stretch gap-4">
