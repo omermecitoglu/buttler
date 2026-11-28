@@ -501,7 +501,7 @@
       "help": {
         "restart": "Restart the service to apply the changes.",
         "build": "The changes are applied with the next build.",
-        "variables": "Restart the service to apply the changes. Changes to the build variables need a new build."
+        "buildVariables": "Changes to the build variables need a new build."
       },
       "close": "Close",
       "cancel": "Cancel",
