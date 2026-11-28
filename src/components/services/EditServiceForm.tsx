@@ -1,11 +1,11 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useId, useState } from "react";
+import { useState } from "react";
 import EditServiceFields, { type ServiceEdit } from "~/components/services/EditServiceFields";
+import RecreateSubmit, { getRecreateHelpKey } from "~/components/services/RecreateSubmit";
 import Button from "~/components/ui/button";
 import Form from "~/components/ui/form";
-import Label from "~/components/ui/label";
 
 export type ServiceEditAction = (initialState: unknown, formData: FormData) => Promise<Record<string, string>>;
 
@@ -20,26 +20,21 @@ function canRecreate(edit: ServiceEdit) {
   return "hasContainer" in edit && edit.hasContainer && !edit.isBusy;
 }
 
-/** Tells what needs to be done to apply the changes */
-function getHelpKey(edit: ServiceEdit, recreate: boolean) {
-  if (edit.section === "name") return null;
-  if ("hasContainer" in edit) {
-    if (!edit.hasContainer) return "onStart";
-    if (edit.isBusy) return "onDeploy";
-    return recreate ? "recreateNow" : "onRestart";
-  }
-  if (edit.section === "source" && edit.isGitHub) return "build";
-  if (edit.section === "variables" && edit.isGitHub) return "variables";
-  return "restart";
-}
-
 const EditServiceForm = ({ action, edit, onClose }: EditServiceFormProps) => {
   const t = useTranslations("ServicePage.edit");
-  const recreateId = useId();
+  const tRecreate = useTranslations("Recreate");
   const [isSaving, setIsSaving] = useState(false);
   // Controlled, so it isn't reset when the action fails
   const [recreate, setRecreate] = useState(false);
-  const helpKey = getHelpKey(edit, recreate);
+
+  /** Tells what needs to be done to apply the changes */
+  const getHelp = () => {
+    if (edit.section === "name") return null;
+    if ("hasContainer" in edit) return tRecreate(`help.${getRecreateHelpKey(edit.hasContainer, edit.isBusy, recreate)}`);
+    if (edit.section === "source" && edit.isGitHub) return t("help.build");
+    if (edit.section === "variables" && edit.isGitHub) return t("help.variables");
+    return t("help.restart");
+  };
 
   const handleAction = async (state: unknown, formData: FormData) => {
     setIsSaving(true);
@@ -70,29 +65,19 @@ const EditServiceForm = ({ action, edit, onClose }: EditServiceFormProps) => {
   return (
     <Form action={handleAction} messages={messages} className="flex w-full flex-col items-stretch gap-6">
       <EditServiceFields edit={edit} />
-      {canRecreate(edit) && (
-        <div className="flex items-start gap-2">
-          <input
-            id={recreateId}
-            type="checkbox"
-            name="recreate"
-            checked={recreate}
-            onChange={event => setRecreate(event.target.checked)}
-            disabled={isSaving}
-            className="mt-0.5 size-4 shrink-0 rounded border-slate-700 bg-slate-900 accent-sky-500"
-          />
-          <Label htmlFor={recreateId} className="font-normal tracking-normal normal-case">{t("recreate")}</Label>
-        </div>
-      )}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-        {helpKey && <p className="text-xs text-slate-500">{t(`help.${helpKey}`)}</p>}
-        <div className="ml-auto flex shrink-0 gap-2">
-          <Button type="button" variant="ghost" size="sm" onClick={onClose}>{t("cancel")}</Button>
-          <Button type="submit" variant="primary" size="sm" pending={isSaving}>
-            {isSaving ? t("saving") : t("save")}
-          </Button>
-        </div>
-      </div>
+      <RecreateSubmit
+        options={canRecreate(edit) ? [{
+          name: "recreate",
+          label: tRecreate("container"),
+          checked: recreate,
+          onChange: setRecreate,
+        }] : []}
+        help={getHelp()}
+        submitLabel={isSaving ? t("saving") : t("save")}
+        isSaving={isSaving}
+      >
+        <Button type="button" variant="ghost" size="sm" onClick={onClose}>{t("cancel")}</Button>
+      </RecreateSubmit>
     </Form>
   );
 };

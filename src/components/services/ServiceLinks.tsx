@@ -141,9 +141,7 @@ const ServiceLinks = async ({ params }: ServiceLinksProps) => {
           action={saveSharedVariablesAction.bind(null, id)}
           variables={sharedVariables.map(({ id: variableId, key, template }) => ({ id: variableId, key, template }))}
           source={{ host: getServiceHost(id), variables: service.environmentVariables }}
-          inheritingServices={linkedServices
-            .filter(({ inheritedByOther }) => inheritedByOther)
-            .map(({ service: linkedService }) => ({ id: linkedService.id, name: linkedService.name }))}
+          canRecreate={linkedServices.some(({ inheritedByOther }) => inheritedByOther)}
         />
       </Card>
     </div>

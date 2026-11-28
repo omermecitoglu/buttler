@@ -45,10 +45,11 @@ export const saveSharedVariablesAction = defineFormAction({
       key: variableName,
       template: z.string(),
     }))),
-    // The services to recreate right away, the others get the change when they are created again
-    recreate: jsonField("invalid_recreate", z.array(z.string())).optional().default([]),
+    // Recreates the running services that inherit them, otherwise they get the change when they are created again
+    recreate: z.literal("on").optional(),
   }),
-  action: ({ variables, recreate: recreatedIds }) => async (serviceId: ServiceDTO["id"]): Promise<Record<string, string>> => {
+  action: input => async (serviceId: ServiceDTO["id"]): Promise<Record<string, string>> => {
+    const { variables } = input;
     const service = await getService(db, serviceId);
     if (!service || service.type === "system") return displayMessage("error", "save_failed");
     if (hasDuplicates(variables.map(({ key }) => key))) return displayMessage("error", "duplicate_keys");
@@ -63,7 +64,7 @@ export const saveSharedVariablesAction = defineFormAction({
     const inheritingIds = (await getServiceLinks(db, serviceId))
       .filter(link => (link.serviceAId === serviceId ? link.serviceBInherits : link.serviceAInherits))
       .map(link => getLinkedServiceId(link, serviceId));
-    return await recreate(recreatedIds.filter(id => inheritingIds.includes(id)));
+    return await recreate(input.recreate ? inheritingIds : []);
   },
 });
 
