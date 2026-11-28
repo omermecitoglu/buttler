@@ -5,14 +5,13 @@ import z from "zod";
 import { recreateRunningServices } from "~/core/recreate";
 import db from "~/database";
 import type { ServiceDTO } from "~/models/service";
-import type { ServiceLinkDTO } from "~/models/service-link";
 import { variableNamePattern } from "~/models/shared-variable";
 import getInheritedVariables from "~/operations/getInheritedVariables";
 import getService from "~/operations/getService";
 import getServiceLinks, { getLinkedServiceId } from "~/operations/getServiceLinks";
 import getSharedVariables from "~/operations/getSharedVariables";
 import saveSharedVariables from "~/operations/saveSharedVariables";
-import updateLinkInheritance from "~/operations/updateLinkInheritance";
+import { updateLinksInheritance } from "~/operations/updateLinkInheritance";
 import { jsonField } from "~/utils/jsonField";
 import { userMiddleware } from "./middlewares/user";
 
@@ -68,45 +67,49 @@ export const saveSharedVariablesAction = defineFormAction({
   },
 });
 
-export const updateLinkInheritanceAction = defineFormAction({
+/** Saves what a service inherits through all of its links, so its container is recreated at most once */
+export const updateLinksInheritanceAction = defineFormAction({
   middlewares: [userMiddleware],
   schema: z.object({
-    inherits: z.literal("on").optional(),
-    // Only the renamed variables, the others keep their key
-    names: jsonField("invalid_names", z.array(z.object({
-      sharedVariableId: z.string().min(1),
-      name: variableName,
-    }))).optional().default([]),
+    links: jsonField("invalid_links", z.array(z.object({
+      linkId: z.string().min(1),
+      inherits: z.boolean(),
+      // Only the renamed variables, the others keep their key
+      names: z.array(z.object({
+        sharedVariableId: z.string().min(1),
+        name: variableName,
+      })),
+    }))),
     recreate: z.literal("on").optional(),
   }),
-  action: input => async (
-    serviceId: ServiceDTO["id"],
-    linkId: ServiceLinkDTO["id"],
-  ): Promise<Record<string, string>> => {
-    const link = (await getServiceLinks(db, serviceId)).find(({ id }) => id === linkId);
-    if (!link) return displayMessage("error", "update_failed");
+  action: input => async (serviceId: ServiceDTO["id"]): Promise<Record<string, string>> => {
+    const serviceLinks = await getServiceLinks(db, serviceId);
+    const links = input.links.map(({ linkId }) => serviceLinks.find(({ id }) => id === linkId));
+    if (links.some(link => !link)) return displayMessage("error", "update_failed");
+    const changedLinks = links.filter(link => !!link);
     // The links of system services are made by Buttler
-    const linkedServices = await Promise.all([link.serviceAId, link.serviceBId].map(id => getService(db, id)));
+    const linkedIds = new Set(changedLinks.flatMap(link => [link.serviceAId, link.serviceBId]));
+    const linkedServices = await Promise.all([...linkedIds].map(id => getService(db, id)));
     if (linkedServices.some(service => !service || service.type === "system")) {
       return displayMessage("error", "update_failed");
     }
-    const inherits = !!input.inherits;
-    if (inherits) {
-      const sharedVariables = await getSharedVariables(db, getLinkedServiceId(link, serviceId));
-      const names = sharedVariables.map(variable => {
-        return input.names.find(({ sharedVariableId }) => sharedVariableId === variable.id)?.name ?? variable.key;
+    const names = (await Promise.all(input.links.map(async (change, index) => {
+      if (!change.inherits) return [];
+      const sharedVariables = await getSharedVariables(db, getLinkedServiceId(changedLinks[index], serviceId));
+      return sharedVariables.map(variable => {
+        return change.names.find(({ sharedVariableId }) => sharedVariableId === variable.id)?.name ?? variable.key;
       });
-      const otherNames = (await getInheritedVariables(db, serviceId))
-        .filter(variable => variable.linkId !== linkId)
-        .map(({ name }) => name);
-      if (hasDuplicates([...names, ...otherNames])) return displayMessage("error", "duplicate_names");
+    }))).flat();
+    const otherNames = (await getInheritedVariables(db, serviceId))
+      .filter(variable => !input.links.some(({ linkId }) => linkId === variable.linkId))
+      .map(({ name }) => name);
+    if (hasDuplicates([...names, ...otherNames])) return displayMessage("error", "duplicate_names");
+    if (!updateLinksInheritance(db, serviceId, input.links)) return displayMessage("error", "update_failed");
+    for (const link of changedLinks) {
+      updateTag(`getLinksOfService(${link.serviceAId})`);
+      updateTag(`getLinksOfService(${link.serviceBId})`);
+      updateTag(`getSharedVariableNamesOfLink(${link.id})`);
     }
-    if (!updateLinkInheritance(db, serviceId, linkId, { inherits, names: input.names })) {
-      return displayMessage("error", "update_failed");
-    }
-    updateTag(`getLinksOfService(${link.serviceAId})`);
-    updateTag(`getLinksOfService(${link.serviceBId})`);
-    updateTag(`getSharedVariableNamesOfLink(${linkId})`);
     updateInheritedTags();
     return await recreate(input.recreate ? [serviceId] : []);
   },

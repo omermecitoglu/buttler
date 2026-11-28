@@ -730,7 +730,7 @@
           "update_failed": "The change could not be saved.",
           "recreate_failed": "The change was saved, but the container could not be recreated. The reason is in the server log.",
           "duplicate_names": "Two inherited variables would have the same name. Rename one of them.",
-          "invalid_names": "A name can only have letters, digits and underscores, and can't start with a digit."
+          "invalid_links": "A name can only have letters, digits and underscores, and can't start with a digit."
         }
       }
     }

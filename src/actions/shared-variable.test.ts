@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { saveSharedVariablesAction, updateLinkInheritanceAction } from "./shared-variable";
+import { saveSharedVariablesAction, updateLinksInheritanceAction } from "./shared-variable";
 
 const mocks = vi.hoisted(() => ({
   requireUser: vi.fn(),
@@ -8,7 +8,7 @@ const mocks = vi.hoisted(() => ({
   getSharedVariables: vi.fn(),
   getInheritedVariables: vi.fn(),
   saveSharedVariables: vi.fn(),
-  updateLinkInheritance: vi.fn(),
+  updateLinksInheritance: vi.fn(),
   recreateRunningServices: vi.fn(),
   updateTag: vi.fn(),
   refresh: vi.fn(),
@@ -28,7 +28,7 @@ vi.mock("~/operations/getServiceLinks", () => ({
 vi.mock("~/operations/getSharedVariables", () => ({ default: mocks.getSharedVariables }));
 vi.mock("~/operations/getInheritedVariables", () => ({ default: mocks.getInheritedVariables }));
 vi.mock("~/operations/saveSharedVariables", () => ({ default: mocks.saveSharedVariables }));
-vi.mock("~/operations/updateLinkInheritance", () => ({ default: mocks.updateLinkInheritance }));
+vi.mock("~/operations/updateLinkInheritance", () => ({ updateLinksInheritance: mocks.updateLinksInheritance }));
 vi.mock("~/core/recreate", () => ({ recreateRunningServices: mocks.recreateRunningServices }));
 
 const link = {
@@ -49,10 +49,9 @@ function save(variables: unknown[], recreate = false) {
 
 function inherit(serviceId: string, options: { inherits?: boolean, names?: unknown[], recreate?: boolean }) {
   const formData = new FormData();
-  if (options.inherits) formData.set("inherits", "on");
-  formData.set("names", JSON.stringify(options.names ?? []));
+  formData.set("links", JSON.stringify([{ linkId: "l1", inherits: !!options.inherits, names: options.names ?? [] }]));
   if (options.recreate) formData.set("recreate", "on");
-  return updateLinkInheritanceAction(serviceId, "l1", {}, formData);
+  return updateLinksInheritanceAction(serviceId, {}, formData);
 }
 
 describe("shared variable actions", () => {
@@ -63,7 +62,7 @@ describe("shared variable actions", () => {
     mocks.getServiceLinks.mockResolvedValue([link]);
     mocks.getSharedVariables.mockResolvedValue([{ id: "v1", serviceId: "db", key: "POSTGRES_HOST", template: "{host}" }]);
     mocks.getInheritedVariables.mockResolvedValue([]);
-    mocks.updateLinkInheritance.mockReturnValue(link);
+    mocks.updateLinksInheritance.mockReturnValue([link]);
     mocks.recreateRunningServices.mockResolvedValue([]);
   });
 
@@ -100,7 +99,7 @@ describe("shared variable actions", () => {
   it("should let a side of a link inherit and rename variables", async () => {
     const names = [{ sharedVariableId: "v1", name: "DB_HOST" }];
     expect(await inherit("app", { inherits: true, names, recreate: true })).toEqual({ "[success]": "recreated" });
-    expect(mocks.updateLinkInheritance).toHaveBeenCalledWith({}, "app", "l1", { inherits: true, names });
+    expect(mocks.updateLinksInheritance).toHaveBeenCalledWith({}, "app", [{ linkId: "l1", inherits: true, names }]);
     expect(mocks.getSharedVariables).toHaveBeenCalledWith({}, "db");
     expect(mocks.updateTag).toHaveBeenCalledWith("getLinksOfService(db)");
     expect(mocks.recreateRunningServices).toHaveBeenCalledWith(["app"]);
@@ -114,15 +113,41 @@ describe("shared variable actions", () => {
     expect(await inherit("app", { inherits: true })).toEqual({ "[success]": "saved" });
     const names = [{ sharedVariableId: "v1", name: "DB_HOST" }];
     expect(await inherit("app", { inherits: true, names })).toEqual({ "[error]": "duplicate_names" });
-    expect(mocks.updateLinkInheritance).toHaveBeenCalledTimes(1);
+    expect(mocks.updateLinksInheritance).toHaveBeenCalledTimes(1);
     // Nothing is inherited, so nothing can collide
     expect(await inherit("app", { names })).toEqual({ "[success]": "saved" });
+  });
+
+  it("should save several links at once and recreate the container once", async () => {
+    const cacheLink = { ...link, id: "l2", serviceAId: "cache", serviceBId: "app" };
+    mocks.getServiceLinks.mockResolvedValue([link, cacheLink]);
+    mocks.getSharedVariables.mockImplementation((_db: unknown, id: string) => {
+      return Promise.resolve([{ id: `${id}-host`, serviceId: id, key: "HOST", template: "{host}" }]);
+    });
+    function saveLinks(names: unknown[]) {
+      const formData = new FormData();
+      formData.set("links", JSON.stringify([
+        { linkId: "l1", inherits: true, names: [] },
+        { linkId: "l2", inherits: true, names },
+      ]));
+      formData.set("recreate", "on");
+      return updateLinksInheritanceAction("app", {}, formData);
+    }
+    // Both links would bring a HOST, although neither is saved yet
+    expect(await saveLinks([])).toEqual({ "[error]": "duplicate_names" });
+    expect(mocks.updateLinksInheritance).not.toHaveBeenCalled();
+
+    expect(await saveLinks([{ sharedVariableId: "cache-host", name: "CACHE_HOST" }])).toEqual({ "[success]": "recreated" });
+    expect(mocks.getSharedVariables).toHaveBeenCalledWith({}, "cache");
+    expect(mocks.updateTag).toHaveBeenCalledWith("getSharedVariableNamesOfLink(l2)");
+    expect(mocks.recreateRunningServices).toHaveBeenCalledTimes(1);
+    expect(mocks.recreateRunningServices).toHaveBeenCalledWith(["app"]);
   });
 
   it("should not change a link of another service", async () => {
     mocks.getServiceLinks.mockResolvedValue([]);
     expect(await inherit("other", { inherits: true })).toEqual({ "[error]": "update_failed" });
-    expect(mocks.updateLinkInheritance).not.toHaveBeenCalled();
+    expect(mocks.updateLinksInheritance).not.toHaveBeenCalled();
   });
 
   it("should not change the links of system services", async () => {
@@ -130,6 +155,6 @@ describe("shared variable actions", () => {
       return Promise.resolve({ id, type: id === "app" ? "dockerhub" : "system" });
     });
     expect(await inherit("app", { inherits: true })).toEqual({ "[error]": "update_failed" });
-    expect(mocks.updateLinkInheritance).not.toHaveBeenCalled();
+    expect(mocks.updateLinksInheritance).not.toHaveBeenCalled();
   });
 });

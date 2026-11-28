@@ -13,7 +13,7 @@ import deleteServiceLink from "./deleteServiceLink";
 import getInheritedVariables from "./getInheritedVariables";
 import getSharedVariables from "./getSharedVariables";
 import saveSharedVariables from "./saveSharedVariables";
-import updateLinkInheritance from "./updateLinkInheritance";
+import updateLinkInheritance, { updateLinksInheritance } from "./updateLinkInheritance";
 
 const client = new DatabaseSync(":memory:");
 const db = drizzle({ client, relations });
@@ -131,6 +131,33 @@ describe("inherited variables", () => {
 
     updateLinkInheritance(db, app, serviceLink.id, { inherits: true, names: [] });
     expect((await getInheritedVariables(db, app)).map(({ name }) => name)).toEqual(["PGHOST"]);
+  });
+
+  it("should change several links at once, or none of them", async () => {
+    const pg = create("db");
+    const cache = create("cache");
+    const app = create("app");
+    const pgLink = await link(pg, app);
+    const cacheLink = await link(cache, app);
+    const otherLink = await link(pg, cache);
+    saveSharedVariables(db, pg, [{ key: "POSTGRES_HOST", template: "{host}" }]);
+    const [redis] = saveSharedVariables(db, cache, [{ key: "REDIS_HOST", template: "{host}" }]);
+
+    // The service isn't on the last link
+    expect(updateLinksInheritance(db, app, [
+      { linkId: pgLink.id, inherits: true, names: [] },
+      { linkId: otherLink.id, inherits: true, names: [] },
+    ])).toBeUndefined();
+    expect(await getInheritedVariables(db, app)).toEqual([]);
+
+    expect(updateLinksInheritance(db, app, [
+      { linkId: pgLink.id, inherits: true, names: [] },
+      { linkId: cacheLink.id, inherits: true, names: [{ sharedVariableId: redis.id, name: "CACHE_HOST" }] },
+    ])).toHaveLength(2);
+    expect((await getInheritedVariables(db, app)).map(({ name }) => name).toSorted()).toEqual([
+      "CACHE_HOST",
+      "POSTGRES_HOST",
+    ]);
   });
 
   it("should not store a name that is the same as the key", async () => {

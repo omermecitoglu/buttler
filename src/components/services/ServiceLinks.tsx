@@ -1,9 +1,9 @@
 import { connection } from "next/server";
 import { getTranslations } from "next-intl/server";
 import { addLinkAction, removeLinkAction } from "~/actions/link";
-import { saveSharedVariablesAction, updateLinkInheritanceAction } from "~/actions/shared-variable";
+import { saveSharedVariablesAction, updateLinksInheritanceAction } from "~/actions/shared-variable";
 import AddLinkForm from "~/components/services/AddLinkForm";
-import LinkInheritanceForm from "~/components/services/LinkInheritanceForm";
+import LinksInheritanceForm from "~/components/services/LinksInheritanceForm";
 import RemoveLinkForm from "~/components/services/RemoveLinkForm";
 import SharedVariablesForm from "~/components/services/SharedVariablesForm";
 import Card from "~/components/ui/card";
@@ -68,6 +68,10 @@ const ServiceLinks = async ({ params }: ServiceLinksProps) => {
       names,
     }];
   }))).flat();
+  // The others are made by Buttler, so what is inherited through them can't be changed
+  const editableLinkIds = linkedServices
+    .filter(({ service: linkedService }) => linkedService.type !== "system")
+    .map(({ linkId }) => linkId);
   const candidates = services.filter(candidate => {
     return candidate.id !== id &&
       candidate.type !== "system" &&
@@ -92,9 +96,11 @@ const ServiceLinks = async ({ params }: ServiceLinksProps) => {
         {linkedServices.length === 0 ? (
           <p className="text-sm text-slate-500">{t("empty")}</p>
         ) : (
-          <ul className="divide-y divide-slate-800/80">
-            {linkedServices.map(({ linkId, service: linkedService, inherits, offered, names }) => (
-              <li key={linkId} className="space-y-3 py-3">
+          <LinksInheritanceForm
+            action={updateLinksInheritanceAction.bind(null, id)}
+            links={linkedServices.map(({ linkId, service: linkedService, inherits, offered, names }) => ({
+              linkId,
+              header: (
                 <div className="flex min-h-8 items-center gap-3">
                   <div className="min-w-0 space-y-0.5">
                     <Link
@@ -119,20 +125,19 @@ const ServiceLinks = async ({ params }: ServiceLinksProps) => {
                     </div>
                   )}
                 </div>
-                {linkedService.type !== "system" && (
-                  <LinkInheritanceForm
-                    action={updateLinkInheritanceAction.bind(null, id, linkId)}
-                    sourceName={linkedService.name}
-                    variables={offered.map(({ id: variableId, key }) => ({ id: variableId, key }))}
-                    inherits={inherits}
-                    names={names.map(({ sharedVariableId, name }) => ({ sharedVariableId, name }))}
-                    containerState={containerState}
-                    takenNames={inheritedVariables.filter(variable => variable.linkId !== linkId).map(({ name }) => name)}
-                  />
-                )}
-              </li>
-            ))}
-          </ul>
+              ),
+              inheritance: linkedService.type === "system" ? null : {
+                sourceName: linkedService.name,
+                variables: offered.map(({ id: variableId, key }) => ({ id: variableId, key })),
+                inherits,
+                names: names.map(({ sharedVariableId, name }) => ({ sharedVariableId, name })),
+              },
+            }))}
+            takenNames={inheritedVariables
+              .filter(variable => !editableLinkIds.includes(variable.linkId))
+              .map(({ name }) => name)}
+            containerState={containerState}
+          />
         )}
       </Card>
       <Card className="flex flex-col gap-6 p-6">
