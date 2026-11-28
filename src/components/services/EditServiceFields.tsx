@@ -6,13 +6,11 @@ import EditTextField from "~/components/services/EditTextField";
 import EditVariablesField, { type SavedVariable } from "~/components/services/EditVariablesField";
 import EditVolumesField from "~/components/services/EditVolumesField";
 import type { VolumeOptions } from "~/data/services";
+import type { ContainerState } from "~/utils/containerState";
 
 /** Docker can't change these settings of an existing container, so it has to be recreated */
-type ContainerState = {
-  /** Without a container, the changes apply when the service is started */
-  hasContainer: boolean,
-  /** A build or a pull replaces the container anyway */
-  isBusy: boolean,
+type Recreatable = {
+  containerState: ContainerState,
 };
 
 export type ServiceEdit =
@@ -22,13 +20,13 @@ export type ServiceEdit =
     section: "ports",
     ports: { external: number, internal: number }[],
     exposedPorts: number[],
-  } & ContainerState) |
+  } & Recreatable) |
   { section: "variables", isGitHub: boolean, variables: SavedVariable[] } |
   ({
     section: "volumes",
     volumes: { id: string, name: string, containerPath: string }[],
     options: VolumeOptions,
-  } & ContainerState);
+  } & Recreatable);
 
 export type EditServiceFieldsProps = {
   edit: ServiceEdit,

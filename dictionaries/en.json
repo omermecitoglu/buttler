@@ -741,7 +741,7 @@
     "help": {
       "now": "The container is recreated with the changes when you save.",
       "onRestart": "The changes apply the next time the service is restarted.",
-      "onStart": "The service has no container, the changes apply when it's started.",
+      "onStart": "The service isn't running, the changes apply when it's started.",
       "onDeploy": "The changes apply when the running build or pull deploys a new container."
     },
     "linkedHelp": {

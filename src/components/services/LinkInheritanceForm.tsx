@@ -2,10 +2,11 @@
 
 import { useTranslations } from "next-intl";
 import { useId, useState } from "react";
-import RecreateSubmit from "~/components/services/RecreateSubmit";
+import RecreateSubmit, { getRecreateHelpKey } from "~/components/services/RecreateSubmit";
 import Form from "~/components/ui/form";
 import Input from "~/components/ui/input";
 import Label from "~/components/ui/label";
+import type { ContainerState } from "~/utils/containerState";
 
 export type LinkInheritanceFormProps = {
   action: (initialState: unknown, formData: FormData) => Promise<Record<string, string>>,
@@ -16,6 +17,8 @@ export type LinkInheritanceFormProps = {
   names: { sharedVariableId: string, name: string }[],
   /** Names that the service already inherits through its other links */
   takenNames: string[],
+  /** The container of this service */
+  containerState: ContainerState,
 };
 
 const LinkInheritanceForm = ({
@@ -25,6 +28,7 @@ const LinkInheritanceForm = ({
   inherits: savedInherits,
   names: savedNames,
   takenNames,
+  containerState,
 }: LinkInheritanceFormProps) => {
   const t = useTranslations("ServicePage.links.inheritance");
   const tRecreate = useTranslations("Recreate");
@@ -124,7 +128,13 @@ const LinkInheritanceForm = ({
         </ul>
       )}
       <RecreateSubmit
-        options={[{ name: "recreate", label: tRecreate("container"), checked: recreate, onChange: setRecreate }]}
+        options={containerState === "running" ? [{
+          name: "recreate",
+          label: tRecreate("container"),
+          checked: recreate,
+          onChange: setRecreate,
+        }] : []}
+        help={tRecreate(`help.${getRecreateHelpKey(containerState, recreate)}`)}
         submitLabel={isSaving ? t("saving") : t("save")}
         isSaving={isSaving}
       />

@@ -5,24 +5,22 @@ import { useState } from "react";
 import InternetAccessChoice from "~/components/services/InternetAccessChoice";
 import RecreateSubmit, { getRecreateHelpKey } from "~/components/services/RecreateSubmit";
 import Form from "~/components/ui/form";
+import type { ContainerState } from "~/utils/containerState";
 
 export type InternetAccessFormProps = {
   action: (initialState: unknown, formData: FormData) => Promise<Record<string, string>>,
   hasInternetAccess: boolean,
-  /** Without a container, the change applies when the service is started */
-  hasContainer: boolean,
-  /** A build or a pull replaces the container anyway */
-  isBusy: boolean,
+  containerState: ContainerState,
 };
 
-const InternetAccessForm = ({ action, hasInternetAccess, hasContainer, isBusy }: InternetAccessFormProps) => {
+const InternetAccessForm = ({ action, hasInternetAccess, containerState }: InternetAccessFormProps) => {
   const t = useTranslations("ServicePage.settings.internetAccess");
   const tRecreate = useTranslations("Recreate");
   // Controlled inputs, so they aren't reset when the action fails
   const [internetAccess, setInternetAccess] = useState(hasInternetAccess);
   const [recreate, setRecreate] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const canRecreate = hasContainer && !isBusy;
+  const canRecreate = containerState === "running";
 
   const handleAction = async (state: unknown, formData: FormData) => {
     setIsSaving(true);
@@ -51,7 +49,7 @@ const InternetAccessForm = ({ action, hasInternetAccess, hasContainer, isBusy }:
           checked: recreate,
           onChange: setRecreate,
         }] : []}
-        help={tRecreate(`help.${getRecreateHelpKey(hasContainer, isBusy, recreate)}`)}
+        help={tRecreate(`help.${getRecreateHelpKey(containerState, recreate)}`)}
         submitLabel={isSaving ? t("saving") : t("save")}
         isSaving={isSaving}
       />

@@ -3,6 +3,7 @@
 import { type ReactNode, useId, useState } from "react";
 import Button from "~/components/ui/button";
 import Label from "~/components/ui/label";
+import type { ContainerState } from "~/utils/containerState";
 
 export type RecreateOption = {
   /** The field that is sent with "on" when it's checked */
@@ -68,8 +69,8 @@ const RecreateSubmit = ({ options, help, submitLabel, isSaving, children }: Recr
 export default RecreateSubmit;
 
 /** Tells when the changes are applied to the container, the keys of `Recreate.help` */
-export function getRecreateHelpKey(hasContainer: boolean, isBusy: boolean, recreate: boolean) {
-  if (!hasContainer) return "onStart";
-  if (isBusy) return "onDeploy";
+export function getRecreateHelpKey(state: ContainerState, recreate: boolean) {
+  if (state === "stopped") return "onStart";
+  if (state === "busy") return "onDeploy";
   return recreate ? "now" : "onRestart";
 }

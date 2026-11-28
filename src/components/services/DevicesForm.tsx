@@ -6,17 +6,15 @@ import RecreateSubmit, { getRecreateHelpKey } from "~/components/services/Recrea
 import Form from "~/components/ui/form";
 import Label from "~/components/ui/label";
 import { DEVICE_KINDS, type DeviceKind } from "~/core/devices";
+import type { ContainerState } from "~/utils/containerState";
 
 export type DevicesFormProps = {
   action: (initialState: unknown, formData: FormData) => Promise<Record<string, string>>,
   devices: DeviceKind[],
-  /** Without a container, the change applies when the service is started */
-  hasContainer: boolean,
-  /** A build or a pull replaces the container anyway */
-  isBusy: boolean,
+  containerState: ContainerState,
 };
 
-const DevicesForm = ({ action, devices, hasContainer, isBusy }: DevicesFormProps) => {
+const DevicesForm = ({ action, devices, containerState }: DevicesFormProps) => {
   const t = useTranslations("ServicePage.settings.devices");
   const tRecreate = useTranslations("Recreate");
   const id = useId();
@@ -24,7 +22,7 @@ const DevicesForm = ({ action, devices, hasContainer, isBusy }: DevicesFormProps
   const [selected, setSelected] = useState<DeviceKind[]>(devices);
   const [recreate, setRecreate] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const canRecreate = hasContainer && !isBusy;
+  const canRecreate = containerState === "running";
 
   const handleAction = async (state: unknown, formData: FormData) => {
     setIsSaving(true);
@@ -77,7 +75,7 @@ const DevicesForm = ({ action, devices, hasContainer, isBusy }: DevicesFormProps
           checked: recreate,
           onChange: setRecreate,
         }] : []}
-        help={tRecreate(`help.${getRecreateHelpKey(hasContainer, isBusy, recreate)}`)}
+        help={tRecreate(`help.${getRecreateHelpKey(containerState, recreate)}`)}
         submitLabel={isSaving ? t("saving") : t("save")}
         isSaving={isSaving}
       />
