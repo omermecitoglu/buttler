@@ -29,12 +29,15 @@ export type ServiceActionsProps = {
   serviceId: string,
   type: "github" | "dockerhub" | "system",
   status: ContainerRuntimeStatus,
+  /** Stopping or restarting the service would cut the connection of this page */
+  carriesThisPage?: boolean,
 };
 
 const ServiceActions = ({
   serviceId,
   type,
   status,
+  carriesThisPage = false,
 }: ServiceActionsProps) => {
   const t = useTranslations("DashboardPage.service.actions");
   const router = useRouter();
@@ -65,6 +68,7 @@ const ServiceActions = ({
   const hasLiveContainer = (status === "running" || status === "restarting") && !isBuilding && !isPulling;
   const isStartBusy = pendingAction === "start" || isPulling || isBuilding;
   const isDisabled = isPending || isPulling || isBuilding;
+  const liveActionTitle = carriesThisPage ? t("carriedByTunnel") : undefined;
 
   const startButtonLabel = isPulling
     ? t("pulling")
@@ -87,7 +91,8 @@ const ServiceActions = ({
           <Button
             size="xs"
             variant="outline"
-            disabled={isDisabled}
+            disabled={isDisabled || carriesThisPage}
+            title={liveActionTitle}
             onClick={() => run("stop")}
             className="gap-1.5 text-slate-300 hover:text-rose-400 hover:border-rose-500/40"
           >
@@ -100,7 +105,8 @@ const ServiceActions = ({
           <Button
             size="xs"
             variant="secondary"
-            disabled={isDisabled}
+            disabled={isDisabled || carriesThisPage}
+            title={liveActionTitle}
             onClick={() => run("restart")}
             className="gap-1.5"
           >
