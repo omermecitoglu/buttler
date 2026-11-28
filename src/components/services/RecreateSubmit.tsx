@@ -40,11 +40,11 @@ const RecreateSubmit = ({ options, help, submitLabel, submitProps, isSaving, chi
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
       {help && <p className="text-xs text-slate-500">{help}</p>}
-      <div className="flex flex-wrap items-center justify-end gap-x-4 gap-y-2 sm:ml-auto sm:shrink-0">
+      <div className="flex min-w-0 flex-wrap items-center justify-end gap-x-4 gap-y-2 sm:ml-auto">
         {/* The checkboxes may show a reset state until they are mounted again, so the values come from the state */}
         {options.map(option => option.checked && <input key={option.name} type="hidden" name={option.name} value="on" />)}
         {options.map(option => (
-          <div key={option.name} className="flex items-center gap-2">
+          <div key={option.name} className="flex min-w-0 items-center gap-2">
             <input
               key={resetKey}
               id={`${idPrefix}-${option.name}`}
