@@ -12,6 +12,8 @@ describe("getImagePreset", () => {
     ["mariadb@sha256:abc", "mariadb"],
     [" Redis ", "redis"],
     ["mongo:7", "mongo"],
+    ["devlikeapro/waha", "devlikeapro/waha"],
+    ["docker.io/devlikeapro/waha:latest", "devlikeapro/waha"],
   ])("matches %s", (image, expected) => {
     expect(getImagePreset(image)?.image).toBe(expected);
   });
@@ -23,6 +25,9 @@ describe("getImagePreset", () => {
     "postgresql",
     "ghcr.io/library/postgres",
     "nginx",
+    "waha",
+    "devlikeapro/waha-plus",
+    "ghcr.io/devlikeapro/waha",
   ])("does not match %s", image => {
     expect(getImagePreset(image)).toBeNull();
   });
