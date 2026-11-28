@@ -9,9 +9,10 @@ import { faSpinner } from "@fortawesome/free-solid-svg-icons/faSpinner";
 import { faStop } from "@fortawesome/free-solid-svg-icons/faStop";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useTranslations } from "next-intl";
-import { useOptimistic, useTransition } from "react";
+import { type ReactElement, useOptimistic, useTransition } from "react";
 import { redeployService, restartService, startService, stopService, triggerBuild } from "~/actions/service";
 import Button from "~/components/ui/button";
+import Tooltip from "~/components/ui/tooltip";
 import type { ContainerRuntimeStatus } from "~/core/docker/status";
 import { useRouter } from "~/i18n/navigation";
 
@@ -31,6 +32,16 @@ export type ServiceActionsProps = {
   status: ContainerRuntimeStatus,
   /** Stopping or restarting the service would cut the connection of this page */
   carriesThisPage?: boolean,
+};
+
+/** A disabled button gets no pointer events, so the tooltip is on a wrapper that lets them through */
+const LiveActionTooltip = ({ content, children }: { content: string | null, children: ReactElement }) => {
+  if (!content) return children;
+  return (
+    <Tooltip content={content}>
+      <span className="inline-flex cursor-not-allowed *:pointer-events-none">{children}</span>
+    </Tooltip>
+  );
 };
 
 const ServiceActions = ({
@@ -68,7 +79,6 @@ const ServiceActions = ({
   const hasLiveContainer = (status === "running" || status === "restarting") && !isBuilding && !isPulling;
   const isStartBusy = pendingAction === "start" || isPulling || isBuilding;
   const isDisabled = isPending || isPulling || isBuilding;
-  const liveActionTitle = carriesThisPage ? t("carriedByTunnel") : undefined;
 
   const startButtonLabel = isPulling
     ? t("pulling")
@@ -88,34 +98,36 @@ const ServiceActions = ({
     <div className="flex flex-wrap items-center gap-2">
       {hasLiveContainer ? (
         <>
-          <Button
-            size="xs"
-            variant="outline"
-            disabled={isDisabled || carriesThisPage}
-            title={liveActionTitle}
-            onClick={() => run("stop")}
-            className="gap-1.5 text-slate-300 hover:text-rose-400 hover:border-rose-500/40"
-          >
-            <FontAwesomeIcon
-              icon={pendingAction === "stop" ? faSpinner : faStop}
-              className={pendingAction === "stop" ? "size-3 animate-spin text-rose-400" : "size-3 text-rose-400"}
-            />
-            <span>{pendingAction === "stop" ? t("stopping") : t("stop")}</span>
-          </Button>
-          <Button
-            size="xs"
-            variant="secondary"
-            disabled={isDisabled || carriesThisPage}
-            title={liveActionTitle}
-            onClick={() => run("restart")}
-            className="gap-1.5"
-          >
-            <FontAwesomeIcon
-              icon={pendingAction === "restart" ? faSpinner : faRotateRight}
-              className={pendingAction === "restart" ? "size-3 animate-spin text-slate-400" : "size-3 text-slate-400"}
-            />
-            <span>{pendingAction === "restart" ? t("restarting") : t("restart")}</span>
-          </Button>
+          <LiveActionTooltip content={carriesThisPage ? t("carriesThisPage") : null}>
+            <Button
+              size="xs"
+              variant="outline"
+              disabled={isDisabled || carriesThisPage}
+              onClick={() => run("stop")}
+              className="gap-1.5 text-slate-300 hover:text-rose-400 hover:border-rose-500/40"
+            >
+              <FontAwesomeIcon
+                icon={pendingAction === "stop" ? faSpinner : faStop}
+                className={pendingAction === "stop" ? "size-3 animate-spin text-rose-400" : "size-3 text-rose-400"}
+              />
+              <span>{pendingAction === "stop" ? t("stopping") : t("stop")}</span>
+            </Button>
+          </LiveActionTooltip>
+          <LiveActionTooltip content={carriesThisPage ? t("carriesThisPage") : null}>
+            <Button
+              size="xs"
+              variant="secondary"
+              disabled={isDisabled || carriesThisPage}
+              onClick={() => run("restart")}
+              className="gap-1.5"
+            >
+              <FontAwesomeIcon
+                icon={pendingAction === "restart" ? faSpinner : faRotateRight}
+                className={pendingAction === "restart" ? "size-3 animate-spin text-slate-400" : "size-3 text-slate-400"}
+              />
+              <span>{pendingAction === "restart" ? t("restarting") : t("restart")}</span>
+            </Button>
+          </LiveActionTooltip>
         </>
       ) : (
         <Button
