@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { type GraphService, buildServiceGraph } from "./service-graph";
 
 const services: GraphService[] = [
-  { id: "nginx", name: "Reverse Proxy Server", type: "system", internetAccess: true, devices: [] },
+  { id: "nginx", name: "Reverse Proxy Server", type: "system", internetAccess: false, devices: [] },
   { id: "tunnel", name: "Cloudflare Tunnel", type: "system", internetAccess: true, devices: [] },
   { id: "app", name: "App", type: "github", internetAccess: false, devices: [] },
   { id: "db", name: "Postgres", type: "dockerhub", internetAccess: false, devices: [] },
@@ -29,11 +29,12 @@ describe("buildServiceGraph", () => {
     expect(graph.edges).toEqual([]);
   });
 
-  it("should connect the services that have internet access to an internet node", () => {
-    const withInternet = services.map(service => (service.id === "app" ? { ...service, internetAccess: true } : service));
+  it("should connect the services that have internet access to an internet node, nginx included", () => {
+    const withInternet = services.map(service => ({ ...service, internetAccess: service.id !== "db" }));
     const graph = buildServiceGraph(withInternet, [], "nginx");
     expect(graph.nodes.map(node => node.id)).toEqual(["nginx", "app", "db", "internet"]);
-    expect(graph.edges).toEqual([{ id: "app:internet", sourceId: "app", targetId: "internet", kind: "access" }]);
+    expect(edgeIds(graph)).toEqual([["nginx", "internet"], ["app", "internet"]]);
+    expect(graph.edges.every(edge => edge.kind === "access")).toBe(true);
   });
 
   it("should connect the services that use a device kind to its node", () => {
