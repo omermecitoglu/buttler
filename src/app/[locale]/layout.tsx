@@ -42,6 +42,7 @@ export default async function({ children }: LayoutProps<"/[locale]">) {
             "Domains",
             "InstallPage",
             "NewServicePage",
+            "Recreate",
             "ServicePage",
             "SettingsPage",
           )}
