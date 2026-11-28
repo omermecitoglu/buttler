@@ -9,15 +9,16 @@ import SharedVariablesForm from "~/components/services/SharedVariablesForm";
 import Card from "~/components/ui/card";
 import { getServiceHost } from "~/core/shared-variables";
 import {
-  getAllServices,
   getInheritedVariablesOfService,
   getLinksOfService,
+  getServicesWithLiveStatus,
   getSharedVariableNamesOfLink,
   getSharedVariablesOfService,
   getSingleService,
 } from "~/data/services";
 import { Link, notFound } from "~/i18n/navigation";
 import { getLinkedServiceId } from "~/operations/getServiceLinks";
+import { getContainerState } from "~/utils/containerState";
 
 export type ServiceLinksProps = {
   params: Promise<{ id: string }>,
@@ -35,7 +36,7 @@ const ServiceLinks = async ({ params }: ServiceLinksProps) => {
     t,
   ] = await Promise.all([
     getSingleService(id),
-    getAllServices(),
+    getServicesWithLiveStatus(),
     getLinksOfService(id),
     getSharedVariablesOfService(id),
     getInheritedVariablesOfService(id),
@@ -47,6 +48,7 @@ const ServiceLinks = async ({ params }: ServiceLinksProps) => {
     return <Card className="p-6 text-sm text-slate-500">{t("systemService")}</Card>;
   }
 
+  const containerState = getContainerState(services.find(({ id: serviceId }) => serviceId === id)?.runtime.status ?? "stopped");
   const linkedServices = (await Promise.all(links.map(async link => {
     const linkedService = services.find(({ id: serviceId }) => serviceId === getLinkedServiceId(link, id));
     if (!linkedService) return [];
@@ -124,6 +126,7 @@ const ServiceLinks = async ({ params }: ServiceLinksProps) => {
                     variables={offered.map(({ id: variableId, key }) => ({ id: variableId, key }))}
                     inherits={inherits}
                     names={names.map(({ sharedVariableId, name }) => ({ sharedVariableId, name }))}
+                    containerState={containerState}
                     takenNames={inheritedVariables.filter(variable => variable.linkId !== linkId).map(({ name }) => name)}
                   />
                 )}
@@ -141,7 +144,9 @@ const ServiceLinks = async ({ params }: ServiceLinksProps) => {
           action={saveSharedVariablesAction.bind(null, id)}
           variables={sharedVariables.map(({ id: variableId, key, template }) => ({ id: variableId, key, template }))}
           source={{ host: getServiceHost(id), variables: service.environmentVariables }}
-          canRecreate={linkedServices.some(({ inheritedByOther }) => inheritedByOther)}
+          canRecreate={linkedServices.some(({ service: linkedService, inheritedByOther }) => {
+            return inheritedByOther && getContainerState(linkedService.runtime.status) === "running";
+          })}
         />
       </Card>
     </div>

@@ -13,6 +13,7 @@ import {
   getVolumeOptions,
 } from "~/data/services";
 import { notFound } from "~/i18n/navigation";
+import { getContainerState } from "~/utils/containerState";
 
 export type ServiceInfoProps = {
   params: Promise<{ id: string }>,
@@ -44,8 +45,7 @@ const ServiceInfo = async ({ params }: ServiceInfoProps) => {
 
   const exposedPorts = await getExposedPortsOfService(service);
   const { runtime, deployedImage } = service;
-  const hasContainer = runtime.containerId !== null;
-  const isBusy = runtime.status === "pulling" || runtime.status === "building";
+  const containerState = getContainerState(runtime.status);
   const notAvailable = t("notAvailable");
   const isGitHub = service.type === "github";
 
@@ -106,8 +106,7 @@ const ServiceInfo = async ({ params }: ServiceInfoProps) => {
             section: "ports",
             ports: service.ports,
             exposedPorts,
-            hasContainer,
-            isBusy,
+            containerState,
           })}
         >
           {service.ports.length === 0 ? (
@@ -131,8 +130,7 @@ const ServiceInfo = async ({ params }: ServiceInfoProps) => {
             section: "volumes",
             volumes: service.volumes,
             options: volumeOptions,
-            hasContainer,
-            isBusy,
+            containerState,
           })}
         >
           {service.volumes.length === 0 ? (

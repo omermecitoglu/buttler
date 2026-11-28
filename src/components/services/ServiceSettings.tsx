@@ -11,6 +11,7 @@ import Card from "~/components/ui/card";
 import { HOST_DEV_PATH } from "~/core/devices";
 import { getServiceWithLiveStatus, getVolumesOfService } from "~/data/services";
 import { notFound } from "~/i18n/navigation";
+import { getContainerState } from "~/utils/containerState";
 
 export type ServiceSettingsProps = {
   params: Promise<{ id: string }>,
@@ -35,6 +36,7 @@ const ServiceSettings = async ({ params }: ServiceSettingsProps) => {
   }
 
   const { status } = service.runtime;
+  const containerState = getContainerState(status);
 
   return (
     <div className="flex flex-col gap-4">
@@ -46,8 +48,7 @@ const ServiceSettings = async ({ params }: ServiceSettingsProps) => {
         <InternetAccessForm
           action={updateInternetAccessAction.bind(null, service.id)}
           hasInternetAccess={service.internetAccess}
-          hasContainer={service.runtime.containerId !== null}
-          isBusy={status === "pulling" || status === "building"}
+          containerState={containerState}
         />
       </Card>
       <Card className="flex flex-col gap-6 p-6">
@@ -58,8 +59,7 @@ const ServiceSettings = async ({ params }: ServiceSettingsProps) => {
         <DevicesForm
           action={updateDevicesAction.bind(null, service.id)}
           devices={service.devices.map(device => device.kind)}
-          hasContainer={service.runtime.containerId !== null}
-          isBusy={status === "pulling" || status === "building"}
+          containerState={containerState}
         />
       </Card>
       <Suspense fallback={<ServicePanelSkeleton />}>
