@@ -52,6 +52,7 @@ const mockGetInheritedVariables = vi.fn();
 const mockImportServiceRecipe = vi.fn();
 const mockSyncReverseProxyLinks = vi.fn();
 const mockSyncReverseProxyConfig = vi.fn();
+const mockGetInheritingServiceIds = vi.fn();
 
 vi.mock("~/database", () => ({
   default: {},
@@ -63,6 +64,10 @@ vi.mock("~/operations/getService", () => ({
 
 vi.mock("~/operations/getInheritedVariables", () => ({
   default: (...args: unknown[]) => mockGetInheritedVariables(...args),
+}));
+
+vi.mock("~/operations/getServiceLinks", () => ({
+  getInheritingServiceIds: (...args: unknown[]) => mockGetInheritingServiceIds(...args),
 }));
 
 vi.mock("~/operations/getDeployableService", () => ({
@@ -592,6 +597,22 @@ describe("updateServiceAction", () => {
       expect(await updateServiceAction("srv", {}, createPortsFormData())).toEqual({ "[error]": "service_busy" });
       expect(mockUpdateService).not.toHaveBeenCalled();
       expect(mockRestartServiceContainer).not.toHaveBeenCalled();
+    });
+
+    it("recreates the running services that inherit from the variables", async () => {
+      mockGetService.mockResolvedValue({ ...service, environmentVariables: [] });
+      mockGetInheritedVariables.mockResolvedValue([]);
+      mockGetInheritingServiceIds.mockResolvedValue(["srv"]);
+      const formData = new FormData();
+      formData.append("environmentVariables", JSON.stringify([{ key: "A", value: "1" }]));
+      formData.append("recreateLinked", "on");
+      expect(await updateServiceAction("srv", {}, formData)).toEqual({});
+      expect(mockGetInheritingServiceIds).toHaveBeenCalledWith({}, "srv");
+      expect(mockRestartServiceContainer).toHaveBeenCalledTimes(1);
+
+      vi.spyOn(console, "error").mockImplementation(() => undefined);
+      mockRestartServiceContainer.mockRejectedValue(new Error("no docker"));
+      expect(await updateServiceAction("srv", {}, formData)).toEqual({ "[error]": "linked_recreate_failed" });
     });
 
     it("keeps the saved changes when the container can't be recreated", async () => {

@@ -512,6 +512,7 @@
       "messages": {
         "update_failed": "Failed to save the changes. Check that host ports and variable keys are unique, and try again.",
         "recreate_failed": "The changes were saved, but the container could not be recreated. The reason is in the server log.",
+        "linked_recreate_failed": "The changes were saved, but the containers of some linked services could not be recreated. The reason is in the server log.",
         "service_busy": "The service is being built, pulled or deleted. Nothing was changed, try again when it's done.",
         "secret_value_required": "Enter the value again for secrets that are renamed or no longer secret.",
         "inherited_variable_name": "A variable with this name is inherited from a link. Choose another name, or rename the inherited one on the links tab.",

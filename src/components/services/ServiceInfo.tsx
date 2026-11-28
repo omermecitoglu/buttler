@@ -6,13 +6,16 @@ import EditServiceModal from "~/components/services/EditServiceModal";
 import ServiceInfoList from "~/components/services/ServiceInfoList";
 import ServiceInfoSection from "~/components/services/ServiceInfoSection";
 import {
-  getAllServices,
   getExposedPortsOfService,
   getInheritedVariablesOfService,
+  getLinksOfService,
   getServiceWithLiveStatus,
+  getServicesWithLiveStatus,
+  getSharedVariablesOfService,
   getVolumeOptions,
 } from "~/data/services";
 import { notFound } from "~/i18n/navigation";
+import { getLinkedServiceId } from "~/operations/getServiceLinks";
 import { getContainerState } from "~/utils/containerState";
 
 export type ServiceInfoProps = {
@@ -26,6 +29,8 @@ const ServiceInfo = async ({ params }: ServiceInfoProps) => {
     service,
     inheritedVariables,
     services,
+    links,
+    sharedVariables,
     t,
     tService,
     tScopes,
@@ -34,7 +39,9 @@ const ServiceInfo = async ({ params }: ServiceInfoProps) => {
   ] = await Promise.all([
     getServiceWithLiveStatus(id),
     getInheritedVariablesOfService(id),
-    getAllServices(),
+    getServicesWithLiveStatus(),
+    getLinksOfService(id),
+    getSharedVariablesOfService(id),
     getTranslations("ServicePage.info"),
     getTranslations("DashboardPage.service"),
     getTranslations("NewServicePage.envSection.scopes"),
@@ -46,6 +53,11 @@ const ServiceInfo = async ({ params }: ServiceInfoProps) => {
   const exposedPorts = await getExposedPortsOfService(service);
   const { runtime, deployedImage } = service;
   const containerState = getContainerState(runtime.status);
+  const hasRunningInheritors = sharedVariables.length > 0 && links.some(link => {
+    if (!(link.serviceAId === id ? link.serviceBInherits : link.serviceAInherits)) return false;
+    const linked = services.find(({ id: serviceId }) => serviceId === getLinkedServiceId(link, id));
+    return !!linked && getContainerState(linked.runtime.status) === "running";
+  });
   const notAvailable = t("notAvailable");
   const isGitHub = service.type === "github";
 
@@ -171,6 +183,7 @@ const ServiceInfo = async ({ params }: ServiceInfoProps) => {
           section: "variables",
           isGitHub,
           variables: service.environmentVariables,
+          canRecreateLinked: hasRunningInheritors,
           containerState,
         })}
       >
