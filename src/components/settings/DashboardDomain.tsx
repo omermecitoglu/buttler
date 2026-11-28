@@ -9,7 +9,7 @@ import GitHubAppAddresses from "~/components/settings/GitHubAppAddresses";
 import RemoveDashboardDomainModal from "~/components/settings/RemoveDashboardDomainModal";
 import Card from "~/components/ui/card";
 import { getDomainStatuses } from "~/core/cloudflare/domains";
-import { loadDomainZones } from "~/data/cloudflare";
+import { isThroughTunnel, loadDomainZones } from "~/data/cloudflare";
 import db from "~/database";
 import getDashboardDomain from "~/operations/getDashboardDomain";
 
@@ -18,10 +18,12 @@ const DashboardDomain = async () => {
   const [
     hostname,
     domainZones,
+    throughTunnel,
     t,
   ] = await Promise.all([
     getDashboardDomain(db),
     loadDomainZones(),
+    isThroughTunnel(),
     getTranslations("SettingsPage.domain"),
   ]);
   const status = hostname === null ? null : (await getDomainStatuses([hostname]))[0];
@@ -56,7 +58,11 @@ const DashboardDomain = async () => {
         <>
           <GitHubAppAddresses hostname={hostname} />
           <div>
-            <RemoveDashboardDomainModal action={removeDashboardDomainAction} hostname={hostname} />
+            <RemoveDashboardDomainModal
+              action={removeDashboardDomainAction}
+              hostname={hostname}
+              isThroughTunnel={throughTunnel}
+            />
           </div>
         </>
       )}

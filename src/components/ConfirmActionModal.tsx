@@ -8,6 +8,7 @@ import { useTranslations } from "next-intl";
 import { type ReactNode, useState } from "react";
 import RecreateSubmit from "~/components/services/RecreateSubmit";
 import Button from "~/components/ui/button";
+import DisabledReason from "~/components/ui/disabled-reason";
 import Form from "~/components/ui/form";
 
 export type ConfirmActionModalProps = {
@@ -25,6 +26,8 @@ export type ConfirmActionModalProps = {
   recreateOptions?: { name: string, label: string }[],
   /** Sees the result before the modal is closed, e.g. when the item is gone with it */
   onResult?: (result: Record<string, string>) => void,
+  /** Disables the button, and tells why on hover */
+  disabledReason?: string | null,
 };
 
 /** A button that asks for a confirmation in a modal before it runs a destructive action */
@@ -39,6 +42,7 @@ const ConfirmActionModal = ({
   submittingLabel,
   recreateOptions = [],
   onResult,
+  disabledReason,
 }: ConfirmActionModalProps) => {
   const t = useTranslations("Confirm");
   const [open, setOpen] = useState(false);
@@ -65,16 +69,19 @@ const ConfirmActionModal = ({
 
   return (
     <>
-      <Button
-        type="button"
-        variant="ghost"
-        size="xs"
-        onClick={() => handleOpenChange(true)}
-        aria-label={buttonAriaLabel}
-        className="text-slate-400 hover:text-rose-400"
-      >
-        {buttonLabel}
-      </Button>
+      <DisabledReason reason={disabledReason}>
+        <Button
+          type="button"
+          variant="ghost"
+          size="xs"
+          disabled={!!disabledReason}
+          onClick={() => handleOpenChange(true)}
+          aria-label={buttonAriaLabel}
+          className="text-slate-400 hover:text-rose-400"
+        >
+          {buttonLabel}
+        </Button>
+      </DisabledReason>
       <Dialog.Root open={open} onOpenChange={handleOpenChange}>
         <Dialog.Portal>
           <Dialog.Backdrop render={<DialogBackdrop className="fixed inset-0 z-40 bg-black/60 backdrop-blur-xs" />} />

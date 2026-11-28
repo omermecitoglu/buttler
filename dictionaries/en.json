@@ -126,6 +126,7 @@
   "SettingsPage": {
     "title": "Settings",
     "subtitle": "Manage this Buttler instance.",
+    "throughTunnel": "The tunnel carries this page. Open Buttler at localhost, or at the IP and port of the host, to do this.",
     "users": {
       "title": "Users",
       "description": "Only these people can use this instance. Everyone else is denied.",
